@@ -1,0 +1,22 @@
+{
+  "name": "customer-journey-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dashboard per analizzare il funnel e il customer journey (React + TypeScript, Node.js/Express, SQLite)",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "test": "npm test --workspaces",
+    "seed": "npm run seed -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
