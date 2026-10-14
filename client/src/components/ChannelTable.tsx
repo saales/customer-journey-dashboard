@@ -1,11 +1,19 @@
 import type { ChannelRow } from "../api";
 import { formatNumber, formatPercent } from "../format";
+import { ExportButton } from "./ExportButton";
 
-export function ChannelTable({ rows, selected }: { rows: ChannelRow[]; selected: string }) {
+export function ChannelTable({ rows, selected, suffix }: { rows: ChannelRow[]; selected: string; suffix: string }) {
   const max = Math.max(...rows.map((r) => r.visitToCustomer), 1);
   return (
     <div className="card">
-      <h2>Confronto tra canali</h2>
+      <div className="card-head">
+        <h2>Confronto tra canali</h2>
+        <ExportButton
+          filename={`canali_${suffix}.csv`}
+          headers={["Canale", "Visite", "Lead", "Clienti", "Visita → lead (%)", "Visita → cliente (%)"]}
+          rows={rows.map((r) => [r.channel, r.visits, r.leads, r.customers, r.visitToLead, r.visitToCustomer])}
+        />
+      </div>
       <p className="hint">Ordinati per conversione da visita a cliente. Il filtro per canale non si applica a questa tabella.</p>
       <div className="table-wrap">
         <table>

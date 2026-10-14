@@ -1,15 +1,23 @@
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { FunnelStep } from "../api";
 import { formatNumber, formatPercent } from "../format";
+import { ExportButton } from "./ExportButton";
 
 const COLORS = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#16a34a"];
 
-export function FunnelChart({ funnel }: { funnel: FunnelStep[] }) {
+export function FunnelChart({ funnel, suffix }: { funnel: FunnelStep[]; suffix: string }) {
   return (
     <div className="card">
-      <h2>Funnel di conversione</h2>
+      <div className="card-head">
+        <h2>Funnel di conversione</h2>
+        <ExportButton
+          filename={`funnel_${suffix}.csv`}
+          headers={["Stadio", "Clienti", "Conversione dallo stadio precedente (%)", "Conversione dalle visite (%)"]}
+          rows={funnel.map((s) => [s.label, s.count, s.conversionFromPrevious, s.conversionFromVisit])}
+        />
+      </div>
       <p className="hint">Quanti clienti raggiungono ogni stadio. La percentuale indica il passaggio dallo stadio precedente.</p>
-      <div style={{ height: 300 }}>
+      <div style={{ height: 300 }} role="img" aria-label="Grafico a barre del funnel di conversione, dalle visite ai clienti">
         <ResponsiveContainer>
           <BarChart data={funnel} layout="vertical" margin={{ left: 10, right: 90 }}>
             <XAxis type="number" hide />

@@ -55,6 +55,26 @@ describe("API", () => {
     expect(res.status).toBe(400);
   });
 
+  it("restituisce valori a zero se il periodo non contiene dati", async () => {
+    const res = await fetch(`${base}/api/summary?from=2020-01-01&to=2020-02-01`);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.kpis).toMatchObject({ visits: 0, customers: 0, conversionRate: 0, avgDaysToCustomer: null });
+  });
+
+  it("restituisce un 404 JSON per rotte /api inesistenti", async () => {
+    const res = await fetch(`${base}/api/non-esiste`);
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Risorsa non trovata." });
+  });
+
+  it("imposta gli header di sicurezza e nasconde x-powered-by", async () => {
+    const res = await fetch(`${base}/api/health`);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("x-powered-by")).toBeNull();
+  });
+
   it("rifiuta un intervallo invertito con 400", async () => {
     const res = await fetch(`${base}/api/channels?from=2026-05-01&to=2026-01-01`);
     expect(res.status).toBe(400);

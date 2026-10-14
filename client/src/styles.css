@@ -32,3 +32,11 @@ tr.selected td { background: #eff6ff; font-weight: 600; }
 .bar-cell { display: flex; align-items: center; gap: 8px; min-width: 160px; }
 .bar { height: 10px; background: #16a34a; border-radius: 5px; min-width: 2px; }
 @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.export { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+.export:hover { background: #f3f4f6; }
+.export:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.empty { color: #4b5563; text-align: center; margin-bottom: 16px; }
+input[type="date"] { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 0.95rem; }
+.filters { flex-wrap: wrap; }

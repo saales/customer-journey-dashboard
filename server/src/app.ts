@@ -39,6 +39,15 @@ function parseFilters(req: Request, db: Db): Filters {
 
 export function createApp(db: Db) {
   const app = express();
+  app.disable("x-powered-by");
+
+  // Header di sicurezza di base
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    next();
+  });
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -72,6 +81,11 @@ export function createApp(db: Db) {
 
   app.get("/api/timeseries", (req, res) => {
     res.json(getTimeseries(db, parseFilters(req, db)));
+  });
+
+  // Qualsiasi altra rotta /api risponde con un 404 in formato JSON
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Risorsa non trovata." });
   });
 
   // In produzione serve anche il front end compilato

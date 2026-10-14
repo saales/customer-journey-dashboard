@@ -1,5 +1,7 @@
 # Customer Journey Dashboard
 
+[![CI](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
+
 Dashboard web per analizzare il **funnel di conversione** e il **customer journey**: dal primo contatto (visita) all'acquisto, passando per lead, qualificazione e opportunità. Permette di capire **dove si perdono i clienti** e **quali canali convertono meglio**.
 
 > I dati sono **sintetici**: vengono generati automaticamente al primo avvio con un generatore pseudo-casuale deterministico. Non contengono informazioni reali di clienti o aziende.
@@ -10,8 +12,9 @@ Dashboard web per analizzare il **funnel di conversione** e il **customer journe
 - Funnel a 5 stadi (Visita → Lead → Qualificato → Opportunità → Cliente) con la conversione di ogni passaggio
 - Andamento mensile di visite e tasso di conversione
 - Confronto tra canali (Organico, Social, Email, Advertising, Referral)
-- Filtri per periodo (3, 6, 12 mesi) e per canale
-- Gestione di caricamento ed errori nell'interfaccia
+- Filtri per canale e per periodo (ultimi 3, 6, 12 mesi oppure intervallo di date personalizzato)
+- Esportazione in CSV di funnel, andamento e confronto tra canali (compatibile con Excel in italiano)
+- Gestione di caricamento, errori, intervallo di date non valido e periodo senza dati
 
 ## Stack
 
@@ -21,6 +24,7 @@ Dashboard web per analizzare il **funnel di conversione** e il **customer journe
 | Back end | Node.js, Express, TypeScript |
 | Database | SQLite (better-sqlite3) con query SQL di aggregazione |
 | Test | Vitest (query SQL e API REST), Testing Library (interfaccia React) |
+| CI | GitHub Actions (test e build su Node 20 e 22) |
 
 ## Struttura
 
@@ -30,22 +34,24 @@ Dashboard web per analizzare il **funnel di conversione** e il **customer journe
 │   └── src/
 │       ├── api.ts          # Chiamate HTTP tipizzate
 │       ├── useAsync.ts     # Hook per il caricamento dati (con annullamento delle richieste)
+│       ├── csv.ts          # Esportazione CSV
 │       └── components/     # Filtri, KPI, funnel, andamento, tabella canali
-└── server/                 # API REST
-    ├── src/
-    │   ├── db.ts           # Schema SQLite e connessione
-    │   ├── seed.ts         # Generazione dei dati sintetici
-    │   ├── queries.ts      # Query SQL di analisi (funnel, canali, serie storica)
-    │   └── app.ts          # Rotte Express, validazione e gestione errori
-    └── test/               # Test di query e API
+├── server/                 # API REST
+│   ├── src/
+│   │   ├── db.ts           # Schema SQLite e connessione
+│   │   ├── seed.ts         # Generazione dei dati sintetici
+│   │   ├── queries.ts      # Query SQL di analisi (funnel, canali, serie storica)
+│   │   └── app.ts          # Rotte Express, validazione e gestione errori
+│   └── test/               # Test di query e API
+└── docs/
+    └── ARCHITETTURA.md     # Scelte progettuali e limiti
 ```
 
-I test dell'interfaccia sono in `client/src/App.test.tsx`.
-
+Le scelte progettuali (analisi per coorte, query SQL, validazione, test, limiti) sono spiegate in [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 
 ### Come funziona l'analisi
 
-Le analisi lavorano per **coorte**: si considerano i clienti la cui prima visita cade nel periodo scelto e si seguono i loro eventi lungo il funnel. Così le percentuali di conversione non cambiano a seconda di quando avviene ogni passaggio.
+Le analisi lavorano per **coorte**: si considerano i clienti la cui prima visita cade nel periodo scelto e si seguono i loro eventi lungo il funnel. Così le percentuali di conversione sono confrontabili tra periodi e canali.
 
 ## API
 
@@ -85,9 +91,17 @@ L'applicazione completa (API e interfaccia) è disponibile su http://localhost:3
 npm test
 ```
 
+## Come è stato realizzato
+
+Il progetto è stato realizzato con l'assistenza di strumenti di intelligenza artificiale, usati per generare il codice iniziale, i test e la documentazione. Lo studio, lo eseguo, lo pubblico e lo estendo io: la cronologia dei commit mostra le modifiche successive.
+
 ## Possibili sviluppi
 
-- Filtro per intervallo di date personalizzato
-- Esportazione dei dati in CSV
-- Autenticazione e dati caricabili dall'utente
-- Grafici e tabelle esportabili in immagine
+- Importazione di dati da CSV al posto di quelli sintetici
+- Confronto tra due periodi
+- Autenticazione e database PostgreSQL
+- Test end-to-end con Playwright
+
+## Licenza
+
+MIT, vedi [LICENSE](LICENSE).
