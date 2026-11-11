@@ -5,7 +5,7 @@
 Rispondere a due domande tipiche di chi analizza il percorso d'acquisto:
 
 1. **Dove si perdono i clienti** lungo il funnel (visita → lead → qualificato → opportunità → cliente)?
-2. **Quali canali** (organico, social, email, advertising, referral) convertono meglio?
+2. **Quali canali** (Organico, social, email, advertising, referral) convertono meglio?
 
 ## Modello dati
 

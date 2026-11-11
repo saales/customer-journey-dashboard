@@ -5,10 +5,13 @@ interface State<T> {
   loading: boolean;
   error: string | null;
 }
-
 /** Esegue una chiamata asincrona e la riesegue (annullando la precedente) quando cambiano le dipendenze. */
-export function useAsync<T>(fn: (signal: AbortSignal) => Promise<T>, deps: unknown[]): State<T> {
+export function useAsync<T>(
+  fn: (signal: AbortSignal) => Promise<T>,
+  deps: unknown[]
+): State<T> & { refresh: () => void } {
   const [state, setState] = useState<State<T>>({ data: null, loading: true, error: null });
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -21,7 +24,10 @@ export function useAsync<T>(fn: (signal: AbortSignal) => Promise<T>, deps: unkno
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, refreshIndex]);
 
-  return state;
+  return {
+  ...state,
+  refresh: () => setRefreshIndex((index) => index + 1),
+};
 }

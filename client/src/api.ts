@@ -39,6 +39,24 @@ export interface MonthPoint {
   conversion: number;
 }
 
+export interface CustomerEvent {
+  stage: string;
+  occurredAt: string;
+}
+
+export interface Customer {
+  id: number;
+  channel: string;
+  createdAt: string;
+  events: CustomerEvent[];
+}
+
+export interface CustomerInput {
+  channel: string;
+  createdAt: string;
+  events: CustomerEvent[];
+}
+
 export interface Query {
   from: string;
   to: string;
@@ -56,9 +74,43 @@ async function get<T>(path: string, params: Record<string, string | undefined>, 
   return res.json() as Promise<T>;
 }
 
+
+async function send<T>(
+  path: string,
+  method: "POST" | "PUT" | "DELETE",
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(`/api/${path}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error ?? `Errore ${res.status}`);
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  return res.json() as Promise<T>;
+}
+
+
 export const api = {
   meta: (signal?: AbortSignal) => get<Meta>("meta", {}, signal),
   summary: (q: Query, signal?: AbortSignal) => get<Summary>("summary", { ...q }, signal),
   channels: (q: Query, signal?: AbortSignal) => get<ChannelRow[]>("channels", { ...q }, signal),
   timeseries: (q: Query, signal?: AbortSignal) => get<MonthPoint[]>("timeseries", { ...q }, signal),
+  customers: (signal?: AbortSignal) => get<Customer[]>("customers", {}, signal),
+  createCustomer: (data: CustomerInput) =>
+  send<Customer>("customers", "POST", data),
+
+updateCustomer: (id: number, data: CustomerInput) =>
+  send<Customer>(`customers/${id}`, "PUT", data),
+
+deleteCustomer: (id: number) =>
+  send<void>(`customers/${id}`, "DELETE"),
 };

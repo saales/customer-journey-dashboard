@@ -79,4 +79,127 @@ describe("API", () => {
     const res = await fetch(`${base}/api/channels?from=2026-05-01&to=2026-01-01`);
     expect(res.status).toBe(400);
   });
+
+  it("restituisce l'elenco dei clienti con i relativi eventi", async () => {
+  const res = await fetch(`${base}/api/customers`);
+  const customers = await res.json();
+
+  expect(res.status).toBe(200);
+  expect(Array.isArray(customers)).toBe(true);
+  expect(customers.length).toBe(500);
+
+  const firstCustomer = customers[0];
+
+  expect(firstCustomer).toHaveProperty("id");
+  expect(firstCustomer).toHaveProperty("channel");
+  expect(firstCustomer).toHaveProperty("createdAt");
+  expect(Array.isArray(firstCustomer.events)).toBe(true);
+
+  expect(firstCustomer.events[0].stage).toBe("visit");
+});
+
+  it("crea un cliente con i suoi eventi", async () => {
+  const before = await (await fetch(`${base}/api/summary`)).json();
+
+  const res = await fetch(`${base}/api/customers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      channel: "Email",
+      createdAt: "2026-11-06",
+      events: [
+        {
+          stage: "lead",
+          occurredAt: "2026-11-08",
+        },
+        {
+          stage: "qualified",
+          occurredAt: "2026-11-12",
+        },
+      ],
+    }),
+  });
+
+  const created = await res.json();
+
+  expect(created.id).toBeGreaterThan(0);
+
+  expect(res.status).toBe(201);
+  expect(created.id).toBeGreaterThan(0);
+  expect(created.channel).toBe("Email");
+  expect(created.events).toHaveLength(3);
+  expect(created.events[0].stage).toBe("visit");
+
+  const after = await (await fetch(`${base}/api/summary`)).json();
+
+  expect(after.kpis.visits).toBe(before.kpis.visits + 1);
+});
+it("modifica un cliente e sostituisce i suoi eventi", async () => {
+  const createRes = await fetch(`${base}/api/customers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      channel: "Email",
+      createdAt: "2026-11-06",
+      events: [
+        { stage: "lead", occurredAt: "2026-11-08" },
+      ],
+    }),
+  });
+
+  const created = await createRes.json();
+
+  const updateRes = await fetch(`${base}/api/customers/${created.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      channel: "Social",
+      createdAt: "2026-11-07",
+      events: [
+        { stage: "lead", occurredAt: "2026-11-09" },
+        { stage: "qualified", occurredAt: "2026-11-12" },
+      ],
+    }),
+  });
+
+  const updated = await updateRes.json();
+
+  expect(updateRes.status).toBe(200);
+  expect(updated.id).toBe(created.id);
+  expect(updated.channel).toBe("Social");
+  expect(updated.createdAt).toBe("2026-11-07");
+  expect(updated.events).toHaveLength(3);
+  expect(updated.events[0].stage).toBe("visit");
+  expect(updated.events[1].stage).toBe("lead");
+  expect(updated.events[2].stage).toBe("qualified");
+});
+it("elimina un cliente e i suoi eventi", async () => {
+  const createRes = await fetch(`${base}/api/customers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      channel: "Email",
+      createdAt: "2026-11-06",
+      events: [
+        { stage: "lead", occurredAt: "2026-11-08" },
+      ],
+    }),
+  });
+
+  const created = await createRes.json();
+
+  const deleteRes = await fetch(`${base}/api/customers/${created.id}`, {
+    method: "DELETE",
+  });
+
+  expect(deleteRes.status).toBe(204);
+
+  const customersRes = await fetch(`${base}/api/customers`);
+  const customers = await customersRes.json();
+
+  expect(customers.some((customer: { id: number }) => customer.id === created.id)).toBe(false);
+});
+
 });

@@ -5,3 +5,7 @@ coverage
 *.db-*
 .env
 .DS_Store
+# Screenshot locali
+/Screenshot*.png
+docs/Screenshot*.png
+docs/Autoformazione_React_Native_e_React.pdf

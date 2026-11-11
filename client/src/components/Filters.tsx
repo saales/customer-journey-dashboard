@@ -38,11 +38,11 @@ export function Filters(p: Props) {
       {p.preset === "custom" && (
         <>
           <label>
-            Dal
+            Data iniziale
             <input type="date" value={p.from} min={p.minDate} max={p.maxDate} onChange={(e) => p.onFrom(e.target.value)} />
           </label>
           <label>
-            Al
+            Data finale
             <input type="date" value={p.to} min={p.minDate} max={p.maxDate} onChange={(e) => p.onTo(e.target.value)} />
           </label>
         </>
