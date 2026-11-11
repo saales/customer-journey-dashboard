@@ -2,7 +2,7 @@
 
 Dashboard web per analizzare il **funnel di conversione** e il **customer journey**: dal primo contatto (visita) all'acquisto, passando per contatto, qualificazione e opportunità.
 
-Permette di monitorare le performance del percorso di conversione, individuare i punti di abbandono e confrontare l'efficacia dei diversi canali di acquisizione.
+Il progetto permette di monitorare le performance del percorso di conversione, individuare i punti di abbandono e confrontare l'efficacia dei diversi canali di acquisizione.
 
 [![CI](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
@@ -11,7 +11,7 @@ Permette di monitorare le performance del percorso di conversione, individuare i
 ## Funzionalità
 
 - **Panoramica KPI:** visite iniziali, contatti acquisiti, clienti, tasso di conversione e giorni medi all'acquisto.
-- **Funnel di conversione:** analisi delle 5 fasi del percorso (Visita → Contatto → Qualificato → Opportunità → Cliente), con percentuali di conversione tra le fasi.
+- **Funnel di conversione:** analisi delle cinque fasi del percorso (Visita → Contatto → Qualificato → Opportunità → Cliente), con percentuali di conversione tra le fasi.
 - **Andamento mensile:** visualizzazione dell'evoluzione delle visite e del tasso di conversione.
 - **Confronto tra canali:** analisi delle performance di Organico, Social, Email, Pubblicità e Passaparola.
 - **Filtri interattivi:** selezione del periodo e del canale, con intervalli temporali predefiniti o personalizzati.
@@ -23,7 +23,7 @@ Permette di monitorare le performance del percorso di conversione, individuare i
 ## Stack tecnologico
 
 | Livello | Tecnologie |
-| --- | --- |
+|---|---|
 | Frontend | React 18, TypeScript, Vite, Recharts, Lucide React |
 | Backend | Node.js, Express, TypeScript |
 | Database | SQLite con better-sqlite3 e query SQL di aggregazione |
@@ -50,16 +50,21 @@ Permette di monitorare le performance del percorso di conversione, individuare i
 │       └── styles.css
 ├── server/
 │   ├── src/
+│   │   ├── index.ts
+│   │   ├── app.ts
 │   │   ├── db.ts
 │   │   ├── seed.ts
-│   │   ├── queries.ts
-│   │   └── app.ts
+│   │   ├── seed-cli.ts
+│   │   └── queries.ts
 │   └── test/
-└── docs/
-    └── ARCHITETTURA.md
+├── docs/
+│   └── ARCHITETTURA.md
+├── package.json
+├── README.md
+└── LICENSE
 ```
 
-Le scelte progettuali, l'analisi per coorte, le query SQL, la validazione e i limiti dell'applicazione sono approfonditi in [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
+Le scelte progettuali, l'analisi per coorte, le query SQL, la validazione e i limiti dell'applicazione sono approfonditi nel documento [Architettura e scelte progettuali](docs/ARCHITETTURA.md).
 
 ## Come funziona l'analisi
 
@@ -69,20 +74,21 @@ Questo approccio permette di confrontare le percentuali di conversione tra perio
 
 ## API
 
+Le API REST consentono di consultare i dati e gestire le anagrafiche dei clienti.
+
 | Metodo e percorso | Descrizione |
-| --- | --- |
+|---|---|
 | `GET /api/health` | Verifica che il server sia attivo |
-| `GET /api/meta` | Intervallo di date disponibile e lista dei canali |
-| `GET /api/summary?from&to&channel` | KPI e funnel |
-| `GET /api/channels?from&to` | Confronto tra canali |
-| `GET /api/timeseries?from&to&channel` | Andamento mensile |
-| `| `GET /api/customers` | Recupera l'elenco dei clienti |
+| `GET /api/meta` | Recupera l'intervallo di date disponibile e la lista dei canali |
+| `GET /api/summary?from&to&channel` | Recupera KPI e dati del funnel |
+| `GET /api/channels?from&to` | Recupera il confronto tra canali |
+| `GET /api/timeseries?from&to&channel` | Recupera l'andamento mensile |
+| `GET /api/customers` | Recupera l'elenco dei clienti |
 | `POST /api/customers` | Inserisce un nuovo cliente |
 | `PUT /api/customers/:id` | Modifica i dati di un cliente |
-| `DELETE /api/customers/:id` | Elimina un cliente | | Gestione dei dati cliente |
+| `DELETE /api/customers/:id` | Elimina un cliente |
 
 I parametri `from` e `to` utilizzano il formato `YYYY-MM-DD`. I valori non validi restituiscono una risposta HTTP `400` con un messaggio descrittivo.
-
 
 ## Come avviarlo
 
@@ -104,7 +110,7 @@ Il comando avvia contemporaneamente il server API e l'interfaccia web.
 
 Aprire nel browser:
 
-http://localhost:5173
+[http://localhost:5173](http://localhost:5173)
 
 Il database SQLite (`journey.db`) viene creato e popolato automaticamente al primo avvio, utilizzando dati sintetici.
 
@@ -124,7 +130,7 @@ npm start -w server
 
 L'applicazione completa è disponibile all'indirizzo:
 
-http://localhost:3001
+[http://localhost:3001](http://localhost:3001)
 
 ### Test automatici
 
@@ -142,11 +148,15 @@ npm run seed
 
 ## Sviluppo del progetto
 
-Il progetto è stato sviluppato attraverso un percorso di analisi, sperimentazione e miglioramento progressivo, con il supporto di strumenti di intelligenza artificiale.
+Ho realizzato questo progetto attraverso un percorso progressivo di analisi, progettazione, sviluppo e verifica.
 
-Il lavoro ha riguardato la comprensione delle logiche di analisi del customer journey, la progettazione della struttura applicativa, la gestione dei dati, la realizzazione e il miglioramento dell'interfaccia e la verifica del funzionamento tramite test automatici.
+Durante il lavoro mi sono concentrato sulla comprensione delle logiche del customer journey, sulla modellazione dei dati e sulla realizzazione di un'applicazione capace di rappresentare in modo chiaro le diverse fasi del percorso di conversione.
 
-Particolare attenzione è stata dedicata alla leggibilità delle informazioni, alla coerenza dei dati e alla facilità di utilizzo della dashboard.
+Ho lavorato sull'integrazione tra frontend e backend, sulla gestione dei dati tramite database SQLite, sulla progettazione delle API e sulla realizzazione di funzionalità di analisi e gestione dei clienti.
+
+Una parte importante del lavoro ha riguardato anche il miglioramento dell'esperienza utente, la leggibilità delle informazioni, la gestione degli errori e la verifica del funzionamento attraverso test automatici.
+
+Il progetto rappresenta un'esperienza pratica di applicazione delle competenze informatiche a un caso d'uso orientato all'analisi dei processi aziendali.
 
 ## Possibili sviluppi
 
