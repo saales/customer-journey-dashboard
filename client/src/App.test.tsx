@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { startOfPeriod } from "./format";
 
-const meta = { minDate: "2025-10-01", maxDate: "2026-09-30", channels: ["Organico", "Social", "Email"] };
+const meta = {
+  minDate: "2025-10-01",
+  maxDate: "2026-09-30",
+  channels: ["Organico", "Social", "Email"],
+};
 
 const summary = {
   funnel: [
@@ -13,7 +17,13 @@ const summary = {
     { stage: "opportunity", label: "Opportunità", count: 50, conversionFromPrevious: 50, conversionFromVisit: 5 },
     { stage: "customer", label: "Cliente", count: 20, conversionFromPrevious: 40, conversionFromVisit: 2 },
   ],
-  kpis: { visits: 12345, leads: 200, customers: 20, conversionRate: 2, avgDaysToCustomer: 31.5 },
+  kpis: {
+    visits: 12345,
+    leads: 200,
+    customers: 20,
+    conversionRate: 2,
+    avgDaysToCustomer: 31.5,
+  },
 };
 
 const channels = [
@@ -27,10 +37,19 @@ const timeseries = [
 ];
 
 function json(body: unknown, status = 200) {
-  return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }));
+  return Promise.resolve(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;
+
+function openAnalytics() {
+  fireEvent.click(screen.getByRole("button", { name: "Analisi e report" }));
+}
 
 beforeEach(() => {
   fetchMock = vi.fn((url: string) => {
@@ -40,6 +59,7 @@ beforeEach(() => {
     if (url.startsWith("/api/timeseries")) return json(timeseries);
     return json({ error: "non trovato" }, 404);
   });
+
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -51,38 +71,75 @@ afterEach(() => {
 describe("App", () => {
   it("mostra KPI, tabella dei canali e avviso sui dati sintetici", async () => {
     render(<App />);
-    expect(await screen.findByText("Conversione visita → cliente")).toBeTruthy();
-    expect(screen.getByText("12.345")).toBeTruthy(); // visite formattate in italiano
-    expect(screen.getByText("31,5")).toBeTruthy(); // giorni medi con la virgola
+
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+    expect(screen.getByText("12.345")).toBeTruthy();
+    expect(screen.getByText("31,5")).toBeTruthy();
+    expect(screen.getByText(/Dati sintetici/)).toBeTruthy();
+
+    openAnalytics();
+
     expect(await screen.findByText("Confronto tra canali")).toBeTruthy();
     expect(within(screen.getByRole("table")).getByText("Email")).toBeTruthy();
-    expect(screen.getByText(/Dati sintetici/)).toBeTruthy();
   });
 
   it("richiede i dati del periodo più recente (ultimi 12 mesi)", async () => {
     render(<App />);
-    await screen.findByText("Conversione visita → cliente");
-    await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => String(u).includes("/api/summary"))).toBe(true));
-    const url = String(fetchMock.mock.calls.find(([u]) => String(u).includes("/api/summary"))![0]);
+
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).includes("/api/summary"),
+        ),
+      ).toBe(true),
+    );
+
+    const url = String(
+      fetchMock.mock.calls.find(([u]) =>
+        String(u).includes("/api/summary"),
+      )![0],
+    );
+
     expect(url).toContain("from=2025-10-01");
     expect(url).toContain("to=2026-09-30");
   });
 
   it("invia il canale scelto nel filtro", async () => {
     render(<App />);
-    await screen.findByText("Conversione visita → cliente");
-    fireEvent.change(screen.getByLabelText("Canale"), { target: { value: "Email" } });
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+
+    openAnalytics();
+
+    fireEvent.change(screen.getByLabelText("Canale"), {
+      target: { value: "Email" },
+    });
+
     await waitFor(() =>
-      expect(fetchMock.mock.calls.some(([u]) => String(u).includes("/api/summary") && String(u).includes("channel=Email"))).toBe(true),
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            String(url).includes("/api/summary") &&
+            String(url).includes("channel=Email"),
+        ),
+      ).toBe(true),
     );
   });
 
   it("mostra un messaggio se l'API risponde con un errore", async () => {
     fetchMock.mockImplementation((url: string) =>
-      url.startsWith("/api/meta") ? json(meta) : json({ error: "Errore di prova" }, 500),
+      url.startsWith("/api/meta")
+        ? json(meta)
+        : json({ error: "Errore di prova" }, 500),
     );
+
     render(<App />);
-    expect(await screen.findByText(/Impossibile caricare i dati/)).toBeTruthy();
+
+    expect(
+      await screen.findByText(/Impossibile caricare i dati/),
+    ).toBeTruthy();
+
     expect(screen.getByText(/Errore di prova/)).toBeTruthy();
   });
 });
@@ -101,44 +158,104 @@ describe("startOfPeriod", () => {
 });
 
 describe("App - filtri e stati", () => {
-  const summaryCalls = () => fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.includes("/api/summary"));
+  const summaryCalls = () =>
+    fetchMock.mock.calls
+      .map(([url]) => String(url))
+      .filter((url) => url.includes("/api/summary"));
 
   it("permette di scegliere un intervallo di date personalizzato", async () => {
     render(<App />);
-    await screen.findByText("Conversione visita → cliente");
-    fireEvent.change(screen.getByLabelText("Periodo"), { target: { value: "custom" } });
-    const from = await screen.findByLabelText("Dal");
-    expect((from as HTMLInputElement).value).toBe("2025-10-01"); // parte dall'intervallo mostrato
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+
+    openAnalytics();
+
+    fireEvent.change(screen.getByLabelText("Periodo"), {
+      target: { value: "custom" },
+    });
+
+    const from = await screen.findByLabelText("Data iniziale");
+
+    expect((from as HTMLInputElement).value).toBe("2025-10-01");
+
     fireEvent.change(from, { target: { value: "2026-03-01" } });
-    await waitFor(() => expect(summaryCalls().some((u) => u.includes("from=2026-03-01") && u.includes("to=2026-09-30"))).toBe(true));
+
+    await waitFor(() =>
+      expect(
+        summaryCalls().some(
+          (url) =>
+            url.includes("from=2026-03-01") &&
+            url.includes("to=2026-09-30"),
+        ),
+      ).toBe(true),
+    );
   });
 
   it("avvisa se la data di inizio è successiva a quella di fine e non chiama l'API", async () => {
     render(<App />);
-    await screen.findByText("Conversione visita → cliente");
-    fireEvent.change(screen.getByLabelText("Periodo"), { target: { value: "custom" } });
-    fireEvent.change(await screen.findByLabelText("Al"), { target: { value: "2026-01-01" } });
-    fireEvent.change(screen.getByLabelText("Dal"), { target: { value: "2026-06-01" } });
-    expect(await screen.findByText("La data di inizio deve precedere la data di fine.")).toBeTruthy();
-    expect(summaryCalls().some((u) => u.includes("from=2026-06-01"))).toBe(false);
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+
+    openAnalytics();
+
+    fireEvent.change(screen.getByLabelText("Periodo"), {
+      target: { value: "custom" },
+    });
+
+    fireEvent.change(await screen.findByLabelText("Data finale"), {
+      target: { value: "2026-01-01" },
+    });
+
+    fireEvent.change(screen.getByLabelText("Data iniziale"), {
+      target: { value: "2026-06-01" },
+    });
+
+    expect(
+      await screen.findByText(
+        "La data di inizio deve precedere la data di fine.",
+      ),
+    ).toBeTruthy();
+
+    expect(
+      summaryCalls().some((url) => url.includes("from=2026-06-01")),
+    ).toBe(false);
   });
 
   it("mostra un messaggio se il periodo non contiene dati", async () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.startsWith("/api/meta")) return json(meta);
+
       if (url.startsWith("/api/summary")) {
-        return json({ ...summary, kpis: { visits: 0, leads: 0, customers: 0, conversionRate: 0, avgDaysToCustomer: null } });
+        return json({
+          ...summary,
+          kpis: {
+            visits: 0,
+            leads: 0,
+            customers: 0,
+            conversionRate: 0,
+            avgDaysToCustomer: null,
+          },
+        });
       }
+
       return json([]);
     });
+
     render(<App />);
-    expect(await screen.findByText("Nessun dato per il periodo e il canale selezionati.")).toBeTruthy();
+
+    expect(
+      await screen.findByText(
+        "Nessun dato per il periodo e il canale selezionati.",
+      ),
+    ).toBeTruthy();
   });
 
   it("offre l'esportazione CSV per funnel, andamento e canali", async () => {
     render(<App />);
-    const buttons = await screen.findAllByText("Esporta CSV");
-    await waitFor(() => expect(screen.getAllByText("Esporta CSV")).toHaveLength(3));
-    expect(buttons.length).toBeGreaterThan(0);
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+
+    openAnalytics();
+
+    await waitFor(() =>
+      expect(screen.getAllByText("Esporta CSV")).toHaveLength(3),
+    );
   });
 });
