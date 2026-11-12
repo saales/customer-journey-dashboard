@@ -202,4 +202,79 @@ it("elimina un cliente e i suoi eventi", async () => {
   expect(customers.some((customer: { id: number }) => customer.id === created.id)).toBe(false);
 });
 
+
+  it("importa i dati CSV, impedisce i duplicati e rifiuta dati non validi", async () => {
+    const validRows = [
+      { externalId: "IMP001", channel: "Organico", createdAt: "2098-01-10", stage: "visit", occurredAt: "2098-01-10" },
+      { externalId: "IMP001", channel: "Organico", createdAt: "2098-01-10", stage: "lead", occurredAt: "2098-01-12" },
+      { externalId: "IMP001", channel: "Organico", createdAt: "2098-01-10", stage: "qualified", occurredAt: "2098-01-18" },
+      { externalId: "IMP002", channel: "Social", createdAt: "2098-01-15", stage: "visit", occurredAt: "2098-01-15" },
+      { externalId: "IMP002", channel: "Social", createdAt: "2098-01-15", stage: "lead", occurredAt: "2098-01-20" },
+      { externalId: "IMP002", channel: "Social", createdAt: "2098-01-15", stage: "customer", occurredAt: "2098-02-10" },
+      { externalId: "IMP003", channel: "Email", createdAt: "2098-02-03", stage: "visit", occurredAt: "2098-02-03" },
+      { externalId: "IMP003", channel: "Email", createdAt: "2098-02-03", stage: "lead", occurredAt: "2098-02-05" },
+    ];
+
+    const customersBefore = await (
+      await fetch(`${base}/api/customers`)
+    ).json();
+
+    const payload = {
+      fileName: "import-test.csv",
+      rows: validRows,
+    };
+
+    // 1. Importazione valida
+    const importRes = await fetch(`${base}/api/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const imported = await importRes.json();
+
+    expect(importRes.status).toBe(201);
+    expect(imported.importedCustomers).toBe(3);
+    expect(imported.importedRows).toBe(8);
+    expect(imported.importedEvents).toBe(8);
+
+    // 2. Lo stesso contenuto non deve essere importato due volte
+    const duplicateRes = await fetch(`${base}/api/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    expect(duplicateRes.status).toBe(409);
+
+    // 3. Un canale non valido deve bloccare l'importazione
+    const invalidRes = await fetch(`${base}/api/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: "import-non-valido.csv",
+        rows: [
+          ...validRows,
+          {
+            externalId: "IMP004",
+            channel: "Canale inesistente",
+            createdAt: "2098-03-01",
+            stage: "visit",
+            occurredAt: "2098-03-01",
+          },
+        ],
+      }),
+    });
+
+    expect(invalidRes.status).toBe(400);
+
+    // Nessun cliente deve essere stato aggiunto dai tentativi rifiutati
+    const customersAfter = await (
+      await fetch(`${base}/api/customers`)
+    ).json();
+
+    expect(customersAfter).toHaveLength(customersBefore.length + 3);
+  });
+
+
 });

@@ -21,6 +21,8 @@ export function ChannelTable({
 
         <ExportButton
           filename={`canali_${suffix}.csv`}
+          title="Analisi delle performance per canale"
+          description="Confronto dei canali di acquisizione in base a visite, contatti acquisiti, clienti e tassi di conversione."
           headers={[
             "Canale",
             "Visite",
@@ -41,9 +43,10 @@ export function ChannelTable({
       </div>
 
       <p className="hint">
-  Confronto dei canali in base al tasso di conversione in cliente.
-  I filtri non modificano questo confronto.
-</p>
+        Confronto dei canali in base al tasso di conversione in cliente.
+        I filtri non modificano questo confronto.
+      </p>
+
       <div className="table-wrap">
         <table>
           <thead>
@@ -71,17 +74,17 @@ export function ChannelTable({
                   {formatPercent(r.visitToLead)}
                 </td>
                 <td>
-              <div className="bar-cell">
-  <div className="bar-track">
-    <div
-      className="bar"
-      style={{
-        width: `${(r.visitToCustomer / max) * 100}%`,
-      }}
-    />
-  </div>
-  <span>{formatPercent(r.visitToCustomer)}</span>
-</div>
+                  <div className="bar-cell">
+                    <div className="bar-track">
+                      <div
+                        className="bar"
+                        style={{
+                          width: `${(r.visitToCustomer / max) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span>{formatPercent(r.visitToCustomer)}</span>
+                  </div>
                 </td>
               </tr>
             ))}

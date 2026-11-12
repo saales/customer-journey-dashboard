@@ -30,14 +30,21 @@ export function TrendChart({
       <div className="card-head">
         <div className="chart-heading">
           <h2>Andamento mensile</h2>
-         <span className="chart-caption">
-  Risultati e conversioni nel tempo
-</span>
+          <span className="chart-caption">
+            Risultati e conversioni nel tempo
+          </span>
         </div>
 
         <ExportButton
           filename={`andamento_${suffix}.csv`}
-          headers={["Mese", "Visite", "Clienti", "Conversione (%)"]}
+          title="Analisi dell'andamento mensile"
+          description="Andamento mensile delle visite, dei clienti acquisiti e del tasso di conversione nel percorso cliente."
+          headers={[
+            "Mese",
+            "Visite",
+            "Clienti",
+            "Conversione (%)",
+          ]}
           rows={data.map((m) => [
             m.month,
             m.visits,
@@ -49,7 +56,7 @@ export function TrendChart({
 
       <p className="hint">
         Numero di visite e tasso di conversione in clienti,
-analizzati per mese di ingresso nel percorso.
+        analizzati per mese di ingresso nel percorso.
       </p>
 
       <div

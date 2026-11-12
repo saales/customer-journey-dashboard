@@ -60,7 +60,7 @@ button {
   --chart-grid: #e5eaf1;
   --chart-hover: rgba(82, 109, 229, 0.07);
 
-    --kpi-blue-text: #526de5;
+  --kpi-blue-text: #526de5;
   --kpi-blue-bg: #edf0ff;
   --kpi-purple-text: #8959cf;
   --kpi-purple-bg: #f3edff;
@@ -93,7 +93,8 @@ button {
   --chart-teal: #45cbb4;
   --chart-grid: #374151;
   --chart-hover: rgba(113, 136, 255, 0.12);
-    --kpi-blue-text: #9eafff;
+
+  --kpi-blue-text: #9eafff;
   --kpi-blue-bg: rgba(82, 109, 229, 0.18);
   --kpi-purple-text: #c2a1ff;
   --kpi-purple-bg: rgba(137, 89, 207, 0.18);
@@ -346,6 +347,7 @@ button {
   margin-bottom: 24px;
   align-items: stretch;
 }
+
 .app-shell .kpi {
   position: relative;
   display: flex;
@@ -390,11 +392,6 @@ button {
 }
 
 .kpi-blue .kpi-icon {
-  color: #526de5;
-  background: #edf0ff;
-}
-
-.kpi-blue .kpi-icon {
   color: var(--kpi-blue-text);
   background: var(--kpi-blue-bg);
 }
@@ -418,6 +415,7 @@ button {
   color: var(--kpi-orange-text);
   background: var(--kpi-orange-bg);
 }
+
 .kpi-value {
   display: block;
   color: var(--text-primary);
@@ -434,31 +432,6 @@ button {
   color: var(--text-secondary);
   font-size: 0.76rem;
   line-height: 1.5;
-}
-
-.theme-dark .kpi-blue .kpi-icon {
-  color: #9baaff;
-  background: rgba(82, 109, 229, 0.18);
-}
-
-.theme-dark .kpi-purple .kpi-icon {
-  color: #c3a2ff;
-  background: rgba(137, 89, 207, 0.18);
-}
-
-.theme-dark .kpi-teal .kpi-icon {
-  color: #65d5c2;
-  background: rgba(21, 155, 137, 0.18);
-}
-
-.theme-dark .kpi-green .kpi-icon {
-  color: #77d99e;
-  background: rgba(38, 155, 98, 0.18);
-}
-
-.theme-dark .kpi-orange .kpi-icon {
-  color: #ffc17c;
-  background: rgba(213, 138, 50, 0.18);
 }
 
 /* ========================================
@@ -502,7 +475,6 @@ button {
   height: 300px;
   margin-top: 16px;
 }
-
 
 .funnel-chart-container {
   min-width: 0;
@@ -552,7 +524,6 @@ button {
   white-space: nowrap;
 }
 
-
 .app-shell th {
   color: var(--text-secondary);
   font-size: 0.8rem;
@@ -572,7 +543,6 @@ button {
 .app-shell tbody tr:hover td {
   background: var(--chart-hover);
 }
-
 
 .app-shell tr.selected td {
   background: var(--kpi-blue-bg);
@@ -919,4 +889,514 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+}
+
+/* ========================================
+   IMPORTAZIONE DATI
+======================================== */
+
+.import-page {
+  display: grid;
+  gap: 20px;
+}
+
+.import-upload {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 180px;
+  margin-top: 18px;
+  padding: 24px;
+  border: 2px dashed var(--border-color);
+  border-radius: 14px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.import-upload:hover,
+.import-upload:focus-within {
+  border-color: var(--accent);
+  background: rgba(82, 109, 229, 0.06);
+}
+
+.import-upload svg {
+  color: var(--accent);
+}
+
+.import-upload strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.import-upload span {
+  font-size: 0.8rem;
+}
+
+.import-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.import-validation-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.import-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.import-summary-item strong {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.import-summary-item span {
+  line-height: 1.4;
+}
+
+.import-valid,
+.import-invalid {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.import-valid {
+  color: #16856d;
+}
+
+.import-invalid {
+  color: #d34b55;
+}
+
+.import-preview .table-wrap {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.import-preview table {
+  min-width: 1050px;
+}
+
+.import-preview th {
+  background: var(--surface-hover);
+}
+
+.import-preview td {
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.import-preview tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.import-cell-input {
+  width: 100%;
+  min-width: 110px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.import-cell-input:focus {
+  border-color: var(--accent);
+  outline: 2px solid rgba(82, 109, 229, 0.16);
+}
+
+.import-cell-error {
+  border-color: #d34b55;
+  background: rgba(211, 75, 85, 0.06);
+}
+
+.theme-dark .import-upload:hover,
+.theme-dark .import-upload:focus-within {
+  background: rgba(82, 109, 229, 0.12);
+}
+
+.theme-dark .import-valid {
+  color: #55c9a8;
+}
+
+.theme-dark .import-invalid {
+  color: #ff858b;
+}
+
+@media (max-width: 700px) {
+  .import-validation-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .import-upload {
+    min-height: 150px;
+    padding: 18px;
+  }
+
+  .import-preview .card-head {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 380px) {
+  .import-summary-item {
+    padding: 12px;
+  }
+
+  .import-summary-item strong {
+    font-size: 1.3rem;
+  }
+
+  .import-summary-item span {
+    font-size: 0.78rem;
+  }
+}
+
+/* ========================================
+   CONFIGURAZIONE FUNNEL
+======================================== */
+
+.funnel-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.funnel-settings > h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.funnel-settings > .subtitle {
+  margin: -8px 0 4px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.funnel-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.funnel-stage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.funnel-stage-row:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.funnel-stage-row.inactive {
+  opacity: 0.65;
+  background: var(--surface-hover);
+}
+
+.funnel-stage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.funnel-stage-info strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.funnel-stage-info .hint {
+  margin: 0;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.funnel-stage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.app-shell .button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 550;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.app-shell .button-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.app-shell .button-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.app-shell .button-secondary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.funnel-stage-add {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 16px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-hover);
+}
+
+.funnel-stage-add > label {
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.funnel-stage-add-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.funnel-stage-add-controls input {
+  flex: 1;
+  min-width: 0;
+}
+
+.funnel-stage-add-controls button {
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+}
+
+.funnel-stage-add-controls button:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.funnel-stage-add-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.funnel-settings > .hint:last-child {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .funnel-stage-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .funnel-stage-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .funnel-stage-add-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .funnel-stage-add-controls button {
+    width: 100%;
+  }
+
+  .funnel-stage-actions {
+    gap: 6px;
+  }
+
+  .app-shell .button-secondary {
+    padding: 6px 8px;
+    font-size: 0.76rem;
+  }
+}
+
+
+/* ========================================
+   CUSTOMER SEGMENTATION
+======================================== */
+
+.segmentation-page {
+  display: grid;
+  gap: 16px;
+}
+
+.segmentation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.segmentation-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 210px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-hover);
+}
+
+.segmentation-summary-item svg {
+  color: var(--chart-teal);
+}
+
+.segmentation-summary-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.segmentation-summary-item span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.segmentation-summary-item strong {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+}
+
+.segment-open-button,
+.segment-close-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segment-open-button:hover,
+.segment-close-button:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  color: var(--accent);
+}
+
+.segment-open-button:focus-visible,
+.segment-close-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.segment-detail {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface-hover);
+}
+
+.segment-detail .card-head {
+  align-items: center;
+}
+
+.segment-detail h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.segment-detail .subtitle {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.stage-badge.inactive {
+  background: rgba(213, 138, 50, 0.15);
+  color: #d58a32;
+}
+
+.segment-row {
+  cursor: pointer;
+}
+
+@media (max-width: 650px) {
+  .segmentation-summary {
+    flex-direction: column;
+  }
+
+  .segmentation-summary-item {
+    width: 100%;
+  }
+
+  .segment-detail {
+    padding: 12px;
+  }
+
+  .segment-open-button {
+    padding: 7px;
+  }
 }

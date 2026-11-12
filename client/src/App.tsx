@@ -10,6 +10,10 @@ import { TrendChart } from "./components/TrendChart";
 import { startOfPeriod } from "./format";
 import { useAsync } from "./useAsync";
 import { CustomerManagement } from "./components/CustomerManagement";
+import { DataImport } from "./components/DataImport";
+import { FunnelSettings } from "./components/FunnelSettings";
+import { Segmentation } from "./components/Segmentation";
+import { Comparisons } from "./components/Comparisons";
 
 export default function App() {
   const [preset, setPreset] = useState<Preset>(12);
@@ -25,6 +29,7 @@ export default function App() {
       setCustomFrom(startOfPeriod(meta.data.maxDate, months));
       setCustomTo(meta.data.maxDate);
     }
+
     setPreset(next);
   }
 
@@ -40,37 +45,58 @@ export default function App() {
     const ch = channel || undefined;
 
     if (preset === "custom") {
-      if (!customFrom || !customTo || customFrom > customTo) return null;
-      return { from: customFrom, to: customTo, channel: ch };
+      if (!customFrom || !customTo || customFrom > customTo) {
+        return null;
+      }
+
+      return {
+        from: customFrom,
+        to: customTo,
+        channel: ch,
+      };
     }
 
     const to = meta.data.maxDate;
-    return { from: startOfPeriod(to, preset), to, channel: ch };
+
+    return {
+      from: startOfPeriod(to, preset),
+      to,
+      channel: ch,
+    };
   }, [meta.data, preset, channel, customFrom, customTo]);
 
   const summary = useAsync(
     (s) => (query ? api.summary(query, s) : Promise.resolve(null)),
-    [query]
+    [query],
   );
 
   const channels = useAsync(
     (s) => (query ? api.channels(query, s) : Promise.resolve(null)),
-    [query?.from, query?.to, query?.channel]
+    [query?.from, query?.to, query?.channel],
   );
 
   const trend = useAsync(
     (s) => (query ? api.timeseries(query, s) : Promise.resolve(null)),
-    [query]
+    [query],
   );
 
   function refreshDashboard() {
+    meta.refresh();
     summary.refresh();
     channels.refresh();
     trend.refresh();
   }
 
-  const error = meta.error ?? summary.error ?? channels.error ?? trend.error;
-  const noData = summary.data !== null && summary.data.kpis.visits === 0;
+  const error =
+    meta.error ??
+    summary.error ??
+    channels.error ??
+    trend.error;
+
+  const noData =
+    summary.data !== null &&
+    summary.data.kpis.visits === 0;
+
   const suffix = query
     ? `${query.from}_${query.to}${query.channel ? `_${query.channel}` : ""}`
     : "";
@@ -106,7 +132,9 @@ export default function App() {
       )}
 
       {!error && !rangeError && (meta.loading || summary.loading) && (
-        <p className="loading">Caricamento dei dati in corso…</p>
+        <p className="loading">
+          Caricamento dei dati in corso…
+        </p>
       )}
     </>
   );
@@ -178,17 +206,40 @@ export default function App() {
     <CustomerManagement onDataChange={refreshDashboard} />
   );
 
+  const importSection = (
+    <DataImport onDataChange={refreshDashboard} />
+  );
+
+  const segmentationSection = (
+    <Segmentation
+      query={query}
+      channels={meta.data?.channels ?? []}
+    />
+  );
+
+  const comparisonsSection = (
+    <div>
+      <div className="dashboard-toolbar">
+        {filters}
+      </div>
+
+      {statusMessages}
+
+      <Comparisons query={query} />
+    </div>
+  );
+
   const settingsSection = (
-    <div className="card">
-      <h2>Preferenze dell'interfaccia</h2>
-      <p className="subtitle">
-        Puoi cambiare il tema chiaro o scuro utilizzando il pulsante
-        nell'intestazione della dashboard.
-      </p>
-      <p className="hint">
-        Le preferenze aggiuntive saranno disponibili nei prossimi
-        aggiornamenti.
-      </p>
+    <div>
+      <FunnelSettings onDataChange={refreshDashboard} />
+
+      <div className="card">
+        <h2>Preferenze dell'interfaccia</h2>
+        <p className="subtitle">
+          Puoi cambiare il tema chiaro o scuro utilizzando il pulsante
+          nell'intestazione della dashboard.
+        </p>
+      </div>
     </div>
   );
 
@@ -198,7 +249,10 @@ export default function App() {
         dashboard: dashboardSection,
         customers: customersSection,
         analytics: analyticsSection,
+        segmentation: segmentationSection,
+        comparisons: comparisonsSection,
         settings: settingsSection,
+        import: importSection,
       }}
     >
       {dashboardSection}

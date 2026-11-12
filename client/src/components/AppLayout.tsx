@@ -4,15 +4,26 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  GitCompareArrows,
   LayoutDashboard,
   Menu,
   Moon,
   Settings,
   Sun,
   Users,
+  Upload,
+  PieChart,
 } from "lucide-react";
 
-type Section = "dashboard" | "customers" | "analytics" | "settings";
+type Section =
+  | "dashboard"
+  | "customers"
+  | "analytics"
+  | "segmentation"
+  | "comparisons"
+  | "import"
+  | "settings";
+
 type Theme = "light" | "dark";
 
 interface AppLayoutProps {
@@ -23,7 +34,10 @@ interface AppLayoutProps {
 const navigation = [
   { id: "dashboard", label: "Panoramica", icon: LayoutDashboard },
   { id: "customers", label: "Gestione clienti", icon: Users },
+  { id: "import", label: "Importazione dati", icon: Upload },
   { id: "analytics", label: "Analisi e report", icon: BarChart3 },
+  { id: "segmentation", label: "Segmentazione", icon: PieChart },
+  { id: "comparisons", label: "Confronti", icon: GitCompareArrows },
   { id: "settings", label: "Impostazioni", icon: Settings },
 ] as const;
 
@@ -38,14 +52,16 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
     "Panoramica";
 
   const sectionContent = sections?.[activeSection] ?? (
-    activeSection === "dashboard"
-      ? children
-      : <div className="card">
-          <h2>Sezione in preparazione</h2>
-          <p className="subtitle">
-            Questa sezione verrà completata nel prossimo passaggio.
-          </p>
-        </div>
+    activeSection === "dashboard" ? (
+      children
+    ) : (
+      <div className="card">
+        <h2>Sezione in preparazione</h2>
+        <p className="subtitle">
+          Questa sezione verrà completata nel prossimo passaggio.
+        </p>
+      </div>
+    )
   );
 
   return (
@@ -69,7 +85,11 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Espandi menu" : "Comprimi menu"}
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {collapsed ? (
+            <ChevronRight size={18} />
+          ) : (
+            <ChevronLeft size={18} />
+          )}
         </button>
 
         <div className="sidebar-section-label">
@@ -129,8 +149,14 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
                 : "Attiva tema chiaro"
             }
           >
-            {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
-            <span>{theme === "light" ? "Tema scuro" : "Tema chiaro"}</span>
+            {theme === "light" ? (
+              <Moon size={19} />
+            ) : (
+              <Sun size={19} />
+            )}
+            <span>
+              {theme === "light" ? "Tema scuro" : "Tema chiaro"}
+            </span>
           </button>
         </header>
 

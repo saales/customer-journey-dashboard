@@ -1,7 +1,16 @@
+
 export interface Meta {
   minDate: string;
   maxDate: string;
   channels: string[];
+}
+
+export interface FunnelStage {
+  id: string;
+  label: string;
+  position: number;
+  isActive: boolean;
+  isSystem: boolean;
 }
 
 export interface FunnelStep {
@@ -57,23 +66,90 @@ export interface CustomerInput {
   events: CustomerEvent[];
 }
 
+export interface ImportRow {
+  externalId: string;
+  channel: string;
+  createdAt: string;
+  stage: string;
+  occurredAt: string;
+}
+
+export interface ImportResult {
+  message: string;
+  batchId: number;
+  importedCustomers: number;
+  importedRows: number;
+  importedEvents: number;
+}
+
 export interface Query {
   from: string;
   to: string;
   channel?: string;
 }
 
-async function get<T>(path: string, params: Record<string, string | undefined>, signal?: AbortSignal): Promise<T> {
+/* -------------------------------------------------------------------------- */
+/* Segmentazione                                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface SegmentRow {
+  id: string;
+  label: string;
+  customers: number;
+  share: number;
+  conversionRate: number;
+}
+
+export interface SegmentAnalysis {
+  totalCustomers: number;
+  channels: SegmentRow[];
+  stages: SegmentRow[];
+  periods: SegmentRow[];
+  combinations: SegmentRow[];
+}
+
+export interface SegmentCustomer {
+  id: number;
+  channel: string;
+  createdAt: string;
+  stage: string;
+  stageLabel: string;
+  stageActive: boolean;
+}
+
+export type SegmentDimension =
+  | "channel"
+  | "stage"
+  | "period"
+  | "combination";
+
+export interface SegmentQuery extends Query {
+  dimension: SegmentDimension;
+  id: string;
+}
+
+async function get<T>(
+  path: string,
+  params: Record<string, string | undefined>,
+  signal?: AbortSignal,
+): Promise<T> {
   const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
-  const res = await fetch(`/api/${path}${qs.size ? `?${qs}` : ""}`, { signal });
+
+  for (const [k, v] of Object.entries(params)) {
+    if (v) qs.set(k, v);
+  }
+
+  const res = await fetch(`/api/${path}${qs.size ? `?${qs}` : ""}`, {
+    signal,
+  });
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error ?? `Errore ${res.status}`);
   }
+
   return res.json() as Promise<T>;
 }
-
 
 async function send<T>(
   path: string,
@@ -98,19 +174,67 @@ async function send<T>(
   return res.json() as Promise<T>;
 }
 
-
 export const api = {
-  meta: (signal?: AbortSignal) => get<Meta>("meta", {}, signal),
-  summary: (q: Query, signal?: AbortSignal) => get<Summary>("summary", { ...q }, signal),
-  channels: (q: Query, signal?: AbortSignal) => get<ChannelRow[]>("channels", { ...q }, signal),
-  timeseries: (q: Query, signal?: AbortSignal) => get<MonthPoint[]>("timeseries", { ...q }, signal),
-  customers: (signal?: AbortSignal) => get<Customer[]>("customers", {}, signal),
+  meta: (signal?: AbortSignal) =>
+    get<Meta>("meta", {}, signal),
+
+  funnelStages: (signal?: AbortSignal) =>
+    get<FunnelStage[]>("funnel-stages", {}, signal),
+
+  createFunnelStage: (label: string) =>
+    send<FunnelStage>("funnel-stages", "POST", { label }),
+
+  updateFunnelStage: (
+    id: string,
+    data: { label?: string; isActive?: boolean },
+  ) =>
+    send<FunnelStage>(`funnel-stages/${id}`, "PUT", data),
+
+  reorderFunnelStages: (stages: string[]) =>
+    send<FunnelStage[]>("funnel-stages/reorder", "PUT", { stages }),
+
+  summary: (q: Query, signal?: AbortSignal) =>
+    get<Summary>("summary", { ...q }, signal),
+
+  channels: (q: Query, signal?: AbortSignal) =>
+    get<ChannelRow[]>("channels", { ...q }, signal),
+
+  timeseries: (q: Query, signal?: AbortSignal) =>
+    get<MonthPoint[]>("timeseries", { ...q }, signal),
+
+  /* Segmentazione */
+
+  segments: (q: Query, signal?: AbortSignal) =>
+    get<SegmentAnalysis>("segments", { ...q }, signal),
+
+  segmentCustomers: (
+    q: SegmentQuery,
+    signal?: AbortSignal,
+  ) =>
+    get<SegmentCustomer[]>(
+      "segments/customers",
+      {
+        from: q.from,
+        to: q.to,
+        channel: q.channel,
+        dimension: q.dimension,
+        id: q.id,
+      },
+      signal,
+    ),
+
+  customers: (signal?: AbortSignal) =>
+    get<Customer[]>("customers", {}, signal),
+
   createCustomer: (data: CustomerInput) =>
-  send<Customer>("customers", "POST", data),
+    send<Customer>("customers", "POST", data),
 
-updateCustomer: (id: number, data: CustomerInput) =>
-  send<Customer>(`customers/${id}`, "PUT", data),
+  updateCustomer: (id: number, data: CustomerInput) =>
+    send<Customer>(`customers/${id}`, "PUT", data),
 
-deleteCustomer: (id: number) =>
-  send<void>(`customers/${id}`, "DELETE"),
+  deleteCustomer: (id: number) =>
+    send<void>(`customers/${id}`, "DELETE"),
+
+  importCsv: (fileName: string, rows: ImportRow[]) =>
+    send<ImportResult>("import", "POST", { fileName, rows }),
 };
