@@ -20,6 +20,8 @@ export interface PostgresAuthRouterOptions {
   /** Segreto casuale dedicato, almeno 32 caratteri, per pseudonimizzare le chiavi di limitazione. */
   rateLimitSecret: string;
   production?: boolean;
+  emailApiKey?: string;
+  emailFrom?: string;
 }
 
 function normalizeOrigins(origins: string[], production: boolean): Set<string> {
