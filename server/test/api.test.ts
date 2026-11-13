@@ -105,6 +105,14 @@ describe("API", () => {
     const res = await fetch(`${base}/api/health`);
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("x-permitted-cross-domain-policies")).toBe("none");
+    expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+    expect(res.headers.get("permissions-policy")).toBe(
+      "camera=(), microphone=(), geolocation=()",
+    );
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("pragma")).toBe("no-cache");
     expect(res.headers.get("x-powered-by")).toBeNull();
   });
 
