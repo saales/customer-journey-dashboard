@@ -120,7 +120,6 @@ export async function acceptOrganizationInvitation(
     typeof input.password!=="string"||input.password.length<12||input.password.length>1024)
   throw new InvitationError(400,"Inserire un nome e una password di almeno 12 caratteri.");
  const hash=tokenHash(input.token);
- const newPasswordHash=await hashPassword(input.password);
  const client:PoolClient=await pool.connect();
  let transaction=false,destroy=false;
  try{
@@ -151,6 +150,8 @@ export async function acceptOrganizationInvitation(
     throw new InvitationError(401,"Non è stato possibile verificare l'account esistente.");
    userId=user.id;
   }else{
+   // Verifica prima il token: non consumare CPU con scrypt per richieste anonime non valide.
+   const newPasswordHash=await hashPassword(input.password);
    const created=await client.query<{id:string}>(
     `INSERT INTO users(email,password_hash,full_name,status,email_verified_at)
      VALUES($1,$2,$3,'active',NOW()) RETURNING id::text AS id`,

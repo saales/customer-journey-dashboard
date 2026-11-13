@@ -1,12 +1,12 @@
-# Productizzazione e piano di rilascio commerciale
+# Percorso Cliente — stato prodotto e piano di rilascio
 
 ## 1. Visione del prodotto
 
-Customer Journey Intelligence & Analytics deve evolvere da dashboard dimostrativa a piattaforma SaaS B2B multi-tenant per analizzare acquisizione, avanzamento nel funnel e conversione dei clienti.
+Percorso Cliente è una piattaforma B2B multi-organizzazione per analizzare acquisizione, avanzamento nel funnel e conversione dei clienti. Il runtime applicativo usa PostgreSQL come unico database; non esiste una modalità dimostrativa o un archivio alternativo nel ramo corrente.
 
 Il prodotto deve poter essere presentato a Deloitte e ad altre imprese come soluzione indipendente, con identità visiva originale. Non deve utilizzare marchi, loghi, template proprietari o suggerire affiliazioni/approvazioni da parte di Deloitte o di altri soggetti.
 
-La demo attuale utilizza dati sintetici: non vanno presentati come risultati di clienti reali.
+Non dichiarare risultati di clienti reali, disponibilità in produzione, certificazioni o livelli di servizio senza evidenze verificabili.
 
 ## 2. Utenti e ruoli
 
@@ -23,15 +23,15 @@ Ogni risorsa appartenente a un'organizzazione deve essere filtrata lato server t
 
 ### Funzionalità fondamentali (MVP commerciale)
 
-- Autenticazione sicura, sessioni revocabili, inviti e recupero account.
+- Autenticazione, sessioni revocabili e inviti monouso con scadenza, revoca e accettazione atomica. Il recupero account e l’invio automatico delle email non sono ancora disponibili.
 - Organizzazioni isolate e gestione dei ruoli.
 - Dashboard funnel, KPI, andamento temporale e confronto canali.
 - Gestione clienti ed eventi con paginazione e filtri.
 - Importazione CSV con anteprima, validazione, deduplicazione e report degli errori.
 - Esportazioni controllate e tracciate.
-- Audit log delle operazioni sensibili.
+- Audit log per modifiche a clienti e funnel, importazioni, membership e inviti; completare la copertura di tutte le operazioni amministrative e di lettura sensibili.
 - Gestione organizzazione, utenti e preferenze.
-- Dataset demo sintetico isolato, mai inserito automaticamente nei tenant di produzione.
+- Nessun accesso dimostrativo o seed automatico nel runtime standard.
 - Backup, ripristino, logging, monitoraggio e procedura di incident response.
 - Interfaccia responsive, accessibile e con messaggi di errore comprensibili.
 
@@ -79,7 +79,26 @@ Prima di usare dati di imprese o persone reali, il rilascio deve prevedere una r
 
 Questo documento è una checklist di prodotto, non un parere legale né una certificazione di conformità.
 
-## 6. Qualità e criteri di accettazione
+## 6. Stato verificato e criteri di accettazione
+
+### Implementato nel ramo corrente
+
+- PostgreSQL è l’unico percorso di persistenza del server e il runtime HTTP standard avvia esclusivamente `postgres-server.ts`.
+- Migrazioni versionate 001–008, controllo checksum e preflight dei privilegi del ruolo runtime.
+- Sessioni opache, autenticazione, autorizzazione per ruolo e tenant scope nelle API.
+- Dashboard, clienti, funnel, segmentazione, importazione, export CSV, gestione membri e inviti monouso.
+- La CI esegue build e test su Node.js 20/22, applica le migrazioni a PostgreSQL temporaneo e avvia il runtime con un ruolo non privilegiato.
+
+### Non ancora dimostrato / non disponibile
+
+- Nessuna prova che il database remoto sia già migrato o che dati precedenti siano stati trasferiti.
+- Nessun deploy o collaudo su un ambiente staging reale.
+- Nessuna prova operativa di backup e ripristino.
+- Nessun test browser end-to-end completo o test di carico.
+- Nessun invio automatico degli inviti, recupero password, MFA/SSO o billing.
+- Il rate limiting persistente è attualmente applicato al login; non è ancora condiviso come protezione generale per ogni endpoint pubblico.
+
+### Criteri di accettazione
 
 Il prodotto non è pronto per un pilot con dati reali finché non sono soddisfatti tutti i seguenti criteri:
 
