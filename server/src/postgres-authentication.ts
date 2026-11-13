@@ -7,6 +7,7 @@ export const INVALID_CREDENTIALS_MESSAGE = "Credenziali non valide.";
 interface CredentialRow {
   userId: string;
   passwordHash: string;
+  organizationId: string;
 }
 
 /**
@@ -35,7 +36,7 @@ export async function authenticatePostgresCredentials(
   let credential: CredentialRow | undefined;
   try {
     const result = await client.query<CredentialRow>(
-      `SELECT u.id::text AS "userId", u.password_hash AS "passwordHash"
+      `SELECT u.id::text AS "userId", u.password_hash AS "passwordHash",\n              o.id::text AS "organizationId"
        FROM users u
        JOIN memberships m ON m.user_id = u.id AND m.status = 'active'
        JOIN organizations o ON o.id = m.organization_id AND o.status = 'active'
@@ -55,7 +56,7 @@ export async function authenticatePostgresCredentials(
   }
 
   // issuePostgresSession repeats active user/org/membership checks atomically.
-  return issuePostgresSession(pool, credential.userId, await getOrganizationId(pool, organizationSlug));
+  return issuePostgresSession(pool, credential.userId, credential.organizationId);
 }
 
 async function getOrganizationId(
