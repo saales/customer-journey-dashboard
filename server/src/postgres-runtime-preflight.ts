@@ -42,6 +42,7 @@ const REQUIRED_TABLE_PRIVILEGES: ReadonlyArray<readonly [string, string]> = [
   ["import_batches", "SELECT"],
   ["import_batches", "INSERT"],
   ["audit_logs", "INSERT"],
+  ["audit_logs", "SELECT"],
   ["invitations", "SELECT"],
   ["invitations", "INSERT"],
   ["invitations", "UPDATE"],
