@@ -29,6 +29,36 @@ describe("API", () => {
     expect(await res.json()).toEqual({ status: "ok" });
   });
 
+  it("gestisce una nuova organizzazione senza dati", async () => {
+    const emptyDb = new Database(":memory:");
+    initSchema(emptyDb);
+    const emptyServer = createApp(emptyDb).listen(0);
+    await new Promise((resolve) => emptyServer.once("listening", resolve));
+    const emptyBase = `http://127.0.0.1:${(emptyServer.address() as AddressInfo).port}`;
+
+    try {
+      const meta = await (await fetch(`${emptyBase}/api/meta`)).json();
+      expect(meta.minDate).toBeNull();
+      expect(meta.maxDate).toBeNull();
+
+      const summaryRes = await fetch(`${emptyBase}/api/summary`);
+      const summary = await summaryRes.json();
+      expect(summaryRes.status).toBe(200);
+      expect(summary.kpis).toMatchObject({
+        visits: 0,
+        leads: 0,
+        customers: 0,
+        conversionRate: 0,
+        avgDaysToCustomer: null,
+      });
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        emptyServer.close((error) => error ? reject(error) : resolve());
+      });
+      emptyDb.close();
+    }
+  });
+
   it("restituisce funnel e KPI coerenti", async () => {
     const res = await fetch(`${base}/api/summary`);
     const body = await res.json();
