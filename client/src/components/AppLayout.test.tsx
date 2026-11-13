@@ -41,17 +41,26 @@ describe("AppLayout", () => {
 
     fireEvent.click(menuButton);
     expect(screen.getByRole("button", { name: "Chiudi menu" }).getAttribute("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Panoramica" }));
+
+    fireEvent.keyDown(document.activeElement!, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Registro attività" }));
+    fireEvent.keyDown(document.activeElement!, { key: "Tab" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Panoramica" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Gestione clienti" }));
     expect(screen.getByText("Elenco clienti")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Apri menu" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Apri menu" }));
     fireEvent.click(screen.getByRole("button", { name: "Chiudi menu di navigazione" }));
     expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Apri menu" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Apri menu" }));
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Apri menu" }));
   });
 });
