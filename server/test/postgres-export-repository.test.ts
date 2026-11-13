@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Pool, PoolClient } from "pg";
 import { exportPostgresCustomersCsv } from "../src/postgres-export-repository.js";
 function mockPool(rows: unknown[]) {
-  const query = vi.fn(async () => ({ rows }));
+  const query = vi.fn(async (_sql: string, _values?: unknown[]) => ({ rows }));
   const client = { query, release: vi.fn() } as unknown as PoolClient;
   const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
   return { pool, query };
