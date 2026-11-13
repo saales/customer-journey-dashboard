@@ -92,3 +92,18 @@ Nel commit `5070d3a` è stato aggiunto `server/src/postgres-session-resolver.ts`
 Il test `server/test/postgres-session-resolver.integration.test.ts` copre token validi, scaduti e membership sospese su PostgreSQL effimero. CI run [43433194436](https://github.com/saales/customer-journey-dashboard/actions/runs/43433194436) ha completato `npm ci`, `npm test` e `npm run build` su Node 20 e 22.
 
 Questo è un resolver isolato, **non un sistema di login completo**: password verification Argon2id, creazione/revoca sessioni, cookie HttpOnly/Secure/SameSite, protezione CSRF, rate limiting, middleware Express e autorizzazione per operazione non sono ancora collegati o implementati. Il runtime continua a usare SQLite.
+
+
+## Decisione PostgreSQL-first e hardening schema (migrazione 003)
+
+La decisione operativa è ora documentata in `docs/DECISIONE_POSTGRESQL_FIRST.md`: PostgreSQL è l'unico database target; SQLite resta runtime legacy da sostituire dopo parità funzionale e test, senza nuove funzionalità applicative.
+
+La migrazione additiva `003_saas_tenant_hardening.sql`:
+- aggiunge `customers.external_id` e assegna ai record preesistenti un identificativo tecnico `legacy:<id>` (non ricostruisce un external ID sorgente);
+- aggiunge il vincolo FK sessione/utente/membership come `NOT VALID`, così le sessioni storiche prive di organizzazione non vengono inventate, mentre i nuovi legami valorizzati sono verificati;
+- abilita RLS su customers, events, funnel_stages, import_batches e audit_logs con contesto `app.current_organization_id`;
+- mantiene obbligatori i filtri espliciti tenant-scoped nelle query.
+
+`withTenantTransaction` imposta ora la stessa chiave di contesto usata dalle policy RLS. Le migrazioni 001/002 non sono state modificate. Il test PostgreSQL d'integrazione applica 001-003 in uno schema isolato e verifica backfill, FK e attivazione RLS.
+
+Questa migrazione non è stata applicata a Neon. La strategia per un database nuovo resta staging isolato; l'eventuale trasferimento o abbandono dei dati Neon dipende dalla verifica della presenza di dati reali e da backup/restore approvati.
