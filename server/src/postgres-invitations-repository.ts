@@ -142,7 +142,7 @@ export async function acceptOrganizationInvitation(
   if(!locked.rowCount)throw new InvitationError(400,"Invito non valido, scaduto o già utilizzato.");
   const found=await client.query<{id:string;passwordHash:string;status:string}>(
    `SELECT id::text AS id,password_hash AS "passwordHash",status
-    FROM users WHERE LOWER(email)=$1 LIMIT 1 FOR UPDATE`,[invite.email.toLowerCase()]);
+    FROM users WHERE LOWER(email)=$1 LIMIT 1`,[invite.email.toLowerCase()]);
   let userId:string;
   if(found.rows[0]){
    const user=found.rows[0];
@@ -150,7 +150,7 @@ export async function acceptOrganizationInvitation(
     throw new InvitationError(401,"Non è stato possibile verificare l'account esistente.");
    userId=user.id;
   }else{
-   // Verifica prima il token: non consumare CPU con scrypt per richieste anonime non valide.
+   // Il lookup usa SELECT soltanto: il ruolo runtime non deve poter aggiornare gli utenti.\n   // Il vincolo UNIQUE sull’email arbitra le creazioni concorrenti; la collisione viene gestita sotto.\n   // Verifica prima il token: non consumare CPU con scrypt per richieste anonime non valide.
    const newPasswordHash=await hashPassword(input.password);
    const created=await client.query<{id:string}>(
     `INSERT INTO users(email,password_hash,full_name,status,email_verified_at)
