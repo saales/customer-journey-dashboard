@@ -23,7 +23,7 @@ describe("withTenantTransaction", () => {
     expect(mock.connect).toHaveBeenCalledOnce();
     expect(mock.query.mock.calls).toEqual([
       ["BEGIN"],
-      ["SELECT set_config('app.organization_id', $1, true)", ["org-a"]],
+      ["SELECT set_config('app.current_organization_id', $1, true)", ["org-a"]],
       ["COMMIT"],
     ]);
     expect(work).toHaveBeenCalledWith(mock.client);
@@ -41,7 +41,7 @@ describe("withTenantTransaction", () => {
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
-      "SELECT set_config('app.organization_id', $1, true)",
+      "SELECT set_config('app.current_organization_id', $1, true)",
       "ROLLBACK",
     ]);
     expect(mock.release).toHaveBeenCalledOnce();
@@ -91,7 +91,7 @@ describe("withTenantTransaction", () => {
     expect(work).not.toHaveBeenCalled();
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
-      "SELECT set_config('app.organization_id', $1, true)",
+      "SELECT set_config('app.current_organization_id', $1, true)",
       "ROLLBACK",
     ]);
     expect(mock.query.mock.calls[1][1]).toEqual(["org-a"]);
@@ -129,7 +129,7 @@ describe("withTenantTransaction", () => {
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
-      "SELECT set_config('app.organization_id', $1, true)",
+      "SELECT set_config('app.current_organization_id', $1, true)",
       "COMMIT",
       "ROLLBACK",
     ]);
@@ -154,7 +154,7 @@ describe("withTenantTransaction", () => {
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
-      "SELECT set_config('app.organization_id', $1, true)",
+      "SELECT set_config('app.current_organization_id', $1, true)",
       "COMMIT",
       "ROLLBACK",
     ]);
