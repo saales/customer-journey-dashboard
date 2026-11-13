@@ -44,9 +44,9 @@ describe("Accesso PostgreSQL dal browser", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<AuthGate>{(logout) => <button onClick={() => void logout()}>Esci test</button>}</AuthGate>);
-    fireEvent.change(await screen.findByLabelText("Email"), { target: { value: "admin@example.it" } });
+    fireEvent.change((await screen.findAllByLabelText("Email"))[0]!, { target: { value: "admin@example.it" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery staple" } });
-    fireEvent.change(screen.getByLabelText("Codice organizzazione"), { target: { value: "azienda-demo" } });
+    fireEvent.change(screen.getAllByLabelText("Codice organizzazione")[0]!, { target: { value: "azienda-demo" } });
     fireEvent.click(screen.getByRole("button", { name: "Accedi" }));
 
     expect(await screen.findByRole("button", { name: "Esci test" })).toBeTruthy();
@@ -57,7 +57,7 @@ describe("Accesso PostgreSQL dal browser", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Esci test" }));
-    await waitFor(() => expect(screen.getByLabelText("Email")).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByLabelText("Email")[0]).toBeTruthy());
     expect(requests.some((request) => request.url === "/api/auth/logout")).toBe(true);
   });
 
