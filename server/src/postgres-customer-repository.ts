@@ -208,7 +208,7 @@ export async function createPostgresCustomer(
 
     const inserted = await client.query<{ id: string }>(
       `INSERT INTO customers (organization_id, external_id, channel, created_at)
-       VALUES ($1::uuid, $2, $3, $4::date)
+       VALUES ($1::uuid, $2, $3, $4::date::timestamp AT TIME ZONE 'UTC')
        RETURNING id::text AS id`,
       [organizationId, externalId, input.channel, input.createdAt],
     );
@@ -218,7 +218,7 @@ export async function createPostgresCustomer(
     for (const event of input.events) {
       await client.query(
         `INSERT INTO events (organization_id, customer_id, stage_id, occurred_at)
-         VALUES ($1::uuid, $2::bigint, $3, $4::date)`,
+         VALUES ($1::uuid, $2::bigint, $3, $4::date::timestamp AT TIME ZONE 'UTC')`,
         [organizationId, customerId, event.stage, event.occurredAt],
       );
     }
