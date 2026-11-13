@@ -19,7 +19,7 @@ describe("recupero password PostgreSQL", () => {
   });
 
   it("memorizza solo l'hash del token e applica una scadenza di 30 minuti", async () => {
-    const query = vi.fn(async (sql: string) => sql.includes("SELECT u.id::text")
+    const query = vi.fn(async (sql: string, _values?: unknown[]) => sql.includes("SELECT u.id::text")
       ? { rows: [user] } : { rows: [] });
     const client = { query, release: vi.fn() } as unknown as PoolClient;
     const pool = { connect: vi.fn(async () => client) };
