@@ -3,8 +3,20 @@ import { openDb } from "./db.js";
 import { seedIfEmpty } from "./seed.js";
 
 const db = openDb();
-if (seedIfEmpty(db)) {
-  console.log("Database popolato con dati sintetici.");
+
+// I dati sintetici non devono mai comparire automaticamente in un ambiente
+// di produzione. Per una demo locale occorre abilitarli esplicitamente.
+if (process.env.ALLOW_DEMO_SEED === "true") {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "ALLOW_DEMO_SEED non può essere usato in produzione. " +
+      "I dati dimostrativi devono essere caricati in un ambiente demo isolato.",
+    );
+  }
+
+  if (seedIfEmpty(db)) {
+    console.log("Database locale popolato con dati sintetici dimostrativi.");
+  }
 }
 
 const port = Number(process.env.PORT ?? 3001);
@@ -12,7 +24,7 @@ const server = createApp(db).listen(port, () => {
   console.log(`API in ascolto su http://localhost:${port}`);
 });
 
-// Chiusura ordinata: smette di accettare richieste e chiude il database
+// Chiusura ordinata: smette di accettare richieste e chiude il database.
 function shutdown(signal: string) {
   console.log(`${signal} ricevuto: chiusura in corso...`);
   server.close(() => {
