@@ -13,7 +13,7 @@ Stato database remoto: non verificato in questa attività.
 |---|---|
 | Runtime unico | `server/src/postgres-server.ts`; script standard root e server |
 | Pool | `server/src/postgres.ts` |
-| Migrazioni | `server/migrations/001`–`009` |
+| Migrazioni | `server/migrations/001`–`010` |
 | Runner | `server/src/postgres-migrations.ts` |
 | Preflight | `server/src/postgres-runtime-preflight.ts` |
 | Autenticazione | `postgres-authentication.ts`, `postgres-auth-*`, `postgres-session-*` |
