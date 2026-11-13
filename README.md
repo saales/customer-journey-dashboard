@@ -2,7 +2,7 @@
 
 Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–010 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
+> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–012 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
 
 ## Funzioni
 
@@ -14,7 +14,9 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 - Esportazione report CSV, Excel e PDF dal browser.
 - Esportazione CSV clienti dal server, tenant-scoped, protetta da permesso e registrata nell'audit log.
 - Autenticazione, sessioni, ruoli e gestione dei membri.
-- Inviti monouso con scadenza, revoca e accettazione atomica; il collegamento viene condiviso manualmente, non inviato via email.
+- Inviti monouso con scadenza, revoca e accettazione atomica, con invio automatico tramite Resend quando configurato.
+- Recupero password con token monouso hashati, scadenza di 30 minuti, invio email e revoca di tutte le sessioni esistenti.
+- Impostazioni organizzazione: visualizzazione e modifica del nome da parte degli amministratori, con audit log.
 - Audit log, rate limiting persistente e condiviso per login e API, e controlli di sicurezza del runtime.
 
 ## Tecnologie
@@ -44,6 +46,8 @@ Copiare `.env.example` in `.env.local` e configurare i valori reali solo nel fil
 DATABASE_URL=postgresql://utente_app:password@host:5432/database?sslmode=require
 APP_ORIGIN=http://localhost:5173
 LOGIN_RATE_LIMIT_SECRET=una-stringa-casuale-di-almeno-32-caratteri
+RESEND_API_KEY=re_xxxxxxxxx
+EMAIL_FROM=Percorso Cliente <noreply@example.com>
 PORT=3001
 ```
 
@@ -98,7 +102,8 @@ La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvi
 - Le migrazioni sono versionate, verificate tramite checksum e protette da advisory lock.
 - Lo startup controlla lo storico migrazioni e i privilegi; non modifica lo schema.
 - Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
-- Gli inviti sono monouso, con token hashato nel database e scadenza; l'email automatica non è configurata.
+- Gli inviti e i reset password usano token monouso, memorizzati solo come hash e con scadenza.
+- Le email transazionali usano Resend; configurare `RESEND_API_KEY` e `EMAIL_FROM`. Senza configurazione, gli inviti restano condivisibili manualmente e il recupero password non può inviare istruzioni.
 
 La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
 
