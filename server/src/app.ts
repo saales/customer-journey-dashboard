@@ -1255,6 +1255,22 @@ export function createApp(db: Db) {
         return;
       }
 
+      // express.json() genera errori prima che la richiesta raggiunga le rotte.
+      // Manteniamo i codici HTTP corretti senza esporre dettagli interni del parser.
+      if (err && typeof err === "object" && "type" in err) {
+        const parserError = err as { type?: unknown };
+
+        if (parserError.type === "entity.too.large") {
+          res.status(413).json({ error: "Corpo della richiesta troppo grande." });
+          return;
+        }
+
+        if (parserError.type === "entity.parse.failed") {
+          res.status(400).json({ error: "JSON non valido." });
+          return;
+        }
+      }
+
       console.error(err);
       res.status(500).json({ error: "Errore interno del server." });
     },
