@@ -122,6 +122,7 @@ export interface OrganizationInvitation {
 export interface CreatedOrganizationInvitation {
   invitation: OrganizationInvitation;
   inviteUrl: string;
+  emailSent: boolean;
 }
 
 export interface AuditEntry {
