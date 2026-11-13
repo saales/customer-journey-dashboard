@@ -71,7 +71,7 @@ jobs:
           const metadata = report.metadata?.vulnerabilities || {};
           console.log("npm audit summary:", JSON.stringify(metadata));
           for (const [name, finding] of Object.entries(report.vulnerabilities || {})) {
-            const advisories = (finding via = finding.via || [])
+            const advisories = (finding.via || [])
               .filter((item) => typeof item === "object")
               .map((item) => item.url || item.title || item.name);
             console.log(
