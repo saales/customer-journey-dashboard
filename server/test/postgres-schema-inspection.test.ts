@@ -10,6 +10,9 @@ function createClientMock() {
     if (sql.includes("current_database()")) {
       return { rows: [{ database: "test_db", database_user: "app", current_schema: "public", server_version: "16" }] };
     }
+    if (sql.includes("pg_catalog.pg_class")) {
+      return { rows: [{ schema: "public", table: "customers", row_level_security_enabled: true, row_level_security_forced: false }] };
+    }
     if (sql.includes("to_regclass")) return { rows: [{ exists: true }] };
     if (sql.includes("rolname")) return { rows: [{ role: "app", is_superuser: false, bypasses_rls: false }] };
     return { rows: [] };
@@ -26,6 +29,9 @@ describe("inspectPostgresSchema", () => {
     const report = await inspectPostgresSchema(mock.client);
 
     expect(report.database?.database).toBe("test_db");
+    expect(report.tables).toEqual([
+      { schema: "public", table: "customers", row_level_security_enabled: true, row_level_security_forced: false },
+    ]);
     expect(report.schemaMigrationsTable?.exists).toBe(true);
     expect(report.currentRoleCapabilities?.is_superuser).toBe(false);
     expect(report.safety).toContain("READ ONLY");

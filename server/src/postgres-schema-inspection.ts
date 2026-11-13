@@ -48,10 +48,14 @@ export async function inspectPostgresSchema(
                current_setting('server_version') AS server_version
       `),
       client.query(`
-        SELECT schemaname AS schema, tablename AS table
-        FROM pg_catalog.pg_tables
-        WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-        ORDER BY schemaname, tablename
+        SELECT n.nspname AS schema, c.relname AS table,
+               c.relrowsecurity AS row_level_security_enabled,
+               c.relforcerowsecurity AS row_level_security_forced
+        FROM pg_catalog.pg_class c
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+          AND c.relkind IN ('r', 'p')
+        ORDER BY n.nspname, c.relname
       `),
       client.query(`
         SELECT table_schema AS schema, table_name AS table,
