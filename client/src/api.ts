@@ -117,7 +117,18 @@ export interface CreatedOrganizationInvitation {
   inviteUrl: string;
 }
 
-export interface AuditEntry {\n  id: string; action: string; resourceType: string | null; resourceId: string | null;\n  actorUserId: string | null; actorName: string | null; actorEmail: string | null;\n  details: Record<string, unknown>; createdAt: string;\n}\n\nexport interface AuditPage {\n  data: AuditEntry[];\n  pagination: { page: number; limit: number; total: number; totalPages: number };\n}\n\nexport interface Query {
+export interface AuditEntry {
+  id: string; action: string; resourceType: string | null; resourceId: string | null;
+  actorUserId: string | null; actorName: string | null; actorEmail: string | null;
+  details: Record<string, unknown>; createdAt: string;
+}
+
+export interface AuditPage {
+  data: AuditEntry[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface Query {
   from: string;
   to: string;
   channel?: string;
@@ -209,7 +220,10 @@ async function send<T>(
   return res.json() as Promise<T>;
 }
 
-export const api = {\n  audit: (q: { page: number; limit: number; from?: string; to?: string; actorUserId?: string; action?: string }) =>\n    get<AuditPage>("audit", { page: String(q.page), limit: String(q.limit), from: q.from, to: q.to, actorUserId: q.actorUserId, action: q.action }),\n
+export const api = {
+  audit: (q: { page: number; limit: number; from?: string; to?: string; actorUserId?: string; action?: string }) =>
+    get<AuditPage>("audit", { page: String(q.page), limit: String(q.limit), from: q.from, to: q.to, actorUserId: q.actorUserId, action: q.action }),
+
   members: (signal?: AbortSignal) => get<OrganizationMember[]>("members", {}, signal),
 
   updateMember: (id: string, data: { role?: OrganizationMember["role"]; status?: OrganizationMember["status"] }) =>
