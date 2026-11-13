@@ -1,0 +1,127 @@
+import { createHash, randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { Pool } from "pg";
+import { afterAll, describe, expect, it } from "vitest";
+
+const connectionString = process.env.DATABASE_URL;
+const pool = connectionString
+  ? new Pool({ connectionString, max: 1, connectionTimeoutMillis: 5_000 })
+  : null;
+
+const migration001Url = new URL("../migrations/001_initial_schema.sql", import.meta.url);
+const migration002Url = new URL("../migrations/002_session_organization.sql", import.meta.url);
+
+const expectedChecksums = {
+  "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
+  "002_session_organization.sql": "3d8b40cddff8f4e704679b164d9dfec1dc42e329b56ee79cd45520ff4a30e188",
+};
+
+afterAll(async () => {
+  await pool?.end();
+});
+
+describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
+  it("mantiene invariati i checksum SHA-256 degli SQL originali", async () => {
+    const [sql001, sql002] = await Promise.all([
+      readFile(migration001Url, "utf8"),
+      readFile(migration002Url, "utf8"),
+    ]);
+
+    expect(createHash("sha256").update(sql001).digest("hex"))
+      .toBe(expectedChecksums["001_initial_schema.sql"]);
+    expect(createHash("sha256").update(sql002).digest("hex"))
+      .toBe(expectedChecksums["002_session_organization.sql"]);
+  });
+
+  it.skipIf(!pool)("applica 001 e 002 in uno schema isolato e verifica vincoli e nullability", async () => {
+    const schemaName = `migration_it_${randomUUID().replace(/-/g, "")}`;
+    const client = await pool!.connect();
+    let transactionStarted = false;
+    let destroyClient = false;
+
+    try {
+      await client.query("BEGIN");
+      transactionStarted = true;
+      await client.query(`CREATE SCHEMA "${schemaName}"`);
+      await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
+
+      const [sql001, sql002] = await Promise.all([
+        readFile(migration001Url, "utf8"),
+        readFile(migration002Url, "utf8"),
+      ]);
+
+      await client.query(sql001);
+
+      const tables = await client.query<{ table_name: string }>(
+        `SELECT table_name
+         FROM information_schema.tables
+         WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
+         ORDER BY table_name`,
+      );
+      expect(tables.rows.map((row) => row.table_name)).toEqual([
+        "audit_logs",
+        "customers",
+        "events",
+        "funnel_stages",
+        "import_batches",
+        "invitations",
+        "memberships",
+        "organizations",
+        "sessions",
+        "users",
+      ]);
+
+      const eventForeignKeys = await client.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count
+         FROM pg_constraint
+         WHERE conrelid = 'events'::regclass AND contype = 'f'`,
+      );
+      expect(Number(eventForeignKeys.rows[0]?.count)).toBe(2);
+
+      const customerRls = await client.query<{ relrowsecurity: boolean }>(
+        "SELECT relrowsecurity FROM pg_class WHERE oid = 'customers'::regclass",
+      );
+      // La baseline storica non abilita RLS: non va confusa con una policy già attiva.
+      expect(customerRls.rows[0]?.relrowsecurity).toBe(false);
+
+      await client.query(sql002);
+
+      const sessionOrganization = await client.query<{ is_nullable: string }>(
+        `SELECT is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND table_name = 'sessions'
+           AND column_name = 'organization_id'`,
+      );
+      expect(sessionOrganization.rows[0]?.is_nullable).toBe("YES");
+
+      const sessionOrganizationForeignKey = await client.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count
+         FROM pg_constraint
+         WHERE conrelid = 'sessions'::regclass
+           AND confrelid = 'organizations'::regclass
+           AND contype = 'f'`,
+      );
+      expect(Number(sessionOrganizationForeignKey.rows[0]?.count)).toBe(1);
+
+      const sessionIndex = await client.query<{ exists: boolean }>(
+        "SELECT to_regclass(format('%I.%I', current_schema(), 'sessions_org_expiry_idx')) IS NOT NULL AS exists",
+      );
+      expect(sessionIndex.rows[0]?.exists).toBe(true);
+
+      await client.query("ROLLBACK");
+      transactionStarted = false;
+    } catch (error) {
+      if (transactionStarted) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          destroyClient = true;
+        }
+      }
+      throw error;
+    } finally {
+      client.release(destroyClient);
+    }
+  });
+});
