@@ -42,6 +42,18 @@ describe("inspectPostgresSchema", () => {
     expect(mock.release).toHaveBeenCalledWith(false);
 
     const statements = mock.query.mock.calls.map(([sql]) => sql);
+    const tableQuery = statements.find((sql) => sql.includes("c.relrowsecurity"));
+    const columnQuery = statements.find((sql) => sql.includes("information_schema.columns"));
+    const constraintQuery = statements.find((sql) => sql.includes("pg_catalog.pg_constraint"));
+    const indexQuery = statements.find((sql) => sql.includes("pg_catalog.pg_indexes"));
+    const policyQuery = statements.find((sql) => sql.includes("pg_catalog.pg_policies"));
+
+    expect(tableQuery).toContain("owner.rolname AS table_owner");
+    expect(tableQuery).toContain("n.nspname !~ '^pg_'");
+    expect(columnQuery).toContain("table_schema !~ '^pg_'");
+    expect(constraintQuery).toContain("n.nspname !~ '^pg_'");
+    expect(indexQuery).toContain("schemaname !~ '^pg_'");
+    expect(policyQuery).toContain("schemaname !~ '^pg_'");
     expect(statements.some((sql) => /\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(sql))).toBe(false);
   });
 
