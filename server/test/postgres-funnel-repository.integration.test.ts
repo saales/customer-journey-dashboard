@@ -207,7 +207,7 @@ describe("PostgreSQL funnel repository", () => {
     ]);
     await updatePostgresFunnelStage(pool!, org, created.id, { label: "Demo aggiornata" }, actorUserId);
     await reorderPostgresFunnelStages(pool!, org, ["visit", created.id, "customer"], actorUserId);
-    await expect(createPostgresFunnelStage(pool!, org, "demo")).rejects.toThrow("Esiste già una fase");
+    await expect(createPostgresFunnelStage(pool!, org, "demo aggiornata")).rejects.toThrow("Esiste già una fase");
     const audit = await pool!.query<{ action: string }>("SELECT action FROM audit_logs ORDER BY id");
     expect(audit.rows.map(row => row.action)).toEqual([
       "funnel.stage.created", "funnel.stage.updated", "funnel.stages.reordered",
