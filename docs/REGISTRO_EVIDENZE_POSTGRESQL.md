@@ -2,7 +2,7 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Ultimo HEAD del branch:** `637a2c3160c79fec2c53c3e6e0b77a29d2aa1b27`. Ultimo checkpoint con CI integralmente verde: `71f646bd12b48e09a8c69efd4864d1da15dd293b`, run [43438747565](https://github.com/saales/customer-journey-dashboard/actions/runs/43438747565). La successiva esecuzione [43439204074](https://github.com/saales/customer-journey-dashboard/actions/runs/43439204074) è stata annullata durante l'aggiornamento della richiesta di modifica: Node 20 ha completato i test ma la compilazione è stata annullata; Node 22 è stato annullato prima dei test. Le ultime modifiche al codice riguardano esclusivamente testi dell'interfaccia e metadati di esportazione; il README è documentazione. È necessaria una nuova esecuzione completa sul ramo aggiornato.  
+**Ultima CI completata con esito positivo:** commit `5df2205d3a6c6391710ca522006116c7d561a55f`, run [43447644855](https://github.com/saales/customer-journey-dashboard/actions/runs/43447644855), Node 20 e 22. Le modifiche successive includono correzioni di validazione date, limiti dei body JSON e timeout di inattività delle sessioni; la CI per il ramo aggiornato deve essere completata prima di considerarle validate.  
 **PR:** [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta in bozza, non merged.
 
 Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
@@ -16,6 +16,17 @@ Questo registro distingue il codice effettivamente presente nel branch, gli arte
 | La presentazione principale del progetto è stata riscritta in italiano e dichiara esplicitamente i limiti attuali | `README.md` | Verificato nel ramo |
 | Il servizio di autenticazione PostgreSQL verifica password scrypt e crea sessioni tramite il repository dedicato | `server/src/postgres-authentication.ts`, `server/src/password-hashing.ts`, `server/src/postgres-session-repository.ts`, `server/src/postgres-auth-routes.ts`, `server/src/postgres-app.ts` | Collegato alle route del runtime PostgreSQL separato; integrazione completa del browser con tale runtime ancora da verificare |
 | La richiesta di modifica è stata rinominata e aggiornata per riportare lo stato effettivo e i blocchi ancora aperti | PR #1 | Verificato; resta in bozza e non unita |
+
+## Correzioni sicurezza e validazione — aggiornamento 2026-11-13
+
+| Intervento | Evidenza | Stato |
+|---|---|---|
+| Validazione date ISO reale nel formato YYYY-MM-DD per i filtri analytics | `isValidPostgresDate` in `server/src/postgres-app.ts` e test in `server/test/postgres-app.test.ts` | Modifica presente; CI aggiornata da completare |
+| Limite JSON ordinario di 1 MiB e limite dedicato di 12 MiB per importazione | Middleware body parser in `server/src/postgres-app.ts` | Modifica presente; CI aggiornata da completare |
+| Risposte controllate 400/413 per JSON malformato e body troppo grande | Error handler del runtime PostgreSQL e test HTTP | Modifica presente; CI aggiornata da completare |
+| Timeout inattività sessioni di 30 minuti oltre alla scadenza assoluta | `last_used_at` aggiornato da `resolvePostgresSession`; migrazione `006_session_idle_timeout.sql` | Modifica presente; integrazione PostgreSQL e CI aggiornate da completare |
+| Privilegio di aggiornamento limitato alla sola colonna `sessions.last_used_at` | Migrazione 006 e controllo `has_column_privilege` nel preflight runtime | Modifica presente; test migrazione aggiunto |
+| Test di regressione per sessione attiva, inattività, validazione date e dimensione richieste | `server/test/postgres-session-resolver.integration.test.ts`, `server/test/postgres-app.test.ts`, `server/test/postgres-migrations.integration.test.ts` | Presenti nel ramo; CI aggiornata da completare |
 
 ## Evidenze verificate nel branch Git
 
