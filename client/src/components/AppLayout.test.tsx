@@ -16,6 +16,9 @@ describe("AppLayout", () => {
       </AppLayout>,
     );
 
+    expect(screen.getByRole("link", { name: "Vai al contenuto principale" }).getAttribute("href")).toBe("#main-content");
+    expect(screen.getByRole("main").getAttribute("id")).toBe("main-content");
+
     fireEvent.click(screen.getByRole("button", { name: "Analisi e report" }));
     expect(screen.getByRole("heading", { name: "Analisi e report" })).toBeTruthy();
     expect(screen.getByText("Report analitici")).toBeTruthy();
