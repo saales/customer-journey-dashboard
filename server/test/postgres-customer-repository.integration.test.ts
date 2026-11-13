@@ -12,7 +12,7 @@ afterAll(async () => {
 });
 
 describe("PostgreSQL customer repository", () => {
-  it("isola conteggi, pagine ed eventi per tenant e ripulisce il contesto locale", async () => {
+  it.skipIf(!pool)("isola conteggi, pagine ed eventi per tenant e ripulisce il contesto locale", async () => {
     const organizationA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const organizationB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     const client = await pool!.connect();
