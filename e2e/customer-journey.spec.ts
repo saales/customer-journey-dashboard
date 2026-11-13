@@ -52,7 +52,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   // Invito reale monouso e verifica dei permessi di un analista.
   await page.getByRole("button", { name: "Impostazioni" }).click();
   await page.getByLabel("Email", { exact: true }).fill("analyst@e2e.example");
-  await page.getByLabel("Ruolo").selectOption("analyst");
+  await page.locator("form.customer-form select").selectOption("analyst");
   await page.getByRole("button", { name: "Crea invito (7 giorni)" }).click();
   const inviteInput = page.getByLabel("Collegamento da condividere");
   await expect(inviteInput).toHaveValue(/token=/);
