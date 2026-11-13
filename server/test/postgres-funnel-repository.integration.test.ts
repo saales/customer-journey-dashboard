@@ -22,6 +22,7 @@ describe("PostgreSQL funnel repository", () => {
     const client = await pool!.connect();
 
     try {
+      await client.query("DROP TABLE IF EXISTS pg_temp.funnel_stages");
       await client.query(`
         CREATE TEMP TABLE funnel_stages (
           organization_id UUID NOT NULL,
@@ -80,6 +81,7 @@ describe("PostgreSQL funnel repository", () => {
     const organizationB = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
     const client = await pool!.connect();
     try {
+      await client.query("DROP TABLE IF EXISTS pg_temp.funnel_stages");
       await client.query(`
         CREATE TEMP TABLE funnel_stages (
           organization_id UUID NOT NULL,
@@ -129,6 +131,7 @@ describe("PostgreSQL funnel repository", () => {
     const organizationId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
     const client = await pool!.connect();
     try {
+      await client.query("DROP TABLE IF EXISTS pg_temp.funnel_stages");
       await client.query(`
         CREATE TEMP TABLE funnel_stages (
           organization_id UUID NOT NULL,
