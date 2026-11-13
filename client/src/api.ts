@@ -66,6 +66,16 @@ export interface CustomerInput {
   events: CustomerEvent[];
 }
 
+export interface CustomerPage {
+  data: Customer[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface ImportRow {
   externalId: string;
   channel: string;
@@ -223,8 +233,12 @@ export const api = {
       signal,
     ),
 
-  customers: (signal?: AbortSignal) =>
-    get<Customer[]>("customers", {}, signal),
+  customers: (page = 1, limit = 50, signal?: AbortSignal) =>
+    get<CustomerPage>(
+      "customers",
+      { page: String(page), limit: String(limit) },
+      signal,
+    ),
 
   createCustomer: (data: CustomerInput) =>
     send<Customer>("customers", "POST", data),
