@@ -18,7 +18,7 @@
 | Entità | Dati principali | Vincoli e responsabilità |
 |---|---|---|
 | organizations | id UUID, name, created_at | Radice del tenant |
-| users | id UUID, email normalizzata, password_hash, email_verified_at, last_login_at | Email univoca secondo la policy globale scelta; password hash Argon2id |
+| users | id UUID, email normalizzata, password_hash, email_verified_at, last_login_at | Email univoca secondo la policy globale scelta; password hash scrypt con salt casuale e parametri espliciti |
 | memberships | organization_id, user_id, role, created_at | PK composta; ruoli admin/editor/analyst/viewer |
 | invitations | id, organization_id, email, role, token_hash, expires_at, accepted_at | Token mai memorizzato in chiaro; invito limitato al tenant |
 | sessions | id, user_id, organization_id, token_hash, expires_at, created_at, last_seen_at | Token casuale lato client, hash lato DB, revoca e scadenza |
