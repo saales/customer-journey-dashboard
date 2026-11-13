@@ -36,7 +36,7 @@ describe("inspectPostgresSchema", () => {
     expect(mock.release).toHaveBeenCalledWith(false);
 
     const statements = mock.query.mock.calls.map(([sql]) => sql);
-    expect(statements.some(([sql]) => /\\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\\b/i.test(sql))).toBe(false);
+    expect(statements.some((sql) => /\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(sql))).toBe(false);
   });
 
   it("propaga un errore di lettura e completa il rollback", async () => {
