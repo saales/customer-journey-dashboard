@@ -1,5 +1,4 @@
-
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BarChart3,
   ChevronLeft,
@@ -46,13 +45,34 @@ const navigation = [
   { id: "audit", label: "Registro attività", icon: ClipboardList },
 ] as const;
 
-export function AppLayout({ children, sections, onLogout, visibleSections }: AppLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState<Theme>("light");
-  const [activeSection, setActiveSection] =
-    useState<Section>("dashboard");
+function readTheme(): Theme {
+  try {
+    return window.localStorage.getItem("customer-journey-theme") === "dark"
+      ? "dark"
+      : "light";
+  } catch {
+    return "light";
+  }
+}
 
-  const visibleNavigation = visibleSections ? navigation.filter((item) => visibleSections.includes(item.id)) : navigation;
+export function AppLayout({ children, sections, onLogout, visibleSections }: AppLayoutProps) {
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 760,
+  );
+  const [theme, setTheme] = useState<Theme>(readTheme);
+  const [activeSection, setActiveSection] = useState<Section>("dashboard");
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("customer-journey-theme", theme);
+    } catch {
+      // La preferenza resta valida nella sessione anche se lo storage non è disponibile.
+    }
+  }, [theme]);
+
+  const visibleNavigation = visibleSections
+    ? navigation.filter((item) => visibleSections.includes(item.id))
+    : navigation;
   const pageTitle =
     visibleNavigation.find((item) => item.id === activeSection)?.label ??
     "Panoramica";
@@ -69,6 +89,13 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
       </div>
     )
   );
+
+  function navigateTo(section: Section) {
+    setActiveSection(section);
+    if (typeof window !== "undefined" && window.innerWidth <= 760) {
+      setCollapsed(true);
+    }
+  }
 
   return (
     <div className={`app-shell theme-${theme}`}>
@@ -90,19 +117,16 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
           className="sidebar-toggle"
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Espandi menu" : "Comprimi menu"}
+          aria-expanded={!collapsed}
         >
-          {collapsed ? (
-            <ChevronRight size={18} />
-          ) : (
-            <ChevronLeft size={18} />
-          )}
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
 
         <div className="sidebar-section-label">
           {!collapsed && "AREA DI LAVORO"}
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Navigazione principale">
           {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.id;
@@ -111,11 +135,11 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
               <button
                 key={item.id}
                 className={`nav-item ${active ? "active" : ""}`}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => navigateTo(item.id)}
                 title={collapsed ? item.label : undefined}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon size={19} />
+                <Icon size={19} aria-hidden="true" />
                 {!collapsed && <span>{item.label}</span>}
               </button>
             );
@@ -132,7 +156,8 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
           <div className="header-title">
             <button
               className="mobile-menu-button"
-              aria-label="Menu"
+              aria-label={collapsed ? "Apri menu" : "Chiudi menu"}
+              aria-expanded={!collapsed}
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu size={20} />
@@ -145,31 +170,21 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
             </div>
           </div>
 
-          <button
-            className="theme-toggle"
-            onClick={() =>
-              setTheme(theme === "light" ? "dark" : "light")
-            }
-            aria-label={
-              theme === "light"
-                ? "Attiva tema scuro"
-                : "Attiva tema chiaro"
-            }
-          >
-            {theme === "light" ? (
-              <Moon size={19} />
-            ) : (
-              <Sun size={19} />
-            )}
-            <span>
-              {theme === "light" ? "Tema scuro" : "Tema chiaro"}
-            </span>
-          </button>
-          {onLogout && (
-            <button className="logout-toggle" type="button" onClick={() => void onLogout()}>
-              Esci
+          <div className="header-actions">
+            <button
+              className="theme-toggle"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              aria-label={theme === "light" ? "Attiva tema scuro" : "Attiva tema chiaro"}
+            >
+              {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
+              <span>{theme === "light" ? "Tema scuro" : "Tema chiaro"}</span>
             </button>
-          )}
+            {onLogout && (
+              <button className="logout-toggle" type="button" onClick={() => void onLogout()}>
+                Esci
+              </button>
+            )}
+          </div>
         </header>
 
         <main className="app-content">{sectionContent}</main>
