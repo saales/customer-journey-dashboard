@@ -51,14 +51,14 @@ describe("PostgreSQL integration smoke test", () => {
 
     const first = await withTenantTransaction(pool!, tenantA, async (client) => {
       const result = await client.query<{ tenant: string; pid: number }>(
-        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+        "SELECT current_setting('app.current_organization_id', true) AS tenant, pg_backend_pid() AS pid",
       );
       return result.rows[0]!;
     });
 
     const second = await withTenantTransaction(pool!, tenantB, async (client) => {
       const result = await client.query<{ tenant: string; pid: number }>(
-        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+        "SELECT current_setting('app.current_organization_id', true) AS tenant, pg_backend_pid() AS pid",
       );
       return result.rows[0]!;
     });
@@ -68,7 +68,7 @@ describe("PostgreSQL integration smoke test", () => {
     expect(second.pid).toBe(first.pid);
 
     const after = await pool!.query<{ tenant: string | null }>(
-      "SELECT current_setting('app.organization_id', true) AS tenant",
+      "SELECT current_setting('app.current_organization_id', true) AS tenant",
     );
     expect(after.rows[0]?.tenant).not.toBe(tenantA);
     expect(after.rows[0]?.tenant).not.toBe(tenantB);
@@ -168,7 +168,7 @@ describe("PostgreSQL integration smoke test", () => {
 
     const first = await withTenantTransaction(pool!, tenantA, async (client) => {
       const result = await client.query<{ tenant: string; pid: number }>(
-        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+        "SELECT current_setting('app.current_organization_id', true) AS tenant, pg_backend_pid() AS pid",
       );
       expect(result.rows[0]?.tenant).toBe(tenantA);
       firstBackendPid = result.rows[0]?.pid;
@@ -182,7 +182,7 @@ describe("PostgreSQL integration smoke test", () => {
 
     const second = await withTenantTransaction(pool!, tenantB, async (client) => {
       const result = await client.query<{ tenant: string; pid: number }>(
-        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+        "SELECT current_setting('app.current_organization_id', true) AS tenant, pg_backend_pid() AS pid",
       );
       return result.rows[0]!;
     });
