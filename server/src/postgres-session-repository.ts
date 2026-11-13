@@ -10,11 +10,7 @@ export interface IssuedPostgresSession {
   expiresAt: string;
 }
 
-/**
- * Issues a session only for an active user, organization and membership.
- * The raw token is returned once to the caller; only its SHA-256 hash is stored.
- * The caller must deliver it through a Secure, HttpOnly, SameSite cookie.
- */
+/** Issues a session for an active user/org/membership; stores only the token hash. */
 export async function issuePostgresSession(
   pool: Pick<Pool, "connect">,
   userId: string,
@@ -30,6 +26,7 @@ export async function issuePostgresSession(
 
   const { token, tokenHash } = createSessionToken();
   const client: PoolClient = await pool.connect();
+  let released = false;
   try {
     await client.query("BEGIN");
     const result = await client.query<{ expiresAt: string }>(
@@ -58,16 +55,15 @@ export async function issuePostgresSession(
       await client.query("ROLLBACK");
     } catch {
       client.release(true);
-      throw error;
+      released = true;
     }
     throw error;
   } finally {
-    // release() after release(true) is avoided by returning through this flag.
-    // pg clients tolerate a single release only, so the flag is tracked below.
+    if (!released) client.release();
   }
 }
 
-/** Revokes a single opaque token without ever storing or logging its value. */
+/** Revokes a single opaque token by its hash. */
 export async function revokePostgresSession(
   pool: Pick<Pool, "connect">,
   token: string,
