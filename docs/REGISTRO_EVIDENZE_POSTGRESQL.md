@@ -77,3 +77,12 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - Aggiunta la migrazione incrementale `010_audit_log_read_grant.sql`: concede esclusivamente `SELECT` su `audit_logs` al ruolo `percorso_app`. La policy RLS continua a limitare le righe al tenant impostato dalla sessione; il controllo autorizzativo HTTP continua a riservare l'endpoint agli amministratori.
 - Aggiornati il runner delle migrazioni, il preflight del ruolo runtime, il test negativo per il privilegio mancante e il test d'integrazione che verifica il grant della migrazione 010.
 - Il test browser già presente verifica la lettura audit amministrativa dopo l'export; il suo esito dopo la correzione è ancora da confermare nella CI del commit aggiornato.
+
+
+## Verifica ruoli estesa — 13 novembre 2026
+
+- Il test middleware verifica l'insieme esatto dei permessi previsti per ciascun ruolo: admin, editor, analyst e viewer.
+- Il percorso Playwright include ora admin, analyst e viewer. L'analista può esportare ma non scrivere né leggere l'audit; il viewer può leggere ma non esportare, scrivere o consultare l'audit. Le negazioni API sono verificate con HTTP 403 oltre ai controlli di visibilità UI.
+- Run CI [43499933923](https://github.com/saales/customer-journey-dashboard/actions/runs/43499933923) sul commit `b64e6cd8f7ca278b612784ab25727f592d05a3e8`: Node.js 20 e 22 completati con successo; test, build, audit, migrazioni 001–010/checksum e avvio runtime limitato; su Node.js 22 anche bootstrap tenant sintetico e Playwright/Chromium.
+- I test PostgreSQL di migrazione verificano RLS con un ruolo non proprietario e due organizzazioni. Rimangono necessari casi API cross-tenant più estesi e un percorso browser dedicato al ruolo editor.
+- Non sono state eseguite verifiche o scritture su Neon; staging, backup/restore, monitoraggio, carico e revisione indipendente restano fuori da questa CI.
