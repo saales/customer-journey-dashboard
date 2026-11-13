@@ -46,6 +46,10 @@ const REQUIRED_TABLE_PRIVILEGES: ReadonlyArray<readonly [string, string]> = [
   ["invitations", "SELECT"],
   ["invitations", "INSERT"],
   ["invitations", "UPDATE"],
+  ["password_reset_tokens", "SELECT"],
+  ["password_reset_tokens", "INSERT"],
+  ["password_reset_tokens", "UPDATE"],
+  ["password_reset_tokens", "DELETE"],
 ];
 
 export interface PostgresRuntimeRoleCheck {
@@ -143,6 +147,16 @@ export async function inspectPostgresRuntimeRole(
        format('%I.%I', current_schema(), 'sessions'),
        'last_used_at',
        'UPDATE'
+     )
+     UNION ALL
+     SELECT 'users.password_hash' AS "tableName", 'UPDATE' AS privilege
+     WHERE NOT has_column_privilege(
+       current_user, format('%I.%I', current_schema(), 'users'), 'password_hash', 'UPDATE'
+     )
+     UNION ALL
+     SELECT 'users.updated_at' AS "tableName", 'UPDATE' AS privilege
+     WHERE NOT has_column_privilege(
+       current_user, format('%I.%I', current_schema(), 'users'), 'updated_at', 'UPDATE'
      )`,
     [
       REQUIRED_TABLE_PRIVILEGES.map(([table]) => table),
