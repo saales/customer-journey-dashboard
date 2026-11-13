@@ -2,7 +2,7 @@
 
 - **Stato:** piano operativo; non è DDL e non autorizza modifiche a Neon.
 - **Branch di riferimento:** `recovery/checkpoint-12-postgres`
-- **Baseline documentale aggiornata:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58`
+- **Baseline documentale aggiornata:** `a693821d6ce70064e177fedfc4cc1e651e15f02d` (SQL storici recuperati dallo ZIP checkpoint 12).
 
 ## Obiettivo
 
@@ -34,8 +34,8 @@ Il file `server/src/app.ts` usa direttamente l'API sincrona SQLite. La validazio
 
 | Area | Evidenza disponibile | Decisione necessaria prima del DDL |
 |---|---|---|
-| Baseline Neon 001 | È noto un checksum storico parziale `483595e...`, ma non il file SQL esatto nel branch | Recuperare SQL originale, checksum completo, versione e ordine |
-| Migrazione 002 sessioni | Il riepilogo storico riferisce l'aggiunta di `sessions.organization_id`; il file originale non è disponibile | Recuperare SQL e checksum; verificare nullable/FK/indice effettivi |
+| Baseline 001 | SQL originale recuperato in `server/migrations/001_initial_schema.sql`; SHA-256 `483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162`, coerente con il prefisso storico `483595e...` | Verificare checksum memorizzato, versione e applicazione effettiva su Neon in sola lettura |
+| Migrazione 002 sessioni | SQL recuperato in `server/migrations/002_session_organization.sql`; SHA-256 `3d8b40cddff8f4e704679b164d9dfec1dc42e329b56ee79cd45520ff4a30e188`; aggiunge colonna nullable, FK e indice | Verificare checksum memorizzato, applicazione effettiva, nullability, FK e indice su Neon |
 | Identificativo cliente | SQLite usa intero; il contratto propone BIGINT identity | Definire compatibilità API, import, ordinamento e mapping ID |
 | `external_id` | Usato dal validatore import, assente dalla tabella SQLite corrente | Stabilire persistenza, normalizzazione e policy di deduplicazione per tenant |
 | Funnel stages | SQLite usa ID testuali e posizione globale | Confermare se gli ID restano testuali; definire seed per organizzazione e unicità tenant-scoped |
@@ -49,16 +49,16 @@ Il file `server/src/app.ts` usa direttamente l'API sincrona SQLite. La validazio
 
 ### Gate 0 — Provenienza della baseline
 
-Non scrivere né rinominare una migrazione storica sulla base di una ricostruzione per supposizione.
+Gli SQL originali 001 e 002 sono stati recuperati dallo ZIP checkpoint 12 e versionati nel branch. Non riscriverli, rinominarli o sostituirli sulla base di supposizioni.
 
-Evidenze da raccogliere:
-- SQL integrale delle migrazioni 001 e 002 già applicate;
-- checksum SHA-256 completo e identico a quello registrato nel database;
+Evidenze ancora da raccogliere:
+- checksum SHA-256 completo e identico a quello registrato nel database per ciascuna versione;
+- conferma delle versioni effettivamente applicate e relativi timestamp;
 - tabella/versione delle migrazioni e relativi timestamp;
 - schema effettivo (tabelle, colonne, tipi, default, vincoli, indici, policy RLS e proprietari);
 - conferma che il dump/schema ispezionato sia riferito al database corretto.
 
-Se l'SQL originale non è recuperabile, il lavoro si ferma alla documentazione e a un piano di riconciliazione non distruttivo. Non creare una baseline sostitutiva e non marcare migrazioni come applicate per aggirare il controllo.
+La disponibilità degli SQL nel repository non dimostra che siano stati applicati su Neon. Se checksum, versioni o schema non coincidono, fermarsi e predisporre una riconciliazione non distruttiva. Non marcare migrazioni come applicate per aggirare il controllo.
 
 ### Gate 1 — Contratto canonico
 
@@ -119,4 +119,4 @@ Prima di esporre il runtime SaaS:
 
 ## Prossima attività tecnica consentita
 
-Recuperare e confrontare la baseline storica e lo schema effettivo in modalità sola lettura, oppure, se tali artefatti non sono disponibili, proseguire con test e refactoring isolati dal database. Fino ad allora, le migrazioni eseguibili restano bloccate.
+Confrontare in sola lettura la baseline SQL ora recuperata con `schema_migrations` e lo schema effettivo del database di destinazione. In parallelo, collaudare gli SQL su PostgreSQL effimero e integrare il backend ZIP soltanto dopo aver aggiunto test d'integrazione. Le migrazioni eseguibili su Neon restano bloccate fino alla verifica della baseline remota e ad autorizzazione esplicita.
