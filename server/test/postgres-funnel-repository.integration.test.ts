@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import {
   listPostgresFunnelStages,
   reorderPostgresFunnelStages,
+  updatePostgresFunnelStage,
 } from "../src/postgres-funnel-repository.js";
 
 const connectionString = process.env.DATABASE_URL;
