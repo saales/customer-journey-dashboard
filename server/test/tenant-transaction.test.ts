@@ -88,10 +88,11 @@ describe("withTenantTransaction", () => {
     ).rejects.toBe(failure);
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
-      ["BEGIN"],
-      ["SELECT set_config('app.organization_id', $1, true)", ["org-a"]],
-      ["ROLLBACK"],
+      "BEGIN",
+      "SELECT set_config('app.organization_id', $1, true)",
+      "ROLLBACK",
     ]);
+    expect(mock.query.mock.calls[1][1]).toEqual(["org-a"]);
     expect(mock.release).toHaveBeenCalledWith(false);
   });
 
