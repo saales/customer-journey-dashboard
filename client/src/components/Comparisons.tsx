@@ -377,7 +377,7 @@ export function Comparisons({ query }: ComparisonsProps) {
         />
 
         <KpiComparison
-          label="Lead"
+          label="Contatti acquisiti"
           current={currentKpis.leads}
           previous={previousKpis.leads}
         />
