@@ -89,3 +89,8 @@ Questa matrice è il requisito previsto; ogni route deve verificarlo sul server.
 - Prima del cutover, confrontare conteggi, vincoli e risultati analitici tra SQLite e PostgreSQL sullo stesso dataset.
 - Mantenere un piano di rollback che non richieda downgrade distruttivi dello schema.
 - Non eseguire seed automatico in produzione; ogni nuova organizzazione deve essere vuota.
+
+
+## Implementazione introdotta nel branch
+
+La migrazione additiva `003_saas_tenant_hardening.sql` implementa una prima parte del contratto: `customers.external_id` tenant-scoped, FK sessione/membership non validata sui record storici e policy RLS sulle tabelle operative. I record clienti preesistenti ricevono un valore tecnico `legacy:<id>`; non si tratta del recupero di un identificativo esterno originario. Il contesto RLS è `app.current_organization_id` e deve essere impostato nella stessa transazione delle query. Restano da implementare ruolo DB runtime dedicato, middleware autenticazione/autorizzazione e test API end-to-end cross-tenant.
