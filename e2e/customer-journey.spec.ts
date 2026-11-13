@@ -148,7 +148,6 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
     return { audit: audit.status, customerWrite: customerWrite.status, exportCsv: exportCsv.status };
   });
   expect(viewerPermissions).toEqual({ audit: 403, customerWrite: 403, exportCsv: 403 });
-});
 
   // Terzo percorso browser: l'editor può lavorare sui dati ma non amministrare membri o audit.
   await page.getByRole("button", { name: "Esci" }).click();
@@ -218,4 +217,4 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
     audit: 403,
     members: 403,
   });
-
+});
