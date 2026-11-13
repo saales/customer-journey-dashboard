@@ -12,7 +12,8 @@ import {
   Sun,
   Users,
   Upload,
-  PieChart,\n  ClipboardList,
+  PieChart,
+  ClipboardList,
 } from "lucide-react";
 
 type Section =
@@ -22,7 +23,8 @@ type Section =
   | "segmentation"
   | "comparisons"
   | "import"
-  | "settings"\n  | "audit";
+  | "settings"
+  | "audit";
 
 type Theme = "light" | "dark";
 
@@ -40,7 +42,8 @@ const navigation = [
   { id: "analytics", label: "Analisi e report", icon: BarChart3 },
   { id: "segmentation", label: "Segmentazione", icon: PieChart },
   { id: "comparisons", label: "Confronti", icon: GitCompareArrows },
-  { id: "settings", label: "Impostazioni", icon: Settings },\n  { id: "audit", label: "Registro attività", icon: ClipboardList },
+  { id: "settings", label: "Impostazioni", icon: Settings },
+  { id: "audit", label: "Registro attività", icon: ClipboardList },
 ] as const;
 
 export function AppLayout({ children, sections, onLogout, visibleSections }: AppLayoutProps) {
