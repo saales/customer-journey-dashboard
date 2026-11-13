@@ -149,3 +149,73 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   });
   expect(viewerPermissions).toEqual({ audit: 403, customerWrite: 403, exportCsv: 403 });
 });
+
+  // Terzo percorso browser: l'editor può lavorare sui dati ma non amministrare membri o audit.
+  await page.getByRole("button", { name: "Esci" }).click();
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByLabel("Codice organizzazione").fill(admin.organization);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
+  await page.getByRole("button", { name: "Impostazioni" }).click();
+  await page.getByLabel("Email", { exact: true }).fill("editor@e2e.example");
+  await page.locator("form.customer-form select").selectOption("editor");
+  await page.getByRole("button", { name: "Crea invito (7 giorni)" }).click();
+  const editorInviteInput = page.getByLabel("Collegamento da condividere");
+  await expect(editorInviteInput).toHaveValue(/token=/);
+  await page.goto(await editorInviteInput.inputValue());
+  await page.getByLabel("Nome e cognome").fill("E2E Editor");
+  await page.getByLabel("Password", { exact: true }).fill("E2E-editor-password-2026!");
+  await page.getByLabel("Conferma password").fill("E2E-editor-password-2026!");
+  const editorAcceptance = page.waitForResponse((response) =>
+    response.url().endsWith("/api/invitations/accept") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Accetta invito" }).click();
+  expect((await editorAcceptance).status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Importazione dati" })).toBeVisible();
+  await page.getByRole("button", { name: "Gestione clienti" }).click();
+  await expect(page.getByRole("button", { name: "Nuovo cliente" })).toBeVisible();
+  const editorPermissions = await page.evaluate(async () => {
+    const [customerWrite, funnelWrite, importData, exportCsv, audit, members] = await Promise.all([
+      fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "Organico", createdAt: "2025-07-01", events: [] }),
+      }),
+      fetch("/api/funnel-stages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: "Editor E2E" }),
+      }),
+      fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "editor-e2e.csv",
+          rows: [{ externalId: "editor-e2e-001", channel: "Organico", createdAt: "2025-07-02",
+            stage: "visit", occurredAt: "2025-07-02" }],
+        }),
+      }),
+      fetch("/api/export/customers.csv"),
+      fetch("/api/audit"),
+      fetch("/api/members"),
+    ]);
+    return {
+      customerWrite: customerWrite.status,
+      funnelWrite: funnelWrite.status,
+      importData: importData.status,
+      exportCsv: exportCsv.status,
+      audit: audit.status,
+      members: members.status,
+    };
+  });
+  expect(editorPermissions).toEqual({
+    customerWrite: 201,
+    funnelWrite: 201,
+    importData: 201,
+    exportCsv: 200,
+    audit: 403,
+    members: 403,
+  });
+
