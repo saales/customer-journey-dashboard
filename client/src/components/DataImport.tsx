@@ -26,6 +26,9 @@ interface CsvResult {
   fileName: string;
 }
 
+const MAX_IMPORT_ROWS = 10_000;
+const MAX_EXTERNAL_ID_LENGTH = 100;
+
 const REQUIRED_HEADERS = [
   "externalId",
   "channel",
@@ -76,6 +79,8 @@ function validateRows(
 
     if (!externalId) {
       errors.push("Identificativo cliente obbligatorio.");
+    } else if (externalId.length > MAX_EXTERNAL_ID_LENGTH) {
+      errors.push(`Identificativo cliente troppo lungo: massimo ${MAX_EXTERNAL_ID_LENGTH} caratteri.`);
     }
 
     if (!channel) {
@@ -348,6 +353,11 @@ export function DataImport({ onDataChange }: DataImportProps) {
 
       if (rows.length === 0) {
         setError("Il file contiene le intestazioni ma nessuna riga di dati.");
+        return;
+      }
+
+      if (rows.length > MAX_IMPORT_ROWS) {
+        setError(`Il file contiene ${rows.length} righe: il limite massimo è ${MAX_IMPORT_ROWS}. Dividi il file in più importazioni.`);
         return;
       }
 
