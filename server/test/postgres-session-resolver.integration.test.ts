@@ -35,6 +35,7 @@ describe("PostgreSQL session resolver", () => {
     const active = createSessionToken();
     const suspendedMembership = createSessionToken();
     const expired = createSessionToken();
+    const idle = createSessionToken();
     const client = await pool!.connect();
 
     try {
@@ -65,7 +66,8 @@ describe("PostgreSQL session resolver", () => {
           user_id UUID NOT NULL,
           organization_id UUID,
           token_hash TEXT NOT NULL,
-          expires_at TIMESTAMPTZ NOT NULL
+          expires_at TIMESTAMPTZ NOT NULL,
+          last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         ) ON COMMIT PRESERVE ROWS
       `);
       await client.query(
@@ -97,6 +99,12 @@ describe("PostgreSQL session resolver", () => {
           expired.tokenHash,
         ],
       );
+      await client.query(
+        `INSERT INTO sessions (id, user_id, organization_id, token_hash, expires_at, last_used_at)
+         VALUES ('88888888-8888-4888-8888-888888888888', $1, $2, $3,
+                 NOW() + INTERVAL '1 hour', NOW() - INTERVAL '31 minutes')`,
+        [userA, organizationA, idle.tokenHash],
+      );
     } finally {
       client.release();
     }
@@ -108,6 +116,7 @@ describe("PostgreSQL session resolver", () => {
     });
     await expect(resolvePostgresSession(pool!, suspendedMembership.token)).resolves.toBeNull();
     await expect(resolvePostgresSession(pool!, expired.token)).resolves.toBeNull();
+    await expect(resolvePostgresSession(pool!, idle.token)).resolves.toBeNull();
     await expect(resolvePostgresSession(pool!, "invalid")).resolves.toBeNull();
   });
 });
