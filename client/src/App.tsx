@@ -14,7 +14,8 @@ import { DataImport } from "./components/DataImport";
 import { FunnelSettings } from "./components/FunnelSettings";
 import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
-import { MemberManagement } from "./components/MemberManagement";\nimport { AuditLog } from "./components/AuditLog";
+import { MemberManagement } from "./components/MemberManagement";
+import { AuditLog } from "./components/AuditLog";
 
 interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
@@ -235,7 +236,9 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
     </div>
   );
 
-  const auditSection = organizationRole === "admin" ? <AuditLog /> : null;\n\n  const settingsSection = (
+  const auditSection = organizationRole === "admin" ? <AuditLog /> : null;
+
+  const settingsSection = (
     <div>
       <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite} />
       {organizationRole === "admin" && <MemberManagement />}
@@ -261,7 +264,8 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
         segmentation: segmentationSection,
         comparisons: comparisonsSection,
         settings: settingsSection,
-        import: importSection,\n        audit: auditSection,
+        import: importSection,
+        audit: auditSection,
       }}
     >
       {dashboardSection}
