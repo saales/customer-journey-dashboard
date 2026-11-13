@@ -71,7 +71,7 @@ export async function planPostgresMigrations(
     await client.query("BEGIN READ ONLY");
     transactionOpen = true;
     const existence = await client.query<{ exists: boolean }>(
-      "SELECT to_regclass('public.schema_migrations') IS NOT NULL AS exists",
+      "SELECT to_regclass('public.schema_migrations') IS NOT NULL AS "exists"",
     );
     const recorded = new Map<string, AppliedMigration>();
 
