@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "seed": "tsx src/seed-cli.ts",
     "test": "vitest run",
-    "db:check": "tsx src/check-postgres.ts"
+    "db:check": "tsx src/check-postgres.ts",
+    "db:inspect": "tsx src/inspect-postgres-schema.ts"
   },
   "dependencies": {
     "better-sqlite3": "12.9.0",
