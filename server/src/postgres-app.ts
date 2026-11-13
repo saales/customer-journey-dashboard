@@ -16,7 +16,8 @@ import {
   requirePostgresSession,
   requireOrganizationPermission,
 } from "./postgres-auth-middleware.js";
-import { createPostgresAuthRouter, isAllowedPostgresAuthOrigin, serializePostgresSessionCookie } from "./postgres-auth-routes.js";
+import { createPostgresAuthRouter, isAllowedPostgresAuthOrigin, serializePostgresSessionCookie, clearPostgresSessionCookie } from "./postgres-auth-routes.js";
+import { getPostgresAccountProfile, updatePostgresAccountName, changePostgresAccountPassword, PostgresAccountError } from "./postgres-account-repository.js";
 import { acceptOrganizationInvitation, createOrganizationInvitation, listOrganizationInvitations, revokeOrganizationInvitation, InvitationError } from "./postgres-invitations-repository.js";
 import {
   createPostgresCustomer,
@@ -226,6 +227,45 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     pool,
     production ? "__Host-percorso_session" : "percorso_session",
   );
+
+  app.get("/api/account", authenticated, async (req, res, next) => {
+    try {
+      const session=req.authenticatedSession!;
+      res.json(await getPostgresAccountProfile(pool,session.organizationId,session.userId));
+    } catch(error) {
+      if(error instanceof PostgresAccountError){res.status(error.status).json({error:error.message});return;}
+      next(error);
+    }
+  });
+  app.patch("/api/account", authenticated, async (req,res,next) => {
+    try {
+      const body=req.body as Record<string,unknown>|null;
+      if(!body||typeof body!=="object"||Array.isArray(body)||Object.keys(body).some(key=>key!=="fullName")){
+        throw new ApiError(400,"Dati profilo non validi.");
+      }
+      const session=req.authenticatedSession!;
+      res.json(await updatePostgresAccountName(pool,session.organizationId,session.userId,body.fullName));
+    } catch(error) {
+      if(error instanceof PostgresAccountError){res.status(error.status).json({error:error.message});return;}
+      next(error);
+    }
+  });
+  app.post("/api/account/password", authenticated, async (req,res,next) => {
+    try {
+      const body=req.body as Record<string,unknown>|null;
+      if(!body||typeof body!=="object"||Array.isArray(body)||
+         Object.keys(body).some(key=>key!=="currentPassword"&&key!=="newPassword")){
+        throw new ApiError(400,"Dati cambio password non validi.");
+      }
+      const session=req.authenticatedSession!;
+      await changePostgresAccountPassword(pool,session.organizationId,session.userId,body.currentPassword,body.newPassword);
+      res.append("Set-Cookie",clearPostgresSessionCookie(production));
+      res.status(204).send();
+    } catch(error) {
+      if(error instanceof PostgresAccountError){res.status(error.status).json({error:error.message});return;}
+      next(error);
+    }
+  });
 
   const parseAnalyticsFilters = async (req: Request, organizationId: string) => {
     const meta = await getPostgresMeta(pool, organizationId);
