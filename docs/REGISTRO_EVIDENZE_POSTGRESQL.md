@@ -161,3 +161,15 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Creazione fasi personalizzate con ID stabile, ordine finale e unicità del nome nel tenant | `createPostgresFunnelStage` e test d'integrazione | Implementata |
 | Riordino completo con blocco delle fasi Visita e Cliente agli estremi | `reorderPostgresFunnelStages` e test di regressione | Implementato |
 | Il client può creare, rinominare, attivare/disattivare e riordinare le fasi | `FunnelSettings.tsx`, API PostgreSQL | Copertura server presente; collegamento browser ancora da collaudare con sessione reale |
+
+
+## Accesso browser — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Controllo sessione prima di montare le schermate applicative | `client/src/components/AuthGate.tsx`, `main.tsx` | Implementato |
+| Modulo di accesso con email, password e codice organizzazione | `AuthGate.tsx` | Implementato |
+| Cookie di sessione non leggibile da JavaScript; nessun token in localStorage | Auth router server + AuthGate browser | Implementato nel codice |
+| Uscita con revoca server-side e cancellazione cookie | `POST /api/auth/logout`, `AuthGate.tsx` | Implementato nel codice |
+| Modalità demo SQLite limitata all'ambiente di sviluppo quando la route auth non esiste | `AuthGate.tsx` | Implementata; non attiva in produzione |
+| Test browser di login, controllo sessione e logout | `client/src/components/AuthGate.test.tsx` | Aggiunti; CI del commit finale da verificare |

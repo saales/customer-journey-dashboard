@@ -29,6 +29,7 @@ type Theme = "light" | "dark";
 interface AppLayoutProps {
   children: ReactNode;
   sections?: Partial<Record<Section, ReactNode>>;
+  onLogout?: () => Promise<void>;
 }
 
 const navigation = [
@@ -41,7 +42,7 @@ const navigation = [
   { id: "settings", label: "Impostazioni", icon: Settings },
 ] as const;
 
-export function AppLayout({ children, sections }: AppLayoutProps) {
+export function AppLayout({ children, sections, onLogout }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<Theme>("light");
   const [activeSection, setActiveSection] =
@@ -158,6 +159,11 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
               {theme === "light" ? "Tema scuro" : "Tema chiaro"}
             </span>
           </button>
+          {onLogout && (
+            <button className="logout-toggle" type="button" onClick={() => void onLogout()}>
+              Esci
+            </button>
+          )}
         </header>
 
         <main className="app-content">{sectionContent}</main>

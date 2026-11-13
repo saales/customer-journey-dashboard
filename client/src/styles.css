@@ -1439,3 +1439,23 @@ button {
     flex: 1;
   }
 }
+
+
+/* Accesso e sessione */
+.auth-screen { min-height:100vh; display:grid; place-items:center; padding:24px; background:#f3f5f9; color:#17243b; }
+.auth-card { width:min(100%,440px); padding:36px; border:1px solid #e5eaf1; border-radius:18px; background:#fff; box-shadow:0 18px 50px rgba(23,36,59,.09); }
+.auth-brand { display:flex; align-items:center; gap:12px; margin-bottom:30px; }
+.auth-brand-mark { width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:#526de5; color:#fff; font-weight:800; }
+.auth-brand strong,.auth-brand span { display:block; }
+.auth-brand span { margin-top:3px; color:#667085; font-size:.82rem; }
+.auth-card h1 { margin:0; font-size:1.45rem; }
+.auth-intro { margin:9px 0 24px; color:#667085; line-height:1.5; }
+.auth-form { display:grid; gap:16px; }
+.auth-form label { display:grid; gap:7px; font-size:.9rem; font-weight:600; }
+.auth-form input { width:100%; min-height:44px; padding:10px 12px; border:1px solid #d5dce7; border-radius:9px; background:#fff; color:#17243b; }
+.auth-submit { min-height:46px; border:0; border-radius:9px; background:#526de5; color:#fff; font-weight:650; }
+.auth-submit:disabled { opacity:.65; cursor:wait; }
+.auth-footnote { margin:20px 0 0; color:#667085; font-size:.78rem; line-height:1.5; }
+.logout-toggle { display:flex; align-items:center; padding:9px 13px; border:1px solid var(--border-color); border-radius:9px; background:var(--surface); color:var(--text-primary); }
+.logout-toggle:hover { background:var(--surface-hover); }
+@media (max-width:520px) { .auth-card { padding:26px 22px; } .logout-toggle { padding:9px 10px; } }

@@ -68,7 +68,7 @@ Il modulo `server/src/postgres-server.ts` avvia `createPostgresApp` senza sostit
 
 | Metodo e percorso | Funzione | Permesso | Stato |
 |---|---|---|---|
-| POST /api/auth/login | Autenticazione e cookie di sessione | Origine esatta consentita; limite persistente tentativi | Implementata nel runtime PostgreSQL |
+| POST /api/auth/login | Autenticazione e cookie di sessione | Origine esatta consentita; limite persistente tentativi | Server e modulo browser collegati |
 | GET /api/auth/session | Identità e ruolo correnti | Sessione valida | Implementata |
 | POST /api/auth/logout | Revoca sessione e cancellazione cookie | Sessione valida e origine consentita | Implementata |
 | GET /api/customers | Elenco paginato tenant-scoped | customers:read | Implementata |
@@ -94,3 +94,10 @@ La migrazione `005_runtime_role_grants.sql` assegna privilegi minimi al ruolo `p
 - Verifica su un ambiente di staging isolato e collaudo di backup/ripristino.
 
 Le route del runtime SQLite nella prima tabella non sono automaticamente protette dalle nuove middleware: il server PostgreSQL è un processo distinto e il runtime SQLite continua a non essere adatto a dati aziendali reali.
+
+
+## Accesso dal browser
+
+Il client ora verifica `GET /api/auth/session` prima di montare la dashboard, presenta il modulo di accesso e invia email, password e codice organizzazione a `POST /api/auth/login`. La sessione resta in un cookie HttpOnly e non viene copiata in localStorage o JavaScript. L'uscita chiama `POST /api/auth/logout`.
+
+In sviluppo, se il runtime non espone la route di sessione (404), il client mantiene una modalità demo esclusivamente locale per il server SQLite storico. In produzione non esiste questo ripiego: se il runtime PostgreSQL non è disponibile o l'accesso non è configurato, la dashboard resta chiusa.

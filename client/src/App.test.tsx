@@ -69,13 +69,13 @@ afterEach(() => {
 });
 
 describe("App", () => {
-  it("mostra KPI, tabella dei canali e avviso sui dati sintetici", async () => {
+  it("mostra KPI e tabella dei canali senza classificare i dati come sintetici", async () => {
     render(<App />);
 
     expect(await screen.findByText("Conversione")).toBeTruthy();
     expect(screen.getByText("12.345")).toBeTruthy();
     expect(screen.getByText("31,5")).toBeTruthy();
-    expect(screen.getByText(/Dati sintetici/)).toBeTruthy();
+    expect(screen.queryByText(/Dati sintetici/)).toBeNull();
 
     openAnalytics();
 

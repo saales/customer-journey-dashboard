@@ -15,7 +15,9 @@ import { FunnelSettings } from "./components/FunnelSettings";
 import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
 
-export default function App() {
+interface AppProps { onLogout?: () => Promise<void>; demoMode?: boolean; }
+
+export default function App({ onLogout, demoMode = false }: AppProps = {}) {
   const [preset, setPreset] = useState<Preset>(12);
   const [channel, setChannel] = useState("");
   const [customFrom, setCustomFrom] = useState("");
@@ -144,10 +146,9 @@ export default function App() {
 
   const dashboardSection = (
     <>
-      <p className="notice">
-        Dati sintetici generati a scopo dimostrativo: nessun dato reale di
-        clienti o aziende.
-      </p>
+      {demoMode && (
+        <p className="notice">Dati sintetici generati a scopo dimostrativo: nessun dato reale di clienti o aziende.</p>
+      )}
 
       {statusMessages}
 
@@ -248,6 +249,7 @@ export default function App() {
 
   return (
     <AppLayout
+      onLogout={onLogout}
       sections={{
         dashboard: dashboardSection,
         customers: customersSection,
