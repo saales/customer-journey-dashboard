@@ -92,6 +92,13 @@ export interface ImportResult {
   importedEvents: number;
 }
 
+export interface OrganizationSettings {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+}
+
 export interface OrganizationMember {
   membershipId: string;
   userId: string;
@@ -223,6 +230,9 @@ async function send<T>(
 export const api = {
   audit: (q: { page: number; limit: number; from?: string; to?: string; actorUserId?: string; action?: string }) =>
     get<AuditPage>("audit", { page: String(q.page), limit: String(q.limit), from: q.from, to: q.to, actorUserId: q.actorUserId, action: q.action }),
+
+  organization: (signal?: AbortSignal) => get<OrganizationSettings>("organization", {}, signal),
+  updateOrganization: (name: string) => send<OrganizationSettings>("organization", "PATCH", { name }),
 
   members: (signal?: AbortSignal) => get<OrganizationMember[]>("members", {}, signal),
 
