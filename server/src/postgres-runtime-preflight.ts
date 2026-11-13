@@ -167,6 +167,11 @@ export async function inspectPostgresRuntimeRole(
      SELECT 'organizations.updated_at' AS "tableName", 'UPDATE' AS privilege
      WHERE NOT has_column_privilege(
        current_user, format('%I.%I', current_schema(), 'organizations'), 'updated_at', 'UPDATE'
+     )
+     UNION ALL
+     SELECT 'users.full_name' AS "tableName", 'UPDATE' AS privilege
+     WHERE NOT has_column_privilege(
+       current_user, format('%I.%I', current_schema(), 'users'), 'full_name', 'UPDATE'
      )`,
     [
       REQUIRED_TABLE_PRIVILEGES.map(([table]) => table),
