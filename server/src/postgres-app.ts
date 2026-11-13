@@ -309,7 +309,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
   app.get("/api/export/customers.csv", authenticated, requireOrganizationPermission("data:export"),
     async (req, res, next) => {
       try {
-        const result = await exportPostgresCustomersCsv(pool, req.authenticatedSession!.organizationId);
+        const result = await exportPostgresCustomersCsv(pool, req.authenticatedSession!.organizationId, req.authenticatedSession!.userId);
         res.setHeader("Content-Type", "text/csv; charset=utf-8");
         res.setHeader("Content-Disposition", 'attachment; filename="percorso-clienti.csv"');
         res.setHeader("X-Export-Row-Count", String(result.rowCount));
