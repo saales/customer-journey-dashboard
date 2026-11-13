@@ -21,6 +21,7 @@ export async function withTenantTransaction<T>(
 
   const client = await pool.connect();
   let transactionStarted = false;
+  let destroyClient = false;
 
   try {
     await client.query("BEGIN");
@@ -40,11 +41,12 @@ export async function withTenantTransaction<T>(
       try {
         await client.query("ROLLBACK");
       } catch {
-        // Conserva l'errore originale; release() restituisce/ritira il client.
+        // Un client con rollback fallito non deve rientrare nel pool.
+        destroyClient = true;
       }
     }
     throw error;
   } finally {
-    client.release();
+    client.release(destroyClient);
   }
 }

@@ -57,11 +57,12 @@ describe("withTenantTransaction", () => {
     expect(mock.connect).not.toHaveBeenCalled();
   });
 
-  it("conserva l'errore originale anche se rollback fallisce", async () => {
+  it("distrugge il client se rollback fallisce e conserva l'errore originale", async () => {
     const mock = createPoolMock();
     const failure = new Error("work failed");
+    const rollbackFailure = new Error("rollback failed");
     mock.query.mockImplementation(async (sql: string) => {
-      if (sql === "ROLLBACK") throw new Error("rollback failed");
+      if (sql === "ROLLBACK") throw rollbackFailure;
       return { rows: [] };
     });
 
@@ -72,5 +73,6 @@ describe("withTenantTransaction", () => {
     ).rejects.toBe(failure);
 
     expect(mock.release).toHaveBeenCalledOnce();
+    expect(mock.release).toHaveBeenCalledWith(true);
   });
 });
