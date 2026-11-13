@@ -216,3 +216,4 @@ CREATE INDEX audit_logs_org_date_idx
 
 CREATE INDEX audit_logs_actor_idx
     ON audit_logs(actor_user_id, created_at DESC);
+
