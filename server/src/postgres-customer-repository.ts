@@ -292,7 +292,7 @@ export async function updatePostgresCustomer(
     const stages = new Map(stageRows.rows.map(row=>[row.id,{position:row.position,isActive:row.is_active}]));
     if (stages.get("visit")?.position !== 0) throw new Error("Configurazione delle fasi non valida.");
     const previousEvents = await client.query<{stage_id:string;occurred_at:string}>(
-      "SELECT stage_id,occurred_at::date::text AS occurred_at FROM events WHERE organization_id=$1::uuid AND customer_id=$2::bigint",
+      "SELECT stage_id,to_char(occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD') AS occurred_at FROM events WHERE organization_id=$1::uuid AND customer_id=$2::bigint",
       [organizationId,customerId],
     );
     const previousDates = new Map(previousEvents.rows.map(row=>[row.stage_id,row.occurred_at]));
