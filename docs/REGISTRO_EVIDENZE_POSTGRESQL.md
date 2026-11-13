@@ -2,8 +2,9 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit codice verificato:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58` (CI Node 20/22).  
-**Ultimo commit documentale precedente:** `15081946839f87be3917347d6ef96683dac868fe`.
+**Commit codice verificato:** `c4c927aab71bb48d1e091b933a807b608c745eba` (CI Node 20/22, run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401)).  
+**Branch HEAD al checkpoint:** `c4c927aab71bb48d1e091b933a807b608c745eba`.  
+**PR:** [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta in bozza, non merged.
 
 Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
 
@@ -18,8 +19,8 @@ Questo registro distingue il codice effettivamente presente nel branch, gli arte
 | L'ispezione non legge righe applicative | Query su database identity, cataloghi, `information_schema`, ruolo e presenza di `schema_migrations` | Verificato nel codice |
 | Il report filtra tabelle, colonne, vincoli, indici e policy in base al privilegio SELECT | `has_table_privilege(..., 'SELECT')` e test `private_probe` | Verificato in CI |
 | Il test d'integrazione usa un ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
-| Test e build del codice con filtro metadati sono passati su Node 20 e 22 | CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323) | Verificato |
-| L'ultimo commit documentale `1508194` ha superato la CI | CI run [43418619411](https://github.com/saales/customer-journey-dashboard/actions/runs/43418619411) | Verificato |
+| Test e build sul checkpoint corrente sono passati su Node 20 e 22 | CI run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401): `npm ci`, `npm test`, `npm run build` tutti success su entrambi i runtime | Verificato al commit `c4c927a` |
+| Il runner PostgreSQL e il preflight read-only sono presenti nel branch | `server/src/postgres-migrations.ts`, `server/src/migrate-postgres.ts`, script `db:migrate -- --check`; test unitari inclusi nella CI | Verificato nel branch |
 | PR #1 resta aperta in bozza, non merged; `main` invariata | PR #1 e confronto branch | Verificato al 2026-11-13 |
 
 ## Artefatti recuperati dallo ZIP checkpoint 12
@@ -43,7 +44,7 @@ Lo ZIP contiene inoltre `migrate-postgres.ts`, `auth.ts`, `queries-postgres.ts`,
 - Presenza e contenuto della tabella `schema_migrations`, versioni, timestamp e checksum memorizzati: **non verificati**.
 - Applicazione effettiva della migrazione 001 e della 002: **non confermata**.
 - La documentazione inclusa nello ZIP è internamente non uniforme sullo stato della 002: alcuni passaggi la descrivono come migrazione da applicare, altri richiedono di verificarla sul target. Non assumere uno stato.
-- Il runner migrazioni presente nello ZIP non è presente nel branch corrente e non è stato collaudato.
+- Il runner migrazioni recuperato dallo ZIP è stato sostituito nel branch da un'implementazione versionata e testata; il runner corrente applica ogni migrazione in transazione, serializza con advisory lock e verifica checksum. Il comando `db:migrate -- --check` esegue un preflight read-only dello storico, ma non è stato eseguito contro Neon.
 - L'installazione dipendenze dello ZIP è stata interrotta dall'ambiente; `vitest` non era disponibile e la build ha restituito errori di tipi mancanti dovuti all'installazione incompleta. Non è una validazione positiva né una prova di difetto del codice.
 - Autenticazione, sessioni, inviti e autorizzazione tenant runtime: non implementati nel branch corrente.
 - Repository PostgreSQL e API multi-tenant end-to-end: non implementati nel branch corrente.
@@ -77,5 +78,12 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 2. Eseguire le migrazioni su PostgreSQL effimero e aggiungere test d'integrazione prima di integrare il backend ZIP.
 3. Risolvere le decisioni su `external_id`, RLS, sessioni legacy, ruoli e inviti.
 4. Solo dopo, integrare progressivamente auth, repository e API PostgreSQL nel branch e mantenere CI verde.
+
+## Stato al checkpoint `c4c927a`
+
+- La CI PostgreSQL 16 è verde su Node 20 e Node 22: `npm ci`, `npm test` e `npm run build` sono tutti riusciti.
+- La suite include test unitari del planner/runner migrazioni e test d'integrazione su PostgreSQL effimero per gli SQL storici, i vincoli e le transazioni tenant.
+- Il planner read-only non è ancora stato eseguito contro il database Neon; lo schema remoto e lo storico effettivo restano non verificati.
+- Il runtime applicativo resta SQLite: non esistono ancora repository PostgreSQL collegati alle route, autenticazione runtime o isolamento tenant end-to-end.
 
 **Regola operativa:** gli SQL storici recuperati non vanno riscritti o rinominati. Nessuna migrazione e nessuna modifica a Neon senza autorizzazione esplicita e confronto read-only della baseline.
