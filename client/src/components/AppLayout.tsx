@@ -123,7 +123,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
         </nav>
 
         <div className="sidebar-footer">
-          {!collapsed && <span>Analisi del percorso cliente</span>}
+          {!collapsed && <span>Workspace analitico · Percorso Cliente</span>}
         </div>
       </aside>
 
@@ -138,9 +138,10 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
               <Menu size={20} />
             </button>
 
-            <div>
+            <div className="header-copy">
+              <span className="header-eyebrow">CUSTOMER INTELLIGENCE</span>
               <h1>{pageTitle}</h1>
-              <p>Benvenuto nell’area di analisi</p>
+              <p>Decisioni più chiare attraverso i dati del percorso cliente</p>
             </div>
           </div>
 
