@@ -49,11 +49,15 @@ export async function inspectPostgresSchema(
       `),
       client.query(`
         SELECT n.nspname AS schema, c.relname AS table,
+               owner.rolname AS table_owner,
                c.relrowsecurity AS row_level_security_enabled,
                c.relforcerowsecurity AS row_level_security_forced
         FROM pg_catalog.pg_class c
         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_catalog.pg_roles owner ON owner.oid = c.relowner
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+          AND n.nspname !~ '^pg_'
+          AND n.nspname !~ '^pg_'
           AND c.relkind IN ('r', 'p')
         ORDER BY n.nspname, c.relname
       `),
@@ -63,6 +67,7 @@ export async function inspectPostgresSchema(
                udt_name, is_nullable, column_default
         FROM information_schema.columns
         WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+          AND table_schema !~ '^pg_'
         ORDER BY table_schema, table_name, ordinal_position
       `),
       client.query(`
@@ -80,6 +85,7 @@ export async function inspectPostgresSchema(
                indexname AS name, indexdef AS definition
         FROM pg_catalog.pg_indexes
         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+          AND schemaname !~ '^pg_'
         ORDER BY schemaname, tablename, indexname
       `),
       client.query(`

@@ -23,11 +23,11 @@ Non inserire credenziali in argomenti di comando, log, ticket o output condivisi
 
 Il report JSON comprende:
 - identità del database, ruolo corrente, schema corrente e versione PostgreSQL;
-- tabelle ordinarie e partizionate non appartenenti agli schemi di sistema;
+- tabelle ordinarie e partizionate non appartenenti agli schemi di sistema né agli schemi interni con prefisso `pg_`;
 - colonne, tipi, nullability e default;
 - vincoli e indici;
 - policy RLS visibili al ruolo che esegue l'ispezione;
-- per ogni tabella, flag `row_level_security_enabled` e `row_level_security_forced`;
+- per ogni tabella, proprietario e flag `row_level_security_enabled` e `row_level_security_forced`;
 - capacità del ruolo corrente, incluse le proprietà superuser e BYPASSRLS;
 - sola indicazione dell'esistenza di `public.schema_migrations`.
 
