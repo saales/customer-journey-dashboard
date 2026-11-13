@@ -11,6 +11,7 @@ const pool = connectionString
 const migration001Url = new URL("../migrations/001_initial_schema.sql", import.meta.url);
 const migration002Url = new URL("../migrations/002_session_organization.sql", import.meta.url);
 const migration003Url = new URL("../migrations/003_saas_tenant_hardening.sql", import.meta.url);
+const migration004Url = new URL("../migrations/004_login_attempt_limits.sql", import.meta.url);
 
 const expectedChecksums = {
   "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
@@ -46,10 +47,11 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       await client.query(`CREATE SCHEMA "${schemaName}"`);
       await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
 
-      const [sql001, sql002, sql003] = await Promise.all([
+      const [sql001, sql002, sql003, sql004] = await Promise.all([
         readFile(migration001Url, "utf8"),
         readFile(migration002Url, "utf8"),
         readFile(migration003Url, "utf8"),
+        readFile(migration004Url, "utf8"),
       ]);
 
       await client.query(sql001);
@@ -132,6 +134,9 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       expect(sessionIndex.rows[0]?.exists).toBe(true);
 
       await client.query(sql003);
+      await client.query(sql004);
+      const loginLimits = await client.query("SELECT to_regclass($1) IS NOT NULL AS exists", ["login_attempt_limits"]);
+      expect(loginLimits.rows[0]?.exists).toBe(true);
 
       const customerExternalId = await client.query<{ external_id: string }>(
         "SELECT external_id FROM customers WHERE id = $1",

@@ -20,6 +20,7 @@ const MIGRATION_FILES = [
   "001_initial_schema.sql",
   "002_session_organization.sql",
   "003_saas_tenant_hardening.sql",
+  "004_login_attempt_limits.sql",
 ] as const;
 
 const MIGRATION_LOCK_ID = "731904221";
