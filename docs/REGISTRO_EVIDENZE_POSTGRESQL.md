@@ -95,7 +95,7 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 
 - Aggiunto `server/src/postgres-customer-repository.ts`: listing read-only paginato, conteggio e caricamento eventi con predicati espliciti su `organization_id`; ID BIGINT restituiti come stringhe.
 - Aggiunto `server/test/postgres-customer-repository.integration.test.ts`: fixture temporanee PostgreSQL con due tenant; verifica che pagine, conteggi ed eventi non attraversino i confini tenant e che il contesto `SET LOCAL` non sopravviva alla transazione.
-- CI PostgreSQL 16 verde su Node 20 e 22, run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146): `npm ci`, `npm test`, `npm run build) riusciti su entrambi.
+- CI PostgreSQL 16 verde su Node 20 e 22, run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146): `npm ci`, `npm test`, `npm run build` riusciti su entrambi.
 - Il repository non è collegato all'API perché manca ancora un contesto utente/membership autenticato. Le route continuano a usare SQLite.
 - Neon non è stato ispezionato né modificato; nessun DDL remoto eseguito.
 
