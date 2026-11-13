@@ -2,51 +2,65 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit di riferimento:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58` (codice verificato dalla CI).
+**Commit codice verificato:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58` (CI Node 20/22).  
+**Ultimo commit documentale precedente:** `15081946839f87be3917347d6ef96683dac868fe`.
 
-Questo registro separa ciò che è stato verificato nel repository e nella CI da ciò che proviene da riepiloghi storici o resta da verificare. Non certifica lo stato del database Neon.
+Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
 
-## Evidenze verificate nel codice Git
+## Evidenze verificate nel branch Git
 
 | Affermazione | Evidenza | Stato |
 |---|---|---|
-| Il runtime applicativo usa ancora SQLite | `server/src/index.ts`, `server/src/app.ts`, `server/src/db.ts` | Verificato nel branch |
-| Il pool PostgreSQL non è ancora il repository usato dalle route | `server/src/postgres.ts`; route e query correnti restano basate su SQLite | Verificato nel branch |
-| È presente un'ispezione read-only dei cataloghi PostgreSQL | `server/src/postgres-schema-inspection.ts` | Verificato nel branch |
-| L'ispezione avvia `BEGIN READ ONLY`, interroga cataloghi/metadati, esegue `ROLLBACK` e rilascia il client | Implementazione di `inspectPostgresSchema` | Verificato nel branch |
-| L'ispezione non legge righe applicative | Le query leggono database identity, cataloghi, `information_schema`, ruolo corrente e presenza della tabella migrazioni | Verificato nel codice; non è una certificazione di sicurezza esterna |
-| Il report esclude gli schemi di sistema e quelli con prefisso `pg_` nelle query di catalogo | Query tables, columns, constraints, indexes e policies | Verificato nel codice |
-| I test controllano alias SQL, filtri schema e comportamento read-only con mock | `server/test/postgres-schema-inspection.test.ts` | Verificato nel branch |
-| La CI dispone di PostgreSQL 16 effimero | `.github/workflows/ci.yml` | Verificato nella configurazione |
-| Il test d'integrazione crea uno schema/tabella temporanei, attiva RLS e verifica proprietario, colonne, PK, indice e policy | `server/test/postgres.integration.test.ts` | Verificato nel branch |
-| Il test esegue l'ispezione come ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
-| L'ispezione limita tabelle, colonne, vincoli, indici e policy agli oggetti per cui il ruolo corrente ha `SELECT` | `server/src/postgres-schema-inspection.ts` e test d'integrazione con `private_probe` senza grant | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
-| Test e build sono passati su Node 20 e Node 22 sul commit con filtro dei metadati | CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), entrambi i job conclusi `success` | Verificato su CI |
-| La PR resta aperta in bozza e `main` non è stata modificata | PR #1, branch e base verificati dopo il commit | Verificato al momento dell'aggiornamento |
+| Il runtime applicativo del branch usa ancora SQLite | `server/src/index.ts`, `server/src/app.ts`, `server/src/db.ts` | Verificato |
+| Il pool PostgreSQL non è ancora il repository usato dalle route del branch | `server/src/postgres.ts`; route e query correnti restano basate su SQLite | Verificato |
+| È presente un'ispezione read-only dei cataloghi PostgreSQL | `server/src/postgres-schema-inspection.ts` | Verificato |
+| L'ispezione usa `BEGIN READ ONLY`, legge metadati e cataloghi, fa `ROLLBACK` e rilascia il client | Implementazione di `inspectPostgresSchema` | Verificato nel codice |
+| L'ispezione non legge righe applicative | Query su database identity, cataloghi, `information_schema`, ruolo e presenza di `schema_migrations` | Verificato nel codice |
+| Il report filtra tabelle, colonne, vincoli, indici e policy in base al privilegio SELECT | `has_table_privilege(..., 'SELECT')` e test `private_probe` | Verificato in CI |
+| Il test d'integrazione usa un ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
+| Test e build del codice con filtro metadati sono passati su Node 20 e 22 | CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323) | Verificato |
+| L'ultimo commit documentale `1508194` ha superato la CI | CI run [43418619411](https://github.com/saales/customer-journey-dashboard/actions/runs/43418619411) | Verificato |
+| PR #1 resta aperta in bozza, non merged; `main` invariata | PR #1 e confronto branch | Verificato al 2026-11-13 |
 
-## Evidenze storiche non confermate
+## Artefatti recuperati dallo ZIP checkpoint 12
 
-Un riepilogo operativo precedente riferisce:
-- una migrazione Neon 001 con checksum parziale `483595e...`;
-- una migrazione 002 relativa a `sessions.organization_id`;
-- un modello storico con organizzazioni, utenti, membership, inviti, sessioni e audit log.
+Lo ZIP caricato il 2026-11-13 contiene gli SQL originali e una versione più avanzata del backend PostgreSQL. I due SQL sono stati copiati senza modifiche in `server/migrations/` su questo branch.
 
-Queste informazioni non sono state ricostruite da file SQL originali né verificate interrogando Neon. Non devono essere usate per generare DDL, dichiarare migrazioni applicate o affermare che lo schema remoto abbia quelle caratteristiche.
+| File | SHA-256 del contenuto | Riscontro |
+|---|---|---|
+| `server/migrations/001_initial_schema.sql` | `483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162` | Coincide integralmente con il prefisso storico noto `483595e...` |
+| `server/migrations/002_session_organization.sql` | `3d8b40cddff8f4e704679b164d9dfec1dc42e329b56ee79cd45520ff4a30e188` | SQL recuperato; checksum storico registrato nel database non disponibile |
 
-## Elementi non verificati / non implementati
+La migrazione 001 crea organizzazioni, utenti, membership, inviti, sessioni, fasi funnel, clienti, eventi, import batch e audit log. Prevede FK composite tenant-scoped per eventi→clienti e eventi→fasi. **Non definisce policy RLS** e non aggiunge `customers.external_id`.
 
-- Stato, schema, migrazioni e checksum correnti di Neon: **non verificati**.
-- SQL originali e checksum completi delle migrazioni storiche: **non recuperati**.
-- Autenticazione, sessioni, inviti e autorizzazione tenant runtime: **non implementati**.
-- Repository PostgreSQL per le route applicative: **non implementati**.
-- Isolamento multi-tenant end-to-end delle API: **non implementato**.
-- Il report di ispezione filtra tabelle, colonne, vincoli, indici e policy tramite `has_table_privilege(..., 'SELECT')`; il test PostgreSQL reale conferma che `private_probe`, senza grant, non compare nel report.
-- Prova di upgrade da una copia dello schema storico: **bloccata finché la baseline non è disponibile**.
-- Connessione o modifica del database Neon: **non eseguita**.
+La migrazione 002 aggiunge `sessions.organization_id` come colonna nullable con FK verso `organizations` e indice su organizzazione/scadenza. Non esegue backfill delle sessioni preesistenti e non rende la colonna NOT NULL.
+
+Lo ZIP contiene inoltre `migrate-postgres.ts`, `auth.ts`, `queries-postgres.ts`, `bootstrap-admin.ts`, `seed-postgres.ts` e una versione PostgreSQL di `app.ts`. Questi file sono **artefatti recuperati ma non ancora integrati né validati** nel branch Git corrente. La loro presenza nello ZIP non prova che siano stati applicati o distribuiti.
+
+## Verifiche mancanti sulla baseline remota
+
+- Stato effettivo di Neon, schema, proprietari, privilegi, RLS e policy: **non verificati**.
+- Presenza e contenuto della tabella `schema_migrations`, versioni, timestamp e checksum memorizzati: **non verificati**.
+- Applicazione effettiva della migrazione 001 e della 002: **non confermata**.
+- La documentazione inclusa nello ZIP è internamente non uniforme sullo stato della 002: alcuni passaggi la descrivono come migrazione da applicare, altri richiedono di verificarla sul target. Non assumere uno stato.
+- Il runner migrazioni presente nello ZIP non è presente nel branch corrente e non è stato collaudato.
+- L'installazione dipendenze dello ZIP è stata interrotta dall'ambiente; `vitest` non era disponibile e la build ha restituito errori di tipi mancanti dovuti all'installazione incompleta. Non è una validazione positiva né una prova di difetto del codice.
+- Autenticazione, sessioni, inviti e autorizzazione tenant runtime: non implementati nel branch corrente.
+- Repository PostgreSQL e API multi-tenant end-to-end: non implementati nel branch corrente.
+- Prova di upgrade su PostgreSQL effimero e da copia storica: non ancora eseguita.
+
+## Rilievi tecnici da preservare
+
+1. La migrazione 001 non abilita RLS: la sicurezza tenant dipende quindi dalle query applicative esplicitamente filtrate, finché non verranno progettate e testate policy RLS.
+2. La migrazione 001 non persiste `external_id`, mentre l'import del checkpoint ZIP lo usa per raggruppare le righe; serve una decisione sulla deduplicazione e sull'identità esterna per organizzazione.
+3. La migrazione 002 lascia nullable `sessions.organization_id`: le sessioni legacy senza organizzazione non potranno autenticarsi tramite il join applicativo descritto nello ZIP.
+4. Lo ZIP contiene solo test auth unitari e test frontend/CSV; non contiene test d'integrazione delle API PostgreSQL, query analytics, migrazioni o isolamento cross-tenant.
 
 ## Prossimi passi sicuri
 
-1. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
-2. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
+1. Confrontare gli SQL recuperati con la struttura e il registro migrazioni reali tramite ispezione autorizzata in sola lettura; nessuna modifica a Neon.
+2. Eseguire le migrazioni su PostgreSQL effimero e aggiungere test d'integrazione prima di integrare il backend ZIP.
+3. Risolvere le decisioni su `external_id`, RLS, sessioni legacy, ruoli e inviti.
+4. Solo dopo, integrare progressivamente auth, repository e API PostgreSQL nel branch e mantenere CI verde.
 
-**Regola:** nessuna migrazione eseguibile e nessuna modifica a Neon finché la provenienza della baseline non è verificata.
+**Regola operativa:** gli SQL storici recuperati non vanno riscritti o rinominati. Nessuna migrazione e nessuna modifica a Neon senza autorizzazione esplicita e confronto read-only della baseline.
