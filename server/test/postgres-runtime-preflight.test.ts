@@ -7,13 +7,16 @@ import {
 function makePool(role: Record<string, unknown>, tables: Record<string, unknown>[]) {
   return {
     query: async (sql: string) => ({
-      rows: sql.includes("pg_roles") ? [role] : sql.includes("has_table_privilege") ? [] : tables,
+      rows: sql.includes("pg_roles") ? [role]
+        : sql.includes("pg_auth_members") ? [{ hasRoleMembership: false }]
+        : sql.includes("has_schema_privilege") ? [{ canCreateSchema: false }]
+        : sql.includes("has_table_privilege") ? [] : tables,
       rowCount: sql.includes("pg_roles") ? 1 : tables.length,
     }),
   };
 }
 
-const goodRole = { role: "percorso_app", superuser: false, bypassRls: false };
+const goodRole = { role: "percorso_app", superuser: false, bypassRls: false, inheritsPrivileges: false, canCreateRoles: false, canCreateDatabases: false, canReplicate: false };
 const goodTables = ["customers", "events", "funnel_stages", "import_batches", "audit_logs"]
   .map((tableName) => ({ tableName, ownerName: "percorso_owner", rowSecurity: true }));
 
@@ -51,6 +54,8 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
     const pool = {
       query: async (sql: string) => ({
         rows: sql.includes("pg_roles") ? [goodRole]
+          : sql.includes("pg_auth_members") ? [{ hasRoleMembership: false }]
+          : sql.includes("has_schema_privilege") ? [{ canCreateSchema: false }]
           : sql.includes("has_table_privilege")
             ? [{ tableName: "customers", privilege: "INSERT" }]
             : goodTables,
@@ -60,6 +65,22 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
     const result = await inspectPostgresRuntimeRole(pool as never);
     expect(result.missingPrivileges).toEqual(["customers:INSERT"]);
     await expect(assertSafePostgresRuntimeRole(pool as never)).rejects.toThrow(
+      "Ruolo PostgreSQL non sicuro",
+    );
+  });
+
+  it("rifiuta ruoli che ereditano privilegi o appartengono ad altri ruoli", async () => {
+    const unsafe = {
+      query: async (sql: string) => ({
+        rows: sql.includes("pg_roles")
+          ? [{ ...goodRole, inheritsPrivileges: true }]
+          : sql.includes("pg_auth_members") ? [{ hasRoleMembership: true }]
+          : sql.includes("has_schema_privilege") ? [{ canCreateSchema: false }]
+          : [],
+        rowCount: 1,
+      }),
+    };
+    await expect(assertSafePostgresRuntimeRole(unsafe as never)).rejects.toThrow(
       "Ruolo PostgreSQL non sicuro",
     );
   });

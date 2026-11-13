@@ -8,7 +8,7 @@ Creare i ruoli nel database prima di eseguire la migrazione `005_runtime_role_gr
 
 ```sql
 CREATE ROLE percorso_owner LOGIN NOINHERIT PASSWORD '<password-proprietario>';
-CREATE ROLE percorso_app LOGIN PASSWORD '<password-applicazione>';
+CREATE ROLE percorso_app LOGIN NOINHERIT PASSWORD '<password-applicazione>';
 ALTER ROLE percorso_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 ```
 

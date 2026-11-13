@@ -12,6 +12,12 @@ export interface PostgresRuntimeRoleCheck {
   role: string;
   superuser: boolean;
   bypassRls: boolean;
+  inheritsPrivileges: boolean;
+  canCreateRoles: boolean;
+  canCreateDatabases: boolean;
+  canReplicate: boolean;
+  hasRoleMembership: boolean;
+  canCreateSchema: boolean;
   ownedTables: string[];
   rlsDisabledTables: string[];
   missingPrivileges: string[];
@@ -28,15 +34,35 @@ export async function inspectPostgresRuntimeRole(
     role: string;
     superuser: boolean;
     bypassRls: boolean;
+    inheritsPrivileges: boolean;
+    canCreateRoles: boolean;
+    canCreateDatabases: boolean;
+    canReplicate: boolean;
   }>(
     `SELECT current_user AS role,
             r.rolsuper AS "superuser",
-            r.rolbypassrls AS "bypassRls"
+            r.rolbypassrls AS "bypassRls",
+            r.rolinherit AS "inheritsPrivileges",
+            r.rolcreaterole AS "canCreateRoles",
+            r.rolcreatedb AS "canCreateDatabases",
+            r.rolreplication AS "canReplicate"
      FROM pg_roles r
      WHERE r.rolname = current_user`,
   );
   const role = roleResult.rows[0];
   if (!role) throw new Error("Impossibile identificare il ruolo PostgreSQL corrente.");
+
+  const membershipResult = await pool.query<{ hasRoleMembership: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM pg_auth_members
+       WHERE member = current_user::regrole
+     ) AS "hasRoleMembership"`,
+  );
+  const hasRoleMembership = membershipResult.rows[0]?.hasRoleMembership === true;
+  const schemaResult = await pool.query<{ canCreateSchema: boolean }>(
+    `SELECT has_schema_privilege(current_user, current_schema(), 'CREATE') AS "canCreateSchema"`,
+  );
+  const canCreateSchema = schemaResult.rows[0]?.canCreateSchema === true;
 
   const tablesResult = await pool.query<{
     tableName: string;
@@ -92,6 +118,12 @@ export async function inspectPostgresRuntimeRole(
     role: role.role,
     superuser: role.superuser,
     bypassRls: role.bypassRls,
+    inheritsPrivileges: role.inheritsPrivileges,
+    canCreateRoles: role.canCreateRoles,
+    canCreateDatabases: role.canCreateDatabases,
+    canReplicate: role.canReplicate,
+    hasRoleMembership,
+    canCreateSchema,
     ownedTables: [...ownedTables],
     rlsDisabledTables: [...rlsDisabledTables],
     missingPrivileges,
@@ -102,8 +134,11 @@ export async function assertSafePostgresRuntimeRole(
   pool: Pick<Pool, "query">,
 ): Promise<void> {
   const result = await inspectPostgresRuntimeRole(pool);
-  if (result.superuser || result.bypassRls || result.ownedTables.length > 0 ||
-      result.rlsDisabledTables.length > 0 || result.missingPrivileges.length > 0) {
+  if (result.superuser || result.bypassRls || result.inheritsPrivileges ||
+      result.canCreateRoles || result.canCreateDatabases || result.canReplicate ||
+      result.hasRoleMembership || result.canCreateSchema ||
+      result.ownedTables.length > 0 || result.rlsDisabledTables.length > 0 ||
+      result.missingPrivileges.length > 0) {
     throw new Error(
       "Ruolo PostgreSQL non sicuro: usare un ruolo applicativo non proprietario, " +
       "senza SUPERUSER/BYPASSRLS, con RLS attivo e privilegi minimi completi.",

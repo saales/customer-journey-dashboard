@@ -141,7 +141,7 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       await client.query("CREATE ROLE percorso_app NOLOGIN");
       await client.query(sql005);
       const grants = await client.query<{ allowed: boolean }>(
-        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2), $3) AS allowed",
+        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
         ["percorso_app", "customers", "INSERT"],
       );
       expect(grants.rows[0]?.allowed).toBe(true);
