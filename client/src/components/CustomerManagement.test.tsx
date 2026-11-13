@@ -57,8 +57,8 @@ describe("CustomerManagement funnel integration", () => {
       );
       expect(call).toBeTruthy();
       const payload = JSON.parse(String(call?.[1]?.body));
+      // The API adds the initial visit event itself before persisting the journey.
       expect(payload.events).toEqual([
-        { stage: "visit", occurredAt: "2026-06-01" },
         { stage: "custom_demo", occurredAt: "2026-06-03" },
         { stage: "customer", occurredAt: "2026-06-05" },
       ]);
