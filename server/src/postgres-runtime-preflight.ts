@@ -172,14 +172,19 @@ export async function assertSafePostgresRuntimeRole(
   pool: Pick<Pool, "query">,
 ): Promise<void> {
   const result = await inspectPostgresRuntimeRole(pool);
-  if (result.superuser || result.bypassRls || result.inheritsPrivileges ||
-      result.canCreateRoles || result.canCreateDatabases || result.canReplicate ||
-      result.hasRoleMembership || result.canCreateSchema ||
-      result.ownedTables.length > 0 || result.rlsDisabledTables.length > 0 ||
-      result.missingPrivileges.length > 0) {
-    throw new Error(
-      "Ruolo PostgreSQL non sicuro: usare un ruolo applicativo non proprietario, " +
-      "senza SUPERUSER/BYPASSRLS, con RLS attivo e privilegi minimi completi.",
-    );
+  const problems: string[] = [];
+  if (result.superuser) problems.push("SUPERUSER attivo");
+  if (result.bypassRls) problems.push("BYPASSRLS attivo");
+  if (result.inheritsPrivileges) problems.push("INHERIT attivo");
+  if (result.canCreateRoles) problems.push("CREATEROLE attivo");
+  if (result.canCreateDatabases) problems.push("CREATEDB attivo");
+  if (result.canReplicate) problems.push("REPLICATION attivo");
+  if (result.hasRoleMembership) problems.push("membership ad altri ruoli presente");
+  if (result.canCreateSchema) problems.push("CREATE sullo schema attivo");
+  if (result.ownedTables.length) problems.push(`tabelle possedute: ${result.ownedTables.join(", ")}`);
+  if (result.rlsDisabledTables.length) problems.push(`RLS disattivato: ${result.rlsDisabledTables.join(", ")}`);
+  if (result.missingPrivileges.length) problems.push(`privilegi mancanti: ${result.missingPrivileges.join(", ")}`);
+  if (problems.length) {
+    throw new Error(`Ruolo PostgreSQL non sicuro: ${problems.join("; ")}.`);
   }
 }
