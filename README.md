@@ -2,7 +2,7 @@
 
 Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–009 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
+> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–010 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
 
 ## Funzioni
 
