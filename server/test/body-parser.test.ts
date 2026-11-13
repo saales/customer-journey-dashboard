@@ -33,6 +33,8 @@ describe("gestione errori JSON", () => {
     });
 
     expect(response.status).toBe(400);
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ error: "JSON non valido." });
   });
 
@@ -48,6 +50,8 @@ describe("gestione errori JSON", () => {
     });
 
     expect(response.status).toBe(413);
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({
       error: "Corpo della richiesta troppo grande.",
     });
