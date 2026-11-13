@@ -10,7 +10,8 @@
     "seed": "tsx src/seed-cli.ts",
     "test": "vitest run",
     "db:check": "tsx src/check-postgres.ts",
-    "db:inspect": "tsx src/inspect-postgres-schema.ts"
+    "db:inspect": "tsx src/inspect-postgres-schema.ts",
+    "db:migrate": "tsx src/migrate-postgres.ts"
   },
   "dependencies": {
     "better-sqlite3": "12.9.0",
