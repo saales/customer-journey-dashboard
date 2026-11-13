@@ -46,11 +46,11 @@ describe("PostgreSQL audit repository", () => {
         `INSERT INTO audit_logs
           (organization_id, actor_user_id, action, resource_type, resource_id, details, created_at)
          VALUES
-          ($1, $3, 'customer.created', 'customer', '10', '{"channel":"Organico"}', '2026-11-10T10:00:00Z'),
-          ($1, $3, 'customer.updated', 'customer', '10', '{"channel":"Social"}', '2026-11-11T10:00:00Z'),
-          ($1, $4, 'customer.created', 'customer', '11', '{}', '2026-11-12T10:00:00Z'),
-          ($2, $4, 'customer.deleted', 'customer', '20', '{}', '2026-11-12T12:00:00Z')`,
-        [organizationA, organizationB, actorA, actorB],
+          ($1, $2, 'customer.created', 'customer', '10', '{"channel":"Organico"}', '2026-11-10T10:00:00Z'),
+          ($1, $2, 'customer.updated', 'customer', '10', '{"channel":"Social"}', '2026-11-11T10:00:00Z'),
+          ($1, $3, 'customer.created', 'customer', '11', '{}', '2026-11-12T10:00:00Z'),
+          ($4, $3, 'customer.deleted', 'customer', '20', '{}', '2026-11-12T12:00:00Z')`,
+        [organizationA, actorA, actorB, organizationB],
       );
     } finally {
       client.release();
