@@ -88,7 +88,7 @@ npm test
 npm run build
 ```
 
-La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Sul runtime Node.js 22 esegue inoltre test browser end-to-end con Playwright/Chromium su un'organizzazione effimera: login amministratore, creazione cliente, configurazione funnel, import CSV, export CSV, invito e accettazione di un analista e rifiuto server-side di una scrittura non autorizzata. Il database usato da questi test viene creato nel servizio PostgreSQL temporaneo della CI e non è il database remoto. Questo non dimostra lo stato del database remoto.
+La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Sul runtime Node.js 22 esegue inoltre test browser end-to-end con Playwright/Chromium su un'organizzazione effimera: login amministratore, creazione cliente, configurazione funnel, import CSV, export CSV, invito e accettazione di analista e viewer e verifica dei rispettivi permessi UI/API. Un test middleware controlla l'intera matrice permessi dei quattro ruoli. Il database usato da questi test viene creato nel servizio PostgreSQL temporaneo della CI e non è il database remoto. Questo non dimostra lo stato del database remoto.
 
 ## Sicurezza e rilascio
 
@@ -102,7 +102,7 @@ La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvi
 
 La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
 
-Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, completamento della matrice browser per i ruoli e dei test cross-tenant, monitoraggio, test di carico e staging con dati sintetici. La CI copre già un percorso browser rappresentativo admin/analista, non l'intera matrice di autorizzazione.
+Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, test browser dedicati per admin, analista e viewer (l'editor è verificato nella matrice middleware), ulteriori casi cross-tenant, monitoraggio, test di carico e staging con dati sintetici. La CI copre già un percorso browser rappresentativo admin/analista, non l'intera matrice di autorizzazione.
 
 ## Documentazione
 
