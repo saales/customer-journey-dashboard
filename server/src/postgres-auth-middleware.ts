@@ -22,13 +22,14 @@ export type OrganizationPermission =
   | "funnel:write"
   | "data:import"
   | "data:export"
-  | "members:manage";
+  | "members:manage"
+  | "audit:read";
 
 const ROLE_PERMISSIONS: Record<OrganizationRole, ReadonlySet<OrganizationPermission>> = {
   admin: new Set([
     "analytics:read", "customers:read", "customers:write",
     "funnel:read", "funnel:write", "data:import", "data:export",
-    "members:manage",
+    "members:manage", "audit:read",
   ]),
   editor: new Set([
     "analytics:read", "customers:read", "customers:write",
