@@ -123,7 +123,7 @@ describe("PostgreSQL customer repository", () => {
       ],
     });
     expect(created).toMatchObject({ externalId: "crm-100" });
-    expect(created.id).toMatch(/^\\d+$/);
+    expect(created.id).toMatch(/^\d+$/);
 
     const listed = await listPostgresCustomers(pool!, organizationId);
     expect(listed.data).toContainEqual({
