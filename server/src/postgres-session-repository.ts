@@ -10,9 +10,9 @@ export interface IssuedPostgresSession {
   expiresAt: string;
 }
 
-/** Issues a session for an active user/org/membership; stores only the token hash. */
-export async function issuePostgresSession(
-  pool: Pick<Pool, "connect">,
+/** Inserts a session using a caller-owned transaction. */
+export async function createPostgresSessionInTransaction(
+  client: PoolClient,
   userId: string,
   organizationId: string,
   ttlMs = DEFAULT_SESSION_TTL_MS,
@@ -25,31 +25,42 @@ export async function issuePostgresSession(
   }
 
   const { token, tokenHash } = createSessionToken();
+  const result = await client.query<{ expiresAt: string }>(
+    `INSERT INTO sessions (user_id, organization_id, token_hash, expires_at)
+     SELECT u.id, o.id, $3, NOW() + ($4 * INTERVAL '1 millisecond')
+     FROM users u
+     JOIN memberships m
+       ON m.user_id = u.id
+      AND m.organization_id = $2::uuid
+      AND m.status = 'active'
+     JOIN organizations o
+       ON o.id = m.organization_id
+      AND o.status = 'active'
+     WHERE u.id = $1::uuid
+       AND u.status = 'active'
+     RETURNING to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expiresAt"`,
+    [userId, organizationId, tokenHash, ttlMs],
+  );
+  if (result.rowCount !== 1 || !result.rows[0]) {
+    throw new Error("Utente, organizzazione o membership non attivi.");
+  }
+  return { token, expiresAt: result.rows[0].expiresAt };
+}
+
+/** Issues a session for an active user/org/membership; stores only the token hash. */
+export async function issuePostgresSession(
+  pool: Pick<Pool, "connect">,
+  userId: string,
+  organizationId: string,
+  ttlMs = DEFAULT_SESSION_TTL_MS,
+): Promise<IssuedPostgresSession> {
   const client: PoolClient = await pool.connect();
   let released = false;
   try {
     await client.query("BEGIN");
-    const result = await client.query<{ expiresAt: string }>(
-      `INSERT INTO sessions (user_id, organization_id, token_hash, expires_at)
-       SELECT u.id, o.id, $3, NOW() + ($4 * INTERVAL '1 millisecond')
-       FROM users u
-       JOIN memberships m
-         ON m.user_id = u.id
-        AND m.organization_id = $2::uuid
-        AND m.status = 'active'
-       JOIN organizations o
-         ON o.id = m.organization_id
-        AND o.status = 'active'
-       WHERE u.id = $1::uuid
-         AND u.status = 'active'
-       RETURNING to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expiresAt"`,
-      [userId, organizationId, tokenHash, ttlMs],
-    );
-    if (result.rowCount !== 1 || !result.rows[0]) {
-      throw new Error("Utente, organizzazione o membership non attivi.");
-    }
+    const issued = await createPostgresSessionInTransaction(client, userId, organizationId, ttlMs);
     await client.query("COMMIT");
-    return { token, expiresAt: result.rows[0].expiresAt };
+    return issued;
   } catch (error) {
     try {
       await client.query("ROLLBACK");
