@@ -76,7 +76,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
     const previousEvents = new Map(
       (editingCustomer?.events ?? []).map((event) => [event.stage, event]),
     );
-    const events: CustomerEvent[] = [{ stage: "visit", occurredAt: createdAt }];
+    const events: CustomerEvent[] = [];
 
     for (const stage of orderedStages) {
       if (stage.id === "visit") continue;
