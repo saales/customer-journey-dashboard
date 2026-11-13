@@ -48,7 +48,7 @@ export async function inspectPostgresSchema(
                current_setting('server_version') AS server_version
       `),
       client.query(`
-        SELECT n.nspname AS schema, c.relname AS table,
+        SELECT n.nspname AS schema, c.relname AS "table",
                owner.rolname AS table_owner,
                c.relrowsecurity AS row_level_security_enabled,
                c.relforcerowsecurity AS row_level_security_forced
@@ -61,7 +61,7 @@ export async function inspectPostgresSchema(
         ORDER BY n.nspname, c.relname
       `),
       client.query(`
-        SELECT table_schema AS schema, table_name AS table,
+        SELECT table_schema AS schema, table_name AS "table",
                ordinal_position, column_name, data_type,
                udt_name, is_nullable, column_default
         FROM information_schema.columns
@@ -70,7 +70,7 @@ export async function inspectPostgresSchema(
         ORDER BY table_schema, table_name, ordinal_position
       `),
       client.query(`
-        SELECT n.nspname AS schema, c.relname AS table,
+        SELECT n.nspname AS schema, c.relname AS "table",
                con.conname AS name, con.contype AS type,
                pg_catalog.pg_get_constraintdef(con.oid, true) AS definition
         FROM pg_catalog.pg_constraint con
@@ -81,7 +81,7 @@ export async function inspectPostgresSchema(
         ORDER BY n.nspname, c.relname, con.conname
       `),
       client.query(`
-        SELECT schemaname AS schema, tablename AS table,
+        SELECT schemaname AS schema, tablename AS "table",
                indexname AS name, indexdef AS definition
         FROM pg_catalog.pg_indexes
         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
@@ -89,7 +89,7 @@ export async function inspectPostgresSchema(
         ORDER BY schemaname, tablename, indexname
       `),
       client.query(`
-        SELECT schemaname AS schema, tablename AS table,
+        SELECT schemaname AS schema, tablename AS "table",
                policyname AS name, permissive, roles,
                cmd, qual, with_check
         FROM pg_catalog.pg_policies
@@ -99,7 +99,7 @@ export async function inspectPostgresSchema(
       `),
       client.query(`
         SELECT to_regclass('public.schema_migrations') IS NOT NULL
-          AS exists
+          AS "exists"
       `),
       client.query(`
         SELECT rolname AS role, rolsuper AS is_superuser,

@@ -48,7 +48,13 @@ describe("inspectPostgresSchema", () => {
     const indexQuery = statements.find((sql) => sql.includes("pg_catalog.pg_indexes"));
     const policyQuery = statements.find((sql) => sql.includes("pg_catalog.pg_policies"));
 
+    expect(tableQuery).toContain('c.relname AS "table"');
     expect(tableQuery).toContain("owner.rolname AS table_owner");
+    expect(columnQuery).toContain('table_name AS "table"');
+    expect(constraintQuery).toContain('c.relname AS "table"');
+    expect(indexQuery).toContain('tablename AS "table"');
+    expect(policyQuery).toContain('tablename AS "table"');
+    expect(statements.find((sql) => sql.includes("to_regclass"))).toContain('AS "exists"');
     expect(tableQuery).toContain("n.nspname !~ '^pg_'");
     expect(columnQuery).toContain("table_schema !~ '^pg_'");
     expect(constraintQuery).toContain("n.nspname !~ '^pg_'");
