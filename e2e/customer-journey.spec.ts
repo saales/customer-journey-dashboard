@@ -40,8 +40,8 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   // Conserva l’ID della fase personalizzata del tenant A per il controllo IDOR.
   const tenantAFunnelStageId = await page.evaluate(async () => {
     const response = await fetch("/api/funnel-stages");
-    const body = await response.json() as { data: Array<{ id: string; label: string }> };
-    return body.data.find((stage) => stage.label === "Demo completata")?.id ?? null;
+    const stages = await response.json() as Array<{ id: string; label: string }>;
+    return stages.find((stage) => stage.label === "Demo completata")?.id ?? null;
   });
   expect(tenantAFunnelStageId).toMatch(/^custom_[a-f0-9]{32}$/);
 
@@ -271,7 +271,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
       auditStatus: audit.status,
       audit: (await audit.json()).data,
       funnelStatus: funnel.status,
-      funnelStages: (await funnel.json()).data,
+      funnelStages: await funnel.json(),
       updateStageStatus: updateStage.status,
       membersStatus: members.status,
       members: await members.json(),
