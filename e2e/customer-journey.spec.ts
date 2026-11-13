@@ -8,9 +8,9 @@ const admin = {
 
 test("percorso amministratore e limitazione dei permessi analista", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("Email").fill(admin.email);
+  await page.locator("form.auth-form").first().getByLabel("Email").fill(admin.email);
   await page.getByLabel("Password").fill(admin.password);
-  await page.getByLabel("Codice organizzazione").fill(admin.organization);
+  await page.locator("form.auth-form").first().getByLabel("Codice organizzazione").fill(admin.organization);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
 
@@ -134,9 +134,9 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   expect(revokedSessionStatus).toBe(401);
 
   // Seconda verifica browser con un ruolo viewer, privo anche dell'export.
-  await page.getByLabel("Email").fill(admin.email);
+  await page.locator("form.auth-form").first().getByLabel("Email").fill(admin.email);
   await page.getByLabel("Password").fill(admin.password);
-  await page.getByLabel("Codice organizzazione").fill(admin.organization);
+  await page.locator("form.auth-form").first().getByLabel("Codice organizzazione").fill(admin.organization);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
   await page.getByRole("button", { name: "Impostazioni" }).click();
@@ -174,9 +174,9 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   // Terzo percorso browser: l'editor può lavorare sui dati ma non amministrare membri o audit.
   await page.getByRole("button", { name: "Esci" }).click();
-  await page.getByLabel("Email").fill(admin.email);
+  await page.locator("form.auth-form").first().getByLabel("Email").fill(admin.email);
   await page.getByLabel("Password").fill(admin.password);
-  await page.getByLabel("Codice organizzazione").fill(admin.organization);
+  await page.locator("form.auth-form").first().getByLabel("Codice organizzazione").fill(admin.organization);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
   await page.getByRole("button", { name: "Impostazioni" }).click();
@@ -243,9 +243,9 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   // Isolamento API tra due organizzazioni reali: stesso utente, sessione nel tenant B.
   await page.getByRole("button", { name: "Esci" }).click();
-  await page.getByLabel("Email").fill(admin.email);
+  await page.locator("form.auth-form").first().getByLabel("Email").fill(admin.email);
   await page.getByLabel("Password").fill(admin.password);
-  await page.getByLabel("Codice organizzazione").fill("e2e-second-workspace");
+  await page.locator("form.auth-form").first().getByLabel("Codice organizzazione").fill("e2e-second-workspace");
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
   const crossTenantChecks = await page.evaluate(async ({ foreignCustomerId, foreignStageId }) => {
