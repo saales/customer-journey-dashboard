@@ -19,6 +19,7 @@ const migration008Url = new URL("../migrations/008_invitations_tenant_rls.sql", 
 const migration009Url = new URL("../migrations/009_api_request_rate_limits.sql", import.meta.url);
 const migration010Url = new URL("../migrations/010_audit_log_read_grant.sql", import.meta.url);
 const migration011Url = new URL("../migrations/011_password_reset_tokens.sql", import.meta.url);
+const migration012Url = new URL("../migrations/012_organization_settings.sql", import.meta.url);
 
 const expectedChecksums = {
   "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
@@ -42,7 +43,7 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       .toBe(expectedChecksums["002_session_organization.sql"]);
   });
 
-  it.skipIf(!pool)("applica 001-011 in uno schema isolato e verifica vincoli, backfill, RLS, privilegi e timeout sessione", async () => {
+  it.skipIf(!pool)("applica 001-012 in uno schema isolato e verifica vincoli, backfill, RLS, privilegi e timeout sessione", async () => {
     const schemaName = `migration_it_${randomUUID().replace(/-/g, "")}`;
     const client = await pool!.connect();
     let transactionStarted = false;
@@ -54,7 +55,7 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query(`CREATE SCHEMA "${schemaName}"`);
       await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
 
-      const [sql001, sql002, sql003, sql004, sql005, sql006, sql007, sql008, sql009, sql010, sql011] = await Promise.all([
+      const [sql001, sql002, sql003, sql004, sql005, sql006, sql007, sql008, sql009, sql010, sql011, sql012] = await Promise.all([
         readFile(migration001Url, "utf8"),
         readFile(migration002Url, "utf8"),
         readFile(migration003Url, "utf8"),
@@ -155,7 +156,7 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query(sql007);
       await client.query(sql008);
       await client.query(sql009);
-      await client.query(sql010);\n      await client.query(sql011);
+      await client.query(sql010);\n      await client.query(sql011);\n      await client.query(sql012);
       const invitationRls = await client.query<{ enabled: boolean }>(
         "SELECT relrowsecurity AS enabled FROM pg_class WHERE oid='invitations'::regclass",
       );
@@ -180,6 +181,11 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         ["percorso_app", "password_reset_tokens", "INSERT"],
       );
       expect(resetTokenGrant.rows[0]?.allowed).toBe(true);
+      const organizationNameUpdateGrant = await client.query<{ allowed: boolean }>(
+        "SELECT has_column_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text, $4::text) AS allowed",
+        ["percorso_app", "organizations", "name", "UPDATE"],
+      );
+      expect(organizationNameUpdateGrant.rows[0]?.allowed).toBe(true);
       const membershipInsertGrant = await client.query<{ allowed: boolean }>(
         "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
         ["percorso_app", "memberships", "INSERT"],
