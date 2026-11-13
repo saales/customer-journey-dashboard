@@ -23,6 +23,11 @@ describe("AppLayout", () => {
     expect(screen.getByRole("heading", { name: "Analisi e report" })).toBeTruthy();
     expect(screen.getByText("Report analitici")).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("button", { name: "Comprimi menu" }));
+    expect(screen.getByRole("button", { name: "Gestione clienti" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Analisi e report" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Espandi menu" }));
+
     fireEvent.click(screen.getByRole("button", { name: "Attiva tema scuro" }));
     expect(window.localStorage.getItem("customer-journey-theme")).toBe("dark");
   });
