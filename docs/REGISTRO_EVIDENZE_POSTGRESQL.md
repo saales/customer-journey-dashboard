@@ -25,14 +25,14 @@ Stato database remoto: non verificato in questa attività.
 
 ## CI
 
-- Il commit `7570eb3bcfd64787aa7c8ab19a8a2ee68c504d53` ha superato test, build, audit dipendenze, migrazioni 001–009, verifica checksum e avvio runtime con ruolo limitato su Node.js 20 e 22: run [43493813499](https://github.com/saales/customer-journey-dashboard/actions/runs/43493813499).
+- Il commit `7570eb3bcfd64787aa7c8ab19a8a2ee68c504d53` ha superato test, build, audit dipendenze, migrazioni 001–010, verifica checksum e avvio runtime con ruolo limitato su Node.js 20 e 22: run [43493813499](https://github.com/saales/customer-journey-dashboard/actions/runs/43493813499).
 - Sul runtime Node.js 22 la stessa CI ha completato Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
 - La CI usa PostgreSQL temporaneo e non accede a Neon.
 
 ## Verifiche remote non eseguite
 
 - Nessuna query è stata eseguita sul database Neon in questa attività.
-- Non è stato dimostrato che le migrazioni 001–009 siano già applicate sul database remoto.
+- Non è stato dimostrato che le migrazioni 001–010 siano già applicate sul database remoto.
 - Non sono stati verificati checksum, ruoli, policy RLS e privilegi effettivi remoti.
 - Non è stato effettuato alcun trasferimento di dati preesistenti.
 - Non sono state eseguite scritture, DDL o bootstrap remoti.
