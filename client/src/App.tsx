@@ -14,7 +14,7 @@ import { DataImport } from "./components/DataImport";
 import { FunnelSettings } from "./components/FunnelSettings";
 import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
-import { MemberManagement } from "./components/MemberManagement";
+import { MemberManagement } from "./components/MemberManagement";\nimport { AuditLog } from "./components/AuditLog";
 
 interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
@@ -26,7 +26,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
   const canWrite = organizationRole === "admin" || organizationRole === "editor";
   const canExport = organizationRole === "admin" || organizationRole === "editor" || organizationRole === "analyst";
   const visibleSections = canWrite
-    ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings"] as const
+    ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings", "audit"] as const
     : ["dashboard", "customers", "analytics", "segmentation", "comparisons", "settings"] as const;
 
   const meta = useAsync((s) => api.meta(s), []);
@@ -235,7 +235,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
     </div>
   );
 
-  const settingsSection = (
+  const auditSection = organizationRole === "admin" ? <AuditLog /> : null;\n\n  const settingsSection = (
     <div>
       <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite} />
       {organizationRole === "admin" && <MemberManagement />}
@@ -261,7 +261,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
         segmentation: segmentationSection,
         comparisons: comparisonsSection,
         settings: settingsSection,
-        import: importSection,
+        import: importSection,\n        audit: auditSection,
       }}
     >
       {dashboardSection}
