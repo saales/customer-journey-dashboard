@@ -37,6 +37,11 @@ export async function updatePostgresAccountName(
     throw new PostgresAccountError(400,"Il nome deve contenere da 1 a 150 caratteri.");
   }
   return withTenantTransaction(pool,organizationId,async client=>{
+    const membership=await client.query(
+      "SELECT 1 FROM memberships WHERE organization_id=$1::uuid AND user_id=$2::uuid AND status='active' FOR SHARE",
+      [organizationId,userId],
+    );
+    if(!membership.rowCount)throw new PostgresAccountError(404,"Profilo non trovato.");
     const result=await client.query(
       `UPDATE users SET full_name=$2,updated_at=NOW()
        WHERE id=$1::uuid AND status='active'`,
@@ -83,6 +88,11 @@ export async function changePostgresAccountPassword(
   }
   const nextHash=await hashPassword(newPassword);
   await withTenantTransaction(pool,organizationId,async client=>{
+    const membership=await client.query(
+      "SELECT 1 FROM memberships WHERE organization_id=$1::uuid AND user_id=$2::uuid AND status='active' FOR SHARE",
+      [organizationId,userId],
+    );
+    if(!membership.rowCount)throw new PostgresAccountError(404,"Profilo non trovato.");
     const updated=await client.query(
       "UPDATE users SET password_hash=$2,updated_at=NOW() WHERE id=$1::uuid AND status='active'",
       [userId,nextHash],
