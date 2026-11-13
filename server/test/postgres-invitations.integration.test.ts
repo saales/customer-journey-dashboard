@@ -40,11 +40,12 @@ describe("Inviti PostgreSQL — integrazione",()=>{
   await expect(resolvePostgresSession(pool!,accepted.session.token)).resolves.toMatchObject({organizationId:org,role:"editor"});
   const list=await listOrganizationInvitations(pool!,org);
   expect(list[0]?.status).toBe("accepted");
-  const counts=await pool!.query<{users:string;members:string;audits:string}>(
+  const counts=await pool!.query<{users:string;members:string;audits:string;emailUnverified:boolean}>(
    `SELECT (SELECT COUNT(*) FROM users WHERE email='new@example.test')::text AS users,
     (SELECT COUNT(*) FROM memberships WHERE organization_id=$1 AND user_id<>$2)::text AS members,
-    (SELECT COUNT(*) FROM audit_logs WHERE organization_id=$1)::text AS audits`,[org,admin]);
-  expect(counts.rows[0]).toEqual({users:"1",members:"1",audits:"2"});
+    (SELECT COUNT(*) FROM audit_logs WHERE organization_id=$1)::text AS audits,
+    (SELECT email_verified_at IS NULL FROM users WHERE email='new@example.test') AS "emailUnverified"`,[org,admin]);
+  expect(counts.rows[0]).toEqual({users:"1",members:"1",audits:"2",emailUnverified:true});
   await expect(acceptOrganizationInvitation(pool!,{token:created.token,fullName:"Nuovo membro",password:"UnaPasswordSicura-2026"})).rejects.toThrow("Invito non valido");
  });
  it.skipIf(!pool)("revoca un invito e impedisce l'accettazione",async()=>{

@@ -154,7 +154,7 @@ export async function acceptOrganizationInvitation(
    const newPasswordHash=await hashPassword(input.password);
    const created=await client.query<{id:string}>(
     `INSERT INTO users(email,password_hash,full_name,status,email_verified_at)
-     VALUES($1,$2,$3,'active',NOW()) RETURNING id::text AS id`,
+     VALUES($1,$2,$3,'active',NULL) RETURNING id::text AS id`,
     [invite.email.toLowerCase(),newPasswordHash,input.fullName.trim()]);
    userId=created.rows[0]?.id??"";
    if(!UUID.test(userId))throw new Error("Creazione account non riuscita.");
