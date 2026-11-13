@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import { verifyPostgresPool } from "../src/postgres-health.js";
 import { withTenantTransaction } from "../src/tenant-transaction.js";
+import { inspectPostgresSchema } from "../src/postgres-schema-inspection.js";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = connectionString
@@ -73,6 +74,64 @@ describe("PostgreSQL integration smoke test", () => {
     expect(after.rows[0]?.tenant).not.toBe(tenantB);
   });
 
+
+
+  it.skipIf(!pool)("ispeziona i cataloghi su PostgreSQL reale senza leggere righe applicative", async () => {
+    const schemaName = "inspection_it";
+
+    await pool!.query(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE`);
+    await pool!.query(`CREATE SCHEMA ${schemaName}`);
+
+    try {
+      await pool!.query(`
+        CREATE TABLE ${schemaName}.catalog_probe (
+          id integer PRIMARY KEY,
+          label text NOT NULL
+        )
+      `);
+      await pool!.query(`ALTER TABLE ${schemaName}.catalog_probe ENABLE ROW LEVEL SECURITY`);
+      await pool!.query(`
+        CREATE POLICY catalog_probe_read ON ${schemaName}.catalog_probe
+        FOR SELECT USING (true)
+      `);
+
+      const client = await pool!.connect();
+      const report = await inspectPostgresSchema(client);
+
+      const table = report.tables.find(
+        (row) => row.schema === schemaName && row.table === "catalog_probe",
+      );
+      expect(table?.table_owner).toBeTruthy();
+      expect(table?.row_level_security_enabled).toBe(true);
+      expect(table?.row_level_security_forced).toBe(false);
+      expect(
+        report.columns.some(
+          (row) => row.schema === schemaName && row.table === "catalog_probe" && row.column_name === "label",
+        ),
+      ).toBe(true);
+      expect(
+        report.constraints.some(
+          (row) => row.schema === schemaName && row.table === "catalog_probe" && row.type === "p",
+        ),
+      ).toBe(true);
+      expect(
+        report.indexes.some(
+          (row) => row.schema === schemaName && row.table === "catalog_probe",
+        ),
+      ).toBe(true);
+      expect(
+        report.rowLevelSecurityPolicies.some(
+          (row) => row.schema === schemaName && row.table === "catalog_probe" && row.name === "catalog_probe_read",
+        ),
+      ).toBe(true);
+      expect(report.safety).toContain("READ ONLY");
+      expect(
+        report.tables.every((row) => typeof row.schema !== "string" || !row.schema.startsWith("pg_")),
+      ).toBe(true);
+    } finally {
+      await pool!.query(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE`);
+    }
+  });
 
   it.skipIf(!pool)("ripristina il contesto tenant dopo ROLLBACK prima di riutilizzare la connessione", async () => {
     const tenantA = "integration-org-rollback-a";
