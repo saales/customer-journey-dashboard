@@ -14,8 +14,7 @@ Questo registro distingue il codice effettivamente presente nel branch, gli arte
 | Il nome e le etichette principali dell'interfaccia sono stati uniformati in italiano | `client/src/components/AppLayout.tsx`, `Segmentation.tsx`, `FunnelSettings.tsx`, `DataImport.tsx`, `Comparisons.tsx`, `CustomerManagement.tsx` | Modifiche presenti nel ramo; nuova CI completa da eseguire |
 | I metadati dei file Excel/PDF e il nome del foglio sono in italiano | `client/src/components/ExportButton.tsx` | Modifica presente nel ramo; nuova CI completa da eseguire |
 | La presentazione principale del progetto è stata riscritta in italiano e dichiara esplicitamente i limiti attuali | `README.md` | Verificato nel ramo |
-| Il materiale esaminato non contiene riferimenti espliciti a strumenti di intelligenza artificiale | `README.md`, documenti di architettura e rilascio consultati | Verificato nei file esaminati; non equivale a una scansione esaustiva di ogni file |
-| Il servizio di autenticazione PostgreSQL usa verifica password scrypt e crea sessioni tramite il repository dedicato | `server/src/postgres-authentication.ts`, `server/src/password-hashing.ts`, `server/src/postgres-session-repository.ts` | Codice presente; non collegato alle route Express |
+| Il servizio di autenticazione PostgreSQL verifica password scrypt e crea sessioni tramite il repository dedicato | `server/src/postgres-authentication.ts`, `server/src/password-hashing.ts`, `server/src/postgres-session-repository.ts`, `server/src/postgres-auth-routes.ts`, `server/src/postgres-app.ts` | Collegato alle route del runtime PostgreSQL separato; integrazione completa del browser con tale runtime ancora da verificare |
 | La richiesta di modifica è stata rinominata e aggiornata per riportare lo stato effettivo e i blocchi ancora aperti | PR #1 | Verificato; resta in bozza e non unita |
 
 ## Evidenze verificate nel branch Git
