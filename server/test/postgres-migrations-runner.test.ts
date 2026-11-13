@@ -88,6 +88,26 @@ describe("applyPostgresMigrations", () => {
     expect(mock.release).toHaveBeenCalledWith(true);
   });
 
+
+  it("rifiuta versioni registrate non più presenti nei file prima di applicare DDL", async () => {
+    const mock = setup([{ version: "999", name: "999_removed.sql", checksum: "0".repeat(64) }]);
+
+    await expect(applyPostgresMigrations(mock.pool, migrations)).rejects.toThrow(/assente dai file/);
+    expect(mock.query.mock.calls.some(([sql]) => sql === "BEGIN")).toBe(false);
+  });
+
+  it("rifiuta uno storico applicato non contiguo prima di applicare DDL", async () => {
+    const { createHash } = await import("node:crypto");
+    const mock = setup([{
+      version: "002",
+      name: migrations[1].name,
+      checksum: createHash("sha256").update(migrations[1].sql, "utf8").digest("hex"),
+    }]);
+
+    await expect(applyPostgresMigrations(mock.pool, migrations)).rejects.toThrow(/non contiguo/);
+    expect(mock.query.mock.calls.some(([sql]) => sql === "BEGIN")).toBe(false);
+  });
+
   it("rifiuta versioni duplicate o fuori ordine prima di aprire una connessione", async () => {
     const mock = setup();
 
