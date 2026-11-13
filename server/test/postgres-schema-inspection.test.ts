@@ -60,6 +60,10 @@ describe("inspectPostgresSchema", () => {
     expect(constraintQuery).toContain("n.nspname !~ '^pg_'");
     expect(indexQuery).toContain("schemaname !~ '^pg_'");
     expect(policyQuery).toContain("schemaname !~ '^pg_'");
+    expect(tableQuery).toContain("has_table_privilege(current_user, c.oid, 'SELECT')");
+    expect(constraintQuery).toContain("has_table_privilege(current_user, c.oid, 'SELECT')");
+    expect(indexQuery).toContain("has_table_privilege");
+    expect(policyQuery).toContain("has_table_privilege");
     expect(statements.some((sql) => /\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(sql))).toBe(false);
   });
 

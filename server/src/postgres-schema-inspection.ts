@@ -58,6 +58,7 @@ export async function inspectPostgresSchema(
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
           AND n.nspname !~ '^pg_'
           AND c.relkind IN ('r', 'p')
+          AND pg_catalog.has_table_privilege(current_user, c.oid, 'SELECT')
         ORDER BY n.nspname, c.relname
       `),
       client.query(`
@@ -78,6 +79,7 @@ export async function inspectPostgresSchema(
         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
           AND n.nspname !~ '^pg_'
+          AND pg_catalog.has_table_privilege(current_user, c.oid, 'SELECT')
         ORDER BY n.nspname, c.relname, con.conname
       `),
       client.query(`
@@ -86,6 +88,9 @@ export async function inspectPostgresSchema(
         FROM pg_catalog.pg_indexes
         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
           AND schemaname !~ '^pg_'
+          AND pg_catalog.has_table_privilege(
+            current_user, format('%I.%I', schemaname, tablename), 'SELECT'
+          )
         ORDER BY schemaname, tablename, indexname
       `),
       client.query(`
@@ -95,6 +100,9 @@ export async function inspectPostgresSchema(
         FROM pg_catalog.pg_policies
         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
           AND schemaname !~ '^pg_'
+          AND pg_catalog.has_table_privilege(
+            current_user, format('%I.%I', schemaname, tablename), 'SELECT'
+          )
         ORDER BY schemaname, tablename, policyname
       `),
       client.query(`

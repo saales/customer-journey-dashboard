@@ -126,6 +126,11 @@ describe("PostgreSQL integration smoke test", () => {
           (row) => row.schema === schemaName && row.table === "private_probe",
         ),
       ).toBe(false);
+      // Do not disclose table names or structural metadata without SELECT privilege.
+      expect(report.tables.some((row) => row.schema === schemaName && row.table === "private_probe")).toBe(false);
+      expect(report.constraints.some((row) => row.schema === schemaName && row.table === "private_probe")).toBe(false);
+      expect(report.indexes.some((row) => row.schema === schemaName && row.table === "private_probe")).toBe(false);
+      expect(report.rowLevelSecurityPolicies.some((row) => row.schema === schemaName && row.table === "private_probe")).toBe(false);
       expect(
         report.constraints.some(
           (row) => row.schema === schemaName && row.table === "catalog_probe" && row.type === "p",
