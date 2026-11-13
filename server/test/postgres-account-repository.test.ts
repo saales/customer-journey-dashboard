@@ -25,6 +25,7 @@ describe("account self-service PostgreSQL",()=>{
     const statements:string[]=[];
     const query=vi.fn(async(sql:string)=>{
       statements.push(sql);
+      if(sql.includes("SELECT 1 FROM memberships"))return{rows:[{}],rowCount:1};
       if(sql.includes("UPDATE users SET full_name"))return{rows:[],rowCount:1};
       if(sql.includes("SELECT u.id::text"))return{rows:[{...profile,fullName:"Updated"}],rowCount:1};
       return{rows:[],rowCount:1};
