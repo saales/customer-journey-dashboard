@@ -54,6 +54,11 @@ function parseAllowedOrigins(values: string[], production: boolean): Set<string>
   return result;
 }
 
+export function isValidPostgresDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+}
+
 function parsePage(value: unknown, fallback: number, maximum: number): number {
   if (value === undefined) return fallback;
   const parsed = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : NaN;
@@ -127,7 +132,9 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     }
     next();
   });
-  app.use(express.json({ limit: "12mb" }));
+  // Importazioni: limite dedicato; tutte le altre API hanno un limite più restrittivo.
+  app.use("/api/import", express.json({ limit: "12mb" }));
+  app.use(express.json({ limit: "1mb" }));
 
   // CSRF guard for every state-changing API route, including future routes.
   app.use("/api", (req, res, next) => {
@@ -165,8 +172,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     const today = new Date().toISOString().slice(0, 10);
     const from = typeof req.query.from === "string" ? req.query.from : meta.minDate ?? today;
     const to = typeof req.query.to === "string" ? req.query.to : meta.maxDate ?? today;
-    const validDate = (value: string) => /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
-      !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+    const validDate = isValidPostgresDate;
     if (!validDate(from) || !validDate(to) || from > to) throw new ApiError(400, "Intervallo date non valido.");
     const channel = typeof req.query.channel === "string" && req.query.channel ? req.query.channel : undefined;
     if (channel && !(CHANNELS as readonly string[]).includes(channel)) throw new ApiError(400, "Canale non valido.");
@@ -346,6 +352,15 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
   app.use((_req, res) => res.status(404).json({ error: "Risorsa non trovata." }));
 
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    const parserError = error as { type?: string };
+    if (parserError?.type === "entity.too.large") {
+      res.status(413).json({ error: "La richiesta supera il limite consentito." });
+      return;
+    }
+    if (parserError?.type === "entity.parse.failed") {
+      res.status(400).json({ error: "Il corpo JSON non è valido." });
+      return;
+    }
     if (error instanceof ApiError) {
       res.status(error.status).json({ error: error.message });
       return;
