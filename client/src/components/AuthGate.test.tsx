@@ -11,7 +11,7 @@ describe("Accesso PostgreSQL dal browser", () => {
   it("non entra automaticamente in modalità dimostrativa se il runtime non risponde", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("not found", { status: 404 })));
 
-    render(<AuthGate>{() => <p>Dashboard dimostrativa</p>}</AuthGate>);
+    render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText("Servizio di accesso non disponibile. Verificare il runtime PostgreSQL.")).toBeTruthy();
