@@ -17,6 +17,7 @@ import { Comparisons } from "./components/Comparisons";
 import { MemberManagement } from "./components/MemberManagement";
 import { AuditLog } from "./components/AuditLog";
 import { OrganizationSettings } from "./components/OrganizationSettings";
+import { AccountSettings } from "./components/AccountSettings";
 
 interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
