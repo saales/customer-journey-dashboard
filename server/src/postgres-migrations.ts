@@ -70,12 +70,12 @@ export async function planPostgresMigrations(
   try {
     await client.query("BEGIN READ ONLY");
     transactionOpen = true;
-    const existence = await client.query<{ exists: boolean }>(
-      "SELECT to_regclass('public.schema_migrations') IS NOT NULL AS "exists"",
+    const existence = await client.query<{ migration_table_exists: boolean }>(
+      "SELECT to_regclass('public.schema_migrations') IS NOT NULL AS migration_table_exists",
     );
     const recorded = new Map<string, AppliedMigration>();
 
-    if (existence.rows[0]?.exists) {
+    if (existence.rows[0]?.migration_table_exists) {
       const result = await client.query<AppliedMigration>(`
         SELECT version, name, checksum
         FROM public.schema_migrations
