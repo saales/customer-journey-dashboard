@@ -64,6 +64,10 @@ export async function listPostgresCustomers(
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
     throw new Error("Parametro limit non valido (valori ammessi: 1-100).");
   }
+  const offset = (page - 1) * limit;
+  if (!Number.isSafeInteger(offset)) {
+    throw new Error("Parametro page non valido.");
+  }
 
   return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
     const countResult = await client.query<{ total: string }>(
@@ -83,7 +87,7 @@ export async function listPostgresCustomers(
        WHERE organization_id = $1::uuid
        ORDER BY id DESC
        LIMIT $2 OFFSET $3`,
-      [organizationId, limit, (page - 1) * limit],
+      [organizationId, limit, offset],
     );
     const customers = customerResult.rows;
     const eventsByCustomer = new Map<string, PostgresCustomerEvent[]>();
