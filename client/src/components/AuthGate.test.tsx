@@ -82,4 +82,66 @@ describe("Accesso PostgreSQL dal browser", () => {
     expect(window.location.search).toBe("");
   });
 
+
+  it("richiede il recupero password senza rivelare se l'account esiste", async () => {
+    const requests: Array<{ url: string; body?: unknown }> = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/auth/session") return new Response(null, { status: 401 });
+      if (url === "/api/auth/password-reset/request") {
+        requests.push({ url, body: JSON.parse(String(init?.body)) });
+        return new Response(JSON.stringify({ accepted: true }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    }));
+
+    render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
+    fireEvent.click(await screen.findByText("Hai dimenticato la password?"));
+    const emails = await screen.findAllByLabelText("Email");
+    const organizations = screen.getAllByLabelText("Codice organizzazione");
+    fireEvent.change(emails[1]!, { target: { value: "utente@example.it" } });
+    fireEvent.change(organizations[1]!, { target: { value: "azienda-demo" } });
+    fireEvent.click(screen.getByRole("button", { name: "Invia istruzioni" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Se l'account esiste e l'invio email è configurato, riceverai le istruzioni.",
+    );
+    expect(requests).toEqual([{
+      url: "/api/auth/password-reset/request",
+      body: { email: "utente@example.it", organizationSlug: "azienda-demo" },
+    }]);
+    expect(screen.queryByText("Dashboard protetta")).toBeNull();
+  });
+
+  it("completa il reset password con token e torna al login", async () => {
+    window.history.replaceState({}, "", `/?reset=${"R".repeat(43)}`);
+    const requests: Array<{ url: string; body?: unknown }> = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/auth/password-reset/complete") {
+        requests.push({ url, body: JSON.parse(String(init?.body)) });
+        return new Response(JSON.stringify({ completed: true }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url === "/api/auth/session") return new Response(null, { status: 401 });
+      return new Response("not found", { status: 404 });
+    }));
+
+    render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
+    fireEvent.change(await screen.findByLabelText("Nuova password"), { target: { value: "Nuova-password-sicura-2026!" } });
+    fireEvent.change(screen.getByLabelText("Conferma password"), { target: { value: "Nuova-password-sicura-2026!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Aggiorna password" }));
+
+    expect(await screen.findByRole("button", { name: "Accedi" })).toBeTruthy();
+    expect(requests).toEqual([{
+      url: "/api/auth/password-reset/complete",
+      body: { token: "R".repeat(43), password: "Nuova-password-sicura-2026!" },
+    }]);
+    expect(window.location.search).toBe("");
+    expect(screen.queryByText("Dashboard protetta")).toBeNull();
+  });
+
 });
