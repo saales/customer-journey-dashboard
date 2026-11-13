@@ -9,6 +9,44 @@ const REQUIRED_RLS_TABLES = [
   "invitations",
 ] as const;
 
+const REQUIRED_TABLE_PRIVILEGES: ReadonlyArray<readonly [string, string]> = [
+  ["schema_migrations", "SELECT"],
+  ["users", "SELECT"],
+  ["users", "INSERT"],
+  ["organizations", "SELECT"],
+  ["memberships", "SELECT"],
+  ["memberships", "INSERT"],
+  ["memberships", "UPDATE"],
+  ["sessions", "SELECT"],
+  ["sessions", "INSERT"],
+  ["sessions", "DELETE"],
+  ["login_attempt_limits", "SELECT"],
+  ["login_attempt_limits", "INSERT"],
+  ["login_attempt_limits", "UPDATE"],
+  ["login_attempt_limits", "DELETE"],
+  ["api_request_limits", "SELECT"],
+  ["api_request_limits", "INSERT"],
+  ["api_request_limits", "UPDATE"],
+  ["api_request_limits", "DELETE"],
+  ["customers", "SELECT"],
+  ["customers", "INSERT"],
+  ["customers", "UPDATE"],
+  ["customers", "DELETE"],
+  ["events", "SELECT"],
+  ["events", "INSERT"],
+  ["events", "UPDATE"],
+  ["events", "DELETE"],
+  ["funnel_stages", "SELECT"],
+  ["funnel_stages", "INSERT"],
+  ["funnel_stages", "UPDATE"],
+  ["import_batches", "SELECT"],
+  ["import_batches", "INSERT"],
+  ["audit_logs", "INSERT"],
+  ["invitations", "SELECT"],
+  ["invitations", "INSERT"],
+  ["invitations", "UPDATE"],
+];
+
 export interface PostgresRuntimeRoleCheck {
   role: string;
   superuser: boolean;
@@ -91,25 +129,7 @@ export async function inspectPostgresRuntimeRole(
 
   const privilegeResult = await pool.query<{ tableName: string; privilege: string }>(
     `SELECT required.table_name AS "tableName", required.privilege
-     FROM unnest(
-       ARRAY['schema_migrations','users','users','organizations','memberships','memberships','memberships',
-             'sessions','sessions','sessions',
-             'login_attempt_limits','login_attempt_limits','login_attempt_limits','login_attempt_limits',
-             'api_request_limits','api_request_limits','api_request_limits','api_request_limits',
-             'customers','customers','customers','customers',
-             'events','events','events','events',
-             'funnel_stages','funnel_stages','funnel_stages',
-             'import_batches','import_batches','audit_logs',
-             'invitations','invitations','invitations']::text[],
-       ARRAY['SELECT','SELECT','INSERT','SELECT','SELECT','INSERT','UPDATE',
-             'SELECT','INSERT','DELETE',
-             'SELECT','INSERT','UPDATE','DELETE',
-             'SELECT','INSERT','UPDATE','DELETE',
-             'SELECT','INSERT','UPDATE','DELETE',
-             'SELECT','INSERT','UPDATE',
-             'SELECT','INSERT','INSERT',
-             'SELECT','INSERT','UPDATE']::text[]
-     ) AS required(table_name, privilege)
+     FROM unnest($1::text[], $2::text[]) AS required(table_name, privilege)
      WHERE NOT has_table_privilege(
        current_user,
        format('%I.%I', current_schema(), required.table_name),
@@ -123,6 +143,10 @@ export async function inspectPostgresRuntimeRole(
        'last_used_at',
        'UPDATE'
      )`,
+    [
+      REQUIRED_TABLE_PRIVILEGES.map(([table]) => table),
+      REQUIRED_TABLE_PRIVILEGES.map(([, privilege]) => privilege),
+    ]
   );
   const missingPrivileges = privilegeResult.rows.map(
     (row) => `${row.tableName}:${row.privilege}`,
