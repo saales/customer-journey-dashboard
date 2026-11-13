@@ -243,17 +243,35 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         "INSERT INTO invitations (organization_id,email,role,token_hash,invited_by,expires_at) VALUES ($1,'invitee@example.test','viewer','known-invite-hash',$2,NOW()+INTERVAL '1 day')",
         [organizationId, invitationActorId],
       );
+      await client.query(
+        "INSERT INTO funnel_stages (organization_id,id,label,position) VALUES ($1,'visit','Visit A',0),($2,'visit','Visit B',0)",
+        [organizationId, secondOrganizationId],
+      );
+      await client.query(
+        `INSERT INTO events (organization_id,customer_id,stage_id,occurred_at)
+         SELECT c.organization_id,c.id,'visit',NOW()
+         FROM customers c WHERE c.organization_id IN ($1,$2)`,
+        [organizationId, secondOrganizationId],
+      );
+      await client.query(
+        "INSERT INTO import_batches (organization_id,fingerprint,file_name,customer_count,row_count) VALUES ($1,'fingerprint-a','a.csv',1,1),($2,'fingerprint-b','b.csv',1,1)",
+        [organizationId, secondOrganizationId],
+      );
+      await client.query(
+        "INSERT INTO audit_logs (organization_id,action,resource_type,resource_id) VALUES ($1,'test.created','test','a'),($2,'test.created','test','b')",
+        [organizationId, secondOrganizationId],
+      );
       await client.query(`SET LOCAL ROLE "${runtimeRole}"`);
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
-      const tenantACount = await client.query<{ count: string }>(
-        "SELECT COUNT(*)::text AS count FROM customers",
-      );
-      expect(Number(tenantACount.rows[0]?.count)).toBe(1);
+      for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
+        const tenantACount = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
+        expect(Number(tenantACount.rows[0]?.count), `tenant A / ${table}`).toBe(1);
+      }
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [secondOrganizationId]);
-      const tenantBCount = await client.query<{ count: string }>(
-        "SELECT COUNT(*)::text AS count FROM customers",
-      );
-      expect(Number(tenantBCount.rows[0]?.count)).toBe(1);
+      for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
+        const tenantBCount = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
+        expect(Number(tenantBCount.rows[0]?.count), `tenant B / ${table}`).toBe(1);
+      }
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", ["00000000-0000-0000-0000-000000000000"]);
       const unknownTenantCount = await client.query<{ count: string }>(
         "SELECT COUNT(*)::text AS count FROM customers",
