@@ -124,4 +124,4 @@ jobs:
         run: |
           printf 'LOCKFILE_BASE64:'
           base64 -w0 package-lock.json
-          printf '\\n'
+          echo
