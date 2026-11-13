@@ -51,6 +51,7 @@ describe("inspectPostgresSchema", () => {
     expect(tableQuery).toContain('c.relname AS "table"');
     expect(tableQuery).toContain("owner.rolname AS table_owner");
     expect(columnQuery).toContain('table_name AS "table"');
+    expect(columnQuery).toContain("has_table_privilege");
     expect(constraintQuery).toContain('c.relname AS "table"');
     expect(indexQuery).toContain('tablename AS "table"');
     expect(policyQuery).toContain('tablename AS "table"');

@@ -68,6 +68,9 @@ export async function inspectPostgresSchema(
         FROM information_schema.columns
         WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
           AND table_schema !~ '^pg_'
+          AND pg_catalog.has_table_privilege(
+            current_user, format('%I.%I', table_schema, table_name), 'SELECT'
+          )
         ORDER BY table_schema, table_name, ordinal_position
       `),
       client.query(`
