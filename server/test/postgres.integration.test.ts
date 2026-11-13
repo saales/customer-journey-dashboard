@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import { verifyPostgresPool } from "../src/postgres-health.js";
+import { withTenantTransaction } from "../src/tenant-transaction.js";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = connectionString
@@ -43,4 +44,33 @@ describe("PostgreSQL integration smoke test", () => {
       client.release();
     }
   });
+  it.skipIf(!pool)("isola il tenant tra transazioni che riutilizzano la stessa connessione", async () => {
+    const tenantA = "integration-org-a";
+    const tenantB = "integration-org-b";
+
+    const first = await withTenantTransaction(pool!, tenantA, async (client) => {
+      const result = await client.query<{ tenant: string; pid: number }>(
+        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+      );
+      return result.rows[0]!;
+    });
+
+    const second = await withTenantTransaction(pool!, tenantB, async (client) => {
+      const result = await client.query<{ tenant: string; pid: number }>(
+        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+      );
+      return result.rows[0]!;
+    });
+
+    expect(first.tenant).toBe(tenantA);
+    expect(second.tenant).toBe(tenantB);
+    expect(second.pid).toBe(first.pid);
+
+    const after = await pool!.query<{ tenant: string | null }>(
+      "SELECT current_setting('app.organization_id', true) AS tenant",
+    );
+    expect(after.rows[0]?.tenant).not.toBe(tenantA);
+    expect(after.rows[0]?.tenant).not.toBe(tenantB);
+  });
+
 });
