@@ -14,6 +14,7 @@ import { DataImport } from "./components/DataImport";
 import { FunnelSettings } from "./components/FunnelSettings";
 import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
+import { MemberManagement } from "./components/MemberManagement";
 
 interface AppProps { onLogout?: () => Promise<void>; demoMode?: boolean; }
 
@@ -236,6 +237,7 @@ export default function App({ onLogout, demoMode = false }: AppProps = {}) {
   const settingsSection = (
     <div>
       <FunnelSettings onDataChange={refreshDashboard} />
+      <MemberManagement />
 
       <div className="card">
         <h2>Preferenze dell'interfaccia</h2>

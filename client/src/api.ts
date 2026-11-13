@@ -92,6 +92,16 @@ export interface ImportResult {
   importedEvents: number;
 }
 
+export interface OrganizationMember {
+  membershipId: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  role: "admin" | "editor" | "analyst" | "viewer";
+  status: "active" | "suspended";
+  joinedAt: string;
+}
+
 export interface Query {
   from: string;
   to: string;
@@ -163,7 +173,7 @@ async function get<T>(
 
 async function send<T>(
   path: string,
-  method: "POST" | "PUT" | "DELETE",
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   body?: unknown,
 ): Promise<T> {
   const res = await fetch(`/api/${path}`, {
@@ -185,6 +195,11 @@ async function send<T>(
 }
 
 export const api = {
+  members: (signal?: AbortSignal) => get<OrganizationMember[]>("members", {}, signal),
+
+  updateMember: (id: string, data: { role?: OrganizationMember["role"]; status?: OrganizationMember["status"] }) =>
+    send<OrganizationMember>(`members/${id}`, "PATCH", data),
+
   meta: (signal?: AbortSignal) =>
     get<Meta>("meta", {}, signal),
 
