@@ -74,7 +74,7 @@ export function serializePostgresSessionCookie(token: string, expiresAt: string,
   return `${name}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}; Expires=${expires.toUTCString()}${production ? "; Secure" : ""}`;
 }
 
-function clearSessionCookie(production: boolean): string {
+export function clearPostgresSessionCookie(production: boolean): string {
   const name = getPostgresSessionCookieName(production);
   return `${name}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${production ? "; Secure" : ""}`;
 }
@@ -270,7 +270,7 @@ export function createPostgresAuthRouter(
         res.status(400).json({ error: "Il collegamento non è valido o è scaduto. Richiedi un nuovo recupero." });
         return;
       }
-      appendCookie(res, clearSessionCookie(production));
+      appendCookie(res, clearPostgresSessionCookie(production));
       res.status(200).json({ message: "Password aggiornata. Accedi nuovamente." });
     } catch (error) { next(error); }
   });
@@ -294,7 +294,7 @@ export function createPostgresAuthRouter(
     }
     try {
       await revokePostgresSession(pool, token);
-      appendCookie(res, clearSessionCookie(production));
+      appendCookie(res, clearPostgresSessionCookie(production));
       res.status(204).send();
     } catch (error) {
       next(error);
