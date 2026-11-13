@@ -102,6 +102,7 @@ describe("API", () => {
   });
 
   it("supporta pagine successive e limita la dimensione massima", async () => {
+    const firstPage = await (await fetch(`${base}/api/customers?page=1&limit=100`)).json();
     const res = await fetch(`${base}/api/customers?page=2&limit=100`);
     const body = await res.json();
 
@@ -113,7 +114,7 @@ describe("API", () => {
       total: 500,
       totalPages: 5,
     });
-    expect(body.data[0].id).toBeLessThan(body.data[0 - 1]?.id ?? Number.MAX_SAFE_INTEGER);
+    expect(body.data[0].id).toBeLessThan(firstPage.data[99].id);
   });
 
   it("rifiuta parametri di paginazione non validi", async () => {
