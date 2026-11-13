@@ -105,3 +105,14 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - Migrazione incrementale 012: concede soltanto UPDATE sulle colonne `organizations.name` e `updated_at`. API amministrative e UI per leggere/aggiornare nome, slug e data creazione; le modifiche generano audit event nella stessa transazione.
 - Test unitari aggiunti per token monouso, revoca sessioni, provider email, audit e impostazioni organizzazione. CI [43511933734](https://github.com/saales/customer-journey-dashboard/actions/runs/43511933734) sul commit `deb8c5ea337eda82e4a5296996a2ab0ef05045c3`: Node.js 20 e 22 verdi; npm test, build, audit, migrazioni 001–012, checksum, avvio runtime limitato e Playwright/Chromium completati. Lo scenario browser include anche la modifica del nome organizzazione. Non è stato testato l'invio email reale perché CI non dispone di credenziali Resend.
 - Le migrazioni 011–012 sono registrate nel runner; non sono state applicate al database Neon né ad altri database remoti.
+
+
+## Self-service account e copertura RLS audit — 13 novembre 2026
+
+- Migrazione 013: grant di UPDATE limitato a `users.full_name` e `users.updated_at`; il preflight runtime verifica anche questo privilegio.
+- API autenticate per lettura/modifica del profilo e cambio password. Il cambio verifica la password attuale con scrypt, blocca la riga credenziale durante verifica/aggiornamento, aggiorna la password, revoca tutte le sessioni e registra l'evento audit nella stessa transazione tenant.
+- UI account disponibile a tutti i ruoli: modifica nome, visualizzazione email/ruolo e cambio password con conferma; dopo il cambio viene richiesto un nuovo login.
+- Test unitari per aggiornamento profilo, password errata, aggiornamento atomico, revoca sessioni e audit. E2E admin verifica la modifica del profilo.
+- Il test RLS PostgreSQL ora inserisce un evento audit valido nel tenant A e dimostra che il ruolo runtime lo vede nel tenant A ma non nel tenant B; non si limita più a verificare una tabella audit vuota.
+- CI [43513998940](https://github.com/saales/customer-journey-dashboard/actions/runs/43513998940), commit `78432080f9d6b59c3960817e38392e0e3c4e09ec`: Node.js 20 e 22 verdi; 33 file test client, 37 test client e 142 test server, build, audit dipendenze, migrazioni 001–013/checksum, avvio runtime con ruolo limitato e Playwright/Chromium.
+- Nessuna verifica o scrittura su Neon, nessun deploy e nessun invio reale email.
