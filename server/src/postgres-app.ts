@@ -28,6 +28,7 @@ import {
   listPostgresFunnelStages,
   reorderPostgresFunnelStages,
   updatePostgresFunnelStage,
+  PostgresFunnelStageNotFoundError,
 } from "./postgres-funnel-repository.js";
 
 export interface PostgresAppOptions {
@@ -440,7 +441,10 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
           pool, req.authenticatedSession!.organizationId, req.params.id, updates, req.authenticatedSession!.userId,
         );
         res.json(result);
-      } catch (error) { next(error); }
+      } catch (error) {
+        if (error instanceof PostgresFunnelStageNotFoundError) { res.status(404).json({ error: error.message }); return; }
+        next(error);
+      }
     });
 
 
