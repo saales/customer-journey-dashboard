@@ -11,8 +11,11 @@ function csvCell(value: unknown): string {
   return '"' + text.replace(/"/g, '""') + '"';
 }
 export async function exportPostgresCustomersCsv(
-  pool: Pick<Pool, "connect">, organizationId: string,
+  pool: Pick<Pool, "connect">, organizationId: string, actorUserId: string,
 ): Promise<{ csv: string; rowCount: number }> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actorUserId)) {
+    throw new Error("Identificativo attore non valido.");
+  }
   return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
     const result = await client.query<{
       id: string; externalId: string; channel: string; createdAt: string;
@@ -33,6 +36,12 @@ export async function exportPostgresCustomersCsv(
     if (result.rows.length > MAX_EXPORT_ROWS) {
       throw new PostgresExportError(413, "Esportazione troppo ampia: restringere i dati o suddividerli prima di riprovare.");
     }
+    await client.query(
+      `INSERT INTO audit_logs
+       (organization_id, actor_user_id, action, resource_type, resource_id, details)
+       VALUES ($1::uuid, $2::uuid, 'data.exported', 'customer_export', NULL, $3::jsonb)`,
+      [organizationId, actorUserId, JSON.stringify({ rowCount: result.rows.length, format: "csv" })],
+    );
     const header = ["ID cliente", "Identificativo esterno", "Canale", "Prima visita", "Fase", "Data evento"];
     const lines = [header.map(csvCell).join(";")];
     for (const row of result.rows) {
