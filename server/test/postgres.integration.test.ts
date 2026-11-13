@@ -78,12 +78,14 @@ describe("PostgreSQL integration smoke test", () => {
     const tenantA = "integration-org-rollback-a";
     const tenantB = "integration-org-rollback-b";
     const failure = new Error("rollback integration sentinel");
+    let firstBackendPid: number | undefined;
 
     const first = await withTenantTransaction(pool!, tenantA, async (client) => {
       const result = await client.query<{ tenant: string; pid: number }>(
         "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
       );
       expect(result.rows[0]?.tenant).toBe(tenantA);
+      firstBackendPid = result.rows[0]?.pid;
       throw failure;
     }).catch((error: unknown) => {
       expect(error).toBe(failure);
@@ -100,6 +102,7 @@ describe("PostgreSQL integration smoke test", () => {
     });
 
     expect(second.tenant).toBe(tenantB);
+    expect(second.pid).toBe(firstBackendPid);
   });
 
 });
