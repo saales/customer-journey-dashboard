@@ -84,10 +84,10 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 ### Implementato nel ramo corrente
 
 - PostgreSQL è l’unico percorso di persistenza del server e il runtime HTTP standard avvia esclusivamente `postgres-server.ts`.
-- Migrazioni versionate 001–009, controllo checksum e preflight dei privilegi del ruolo runtime, inclusi i privilegi del rate limiter API persistente.
+- Migrazioni versionate 001–010, controllo checksum e preflight dei privilegi del ruolo runtime, inclusi i privilegi del rate limiter API persistente.
 - Sessioni opache, autenticazione, autorizzazione per ruolo e tenant scope nelle API.
 - Dashboard, clienti, funnel, segmentazione, importazione, export CSV, gestione membri e inviti monouso.
-- La CI esegue build e test su Node.js 20/22, applica le migrazioni 001–009 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Su Node.js 22 esegue inoltre un percorso browser Playwright/Chromium con tenant sintetico: login admin, creazione cliente, aggiunta fase funnel, import/export CSV, invito e accettazione analista, export con ruolo analista, rifiuto server-side della lettura audit e della creazione cliente e logout con revoca sessione.
+- La CI esegue build e test su Node.js 20/22, applica le migrazioni 001–010 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Su Node.js 22 esegue inoltre un percorso browser Playwright/Chromium con tenant sintetico: login admin, creazione cliente, aggiunta fase funnel, import/export CSV, invito e accettazione analista, export con ruolo analista, rifiuto server-side della lettura audit e della creazione cliente e logout con revoca sessione.
 
 ### Non ancora dimostrato / non disponibile
 
