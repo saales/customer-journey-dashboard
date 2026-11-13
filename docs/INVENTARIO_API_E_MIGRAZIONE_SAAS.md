@@ -87,7 +87,7 @@ La migrazione `005_runtime_role_grants.sql` assegna privilegi minimi al ruolo `p
 ### Funzioni ancora mancanti nel runtime PostgreSQL
 
 - API di confronto avanzato tra periodi e segmenti combinati oltre al confronto canali.
-- API di importazione CSV/Excel.
+- Gestione storico importazioni e annullamento controllato dei batch.
 - API di esportazione e audit consultabile.
 - Gestione membri, inviti, recupero account e bootstrap amministratore.
 - Collegamento del client React e test end-to-end dell'intero percorso utente.

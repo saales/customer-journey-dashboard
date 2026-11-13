@@ -4,6 +4,7 @@ import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
 import { getPostgresSegmentCustomers, getPostgresSegments, type SegmentDimension } from "./postgres-segmentation-repository.js";
+import { importPostgresCustomers, PostgresImportError, type PostgresImportRow } from "./postgres-import-repository.js";
 import {
   requirePostgresSession,
   requireOrganizationPermission,
@@ -117,7 +118,16 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     next();
   });
 
-  app.use(express.json({ limit: "1mb" }));
+  app.use((req, res, next) => {
+    const declaredLength = Number(req.get("content-length") ?? "0");
+    const maximum = req.path === "/api/import" ? 12 * 1024 * 1024 : 1024 * 1024;
+    if (Number.isFinite(declaredLength) && declaredLength > maximum) {
+      res.status(413).json({ error: "La richiesta supera il limite consentito." });
+      return;
+    }
+    next();
+  });
+  app.use(express.json({ limit: "12mb" }));
 
   // CSRF guard for every state-changing API route, including future routes.
   app.use("/api", (req, res, next) => {
@@ -188,6 +198,35 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         const org = req.authenticatedSession!.organizationId;
         res.json(await getPostgresTimeseries(pool, org, await parseAnalyticsFilters(req, org)));
       } catch (error) { next(error); }
+    });
+
+  app.post("/api/import", authenticated, requireOrganizationPermission("data:import"),
+    async (req, res, next) => {
+      try {
+        if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+          throw new ApiError(400, "Il corpo della richiesta non è valido.");
+        }
+        const body = req.body as { fileName?: unknown; rows?: unknown };
+        if (typeof body.fileName !== "string" || !Array.isArray(body.rows)) {
+          throw new ApiError(400, "File o righe di importazione non validi.");
+        }
+        const result = await importPostgresCustomers(
+          pool, req.authenticatedSession!.organizationId, req.authenticatedSession!.userId,
+          body.fileName, body.rows as PostgresImportRow[],
+        );
+        res.status(201).json(result);
+      } catch (error) {
+        if (error instanceof PostgresImportError) {
+          res.status(error.status).json({ error: error.message });
+          return;
+        }
+        const code = (error as { code?: string })?.code;
+        if (code === "23505") {
+          res.status(409).json({ error: "Un identificativo cliente è già presente nell'organizzazione." });
+          return;
+        }
+        next(error);
+      }
     });
 
   app.get("/api/segments", authenticated, requireOrganizationPermission("analytics:read"),

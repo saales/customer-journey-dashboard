@@ -86,7 +86,7 @@ export interface ImportRow {
 
 export interface ImportResult {
   message: string;
-  batchId: number;
+  batchId: string | number;
   importedCustomers: number;
   importedRows: number;
   importedEvents: number;

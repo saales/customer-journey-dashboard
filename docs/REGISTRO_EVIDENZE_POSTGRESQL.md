@@ -184,3 +184,16 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Dettaglio clienti per segmento con ID BIGINT serializzato come stringa | `getPostgresSegmentCustomers`, contratto client | Implementato |
 | Filtro tenant e date in ogni query; contesto RLS nella transazione | repository + test con due organizzazioni | Test d'integrazione aggiunti |
 | API di lettura protette dal permesso analytics:read | `GET /api/segments`, `GET /api/segments/customers` | Implementate |
+
+
+## Importazione PostgreSQL — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Validazione server-side di canali, date, fasi attive, duplicati e cronologia | `validateRows` in `postgres-import-repository.ts` | Implementata |
+| Raggruppamento righe per identificativo esterno e fingerprint SHA-256 indipendente dal nome file | repository import | Implementato |
+| Inserimento clienti, eventi e batch nella stessa transazione | `importPostgresCustomers` | Implementato |
+| Rilevamento doppio batch e conflitti identificativo cliente | vincolo univoco tenant + lock transazionale | Implementato |
+| Audit log dell'importazione | inserimento in `audit_logs` | Implementato |
+| API protetta dal permesso data:import e limiti dimensione richiesta | `POST /api/import`, middleware HTTP | Implementata |
+| Test integrazione import, deduplica, audit e isolamento tra organizzazioni | `postgres-import-repository.integration.test.ts` | Aggiunti; CI del commit finale da verificare |
