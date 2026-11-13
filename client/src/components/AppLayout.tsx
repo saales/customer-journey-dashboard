@@ -74,8 +74,8 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
 
           {!collapsed && (
             <div className="brand-text">
-              <strong>Journey</strong>
-              <span>CUSTOMER ANALYTICS</span>
+              <strong>Percorso Cliente</strong>
+              <span>ANALISI DEI CLIENTI</span>
             </div>
           )}
         </div>
@@ -117,7 +117,7 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
         </nav>
 
         <div className="sidebar-footer">
-          {!collapsed && <span>Customer Journey Dashboard</span>}
+          {!collapsed && <span>Analisi del percorso cliente</span>}
         </div>
       </aside>
 
@@ -134,7 +134,7 @@ export function AppLayout({ children, sections }: AppLayoutProps) {
 
             <div>
               <h1>{pageTitle}</h1>
-              <p>Benvenuto nella tua area di analisi</p>
+              <p>Benvenuto nell’area di analisi</p>
             </div>
           </div>
 
