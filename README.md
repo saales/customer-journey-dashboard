@@ -1,155 +1,111 @@
-# Analisi del percorso cliente
+# Percorso Cliente
 
-Applicazione web per osservare e comprendere il percorso che conduce una persona dal primo contatto alla conversione. Riunisce indicatori, andamento nel tempo, confronto dei canali, segmentazione e gestione delle anagrafiche in un'unica interfaccia.
+Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
+> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–008 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
 
-> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Il ramo contiene un server HTTP PostgreSQL separato con autenticazione, sessioni, ruoli, API tenant-scoped per analisi, segmentazione, clienti, funnel, importazione e gestione dei membri. È disponibile anche un endpoint CSV lato server per l'esportazione dei clienti, protetto dal permesso dedicato e con un limite esplicito di righe. I report di funnel, andamento e canali continuano a essere generati nel browser. Il client può essere avviato in sviluppo contro il runtime PostgreSQL; la CI copre test e build, ma non sostituisce il collaudo browser end-to-end. Sono ancora necessari verifiche operative, confronto funzionale e collaudo in staging. Il runtime predefinito è PostgreSQL; il percorso SQLite storico è isolato dietro comandi espliciti e non è usato dall'avvio standard. L'avvio in produzione resta subordinato al collaudo in staging. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
+## Funzioni
 
-[![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
-
-## Funzionalità disponibili nell'applicazione attuale
-
-- **Indicatori principali:** visite iniziali, contatti, clienti, tasso di conversione e tempo medio alla conversione.
-- **Percorso di conversione:** analisi delle fasi Visita, Contatto, Qualificazione, Opportunità e Cliente.
-- **Andamento nel tempo:** evoluzione delle visite e del tasso di conversione.
-- **Confronto dei canali:** analisi delle prestazioni dei diversi canali di acquisizione.
-- **Filtri temporali:** selezione di intervalli predefiniti o personalizzati e dei canali.
-- **Gestione clienti:** inserimento, modifica, eliminazione e consultazione paginata.
-- **Importazione:** caricamento e verifica preliminare di file CSV o Excel.
-- **Segmentazione e confronti:** lettura dei risultati per gruppi, periodi e canali.
-- **Esportazione:** produzione di file CSV, Excel e PDF.
-- **Preferenze di visualizzazione:** tema chiaro o scuro e interfaccia adattabile alle dimensioni dello schermo.
-
-Le funzioni sono in fase di consolidamento e non devono essere interpretate come prova del completamento dell'architettura multi-organizzazione.
+- Dashboard con KPI, funnel, andamento e confronto dei canali.
+- Filtri temporali e per canale.
+- Gestione clienti, eventi e fasi del percorso.
+- Importazione CSV/Excel con validazione server-side.
+- Segmentazione e confronto dei gruppi.
+- Esportazione report CSV, Excel e PDF dal browser.
+- Esportazione CSV clienti dal server, tenant-scoped e protetta da permesso.
+- Autenticazione, sessioni, ruoli e gestione dei membri.
+- Inviti monouso con scadenza, revoca e accettazione atomica; il collegamento viene condiviso manualmente, non inviato via email.
+- Audit log, rate limiting del login e controlli di sicurezza del runtime.
 
 ## Tecnologie
 
 | Ambito | Tecnologie |
 |---|---|
-| Interfaccia web | React, TypeScript, Vite, Recharts |
-| Server applicativo | Node.js, Express, TypeScript |
-| Database applicativo predefinito | PostgreSQL |
-| Percorso storico isolato | SQLite (solo comando esplicito) |
-| Verifiche | Vitest, Testing Library, PostgreSQL temporaneo |
-| Automazione delle verifiche | GitHub Actions, Node.js 20 e 22 |
+| Interfaccia | React, TypeScript, Vite, Recharts |
+| Server | Node.js, Express, TypeScript |
+| Database | PostgreSQL |
+| Driver | node-postgres (pg) |
+| Test | Vitest, Testing Library, PostgreSQL 16 temporaneo |
+| CI | GitHub Actions, Node.js 20 e 22 |
 
-## Struttura del progetto
+## Requisiti
 
-```text
-.
-├── client/
-│   └── src/
-│       ├── components/       # Componenti dell'interfaccia
-│       ├── api.ts            # Comunicazione con il server
-│       ├── format.ts         # Formattazione e periodi
-│       └── styles.css        # Stili dell'interfaccia
-├── server/
-│   ├── migrations/           # Migrazioni PostgreSQL versionate
-│   ├── src/                  # Server e moduli applicativi
-│   └── test/                 # Verifiche automatiche
-├── docs/                     # Architettura, decisioni e piani
-├── package.json
-├── README.md
-└── LICENSE
+- Node.js 20 o successivo
+- npm
+- Un database PostgreSQL
+- Un ruolo proprietario/amministrativo per migrazioni e bootstrap
+- Un ruolo applicativo non proprietario, NOINHERIT e senza privilegi elevati
+
+## Configurazione locale
+
+Copiare `.env.example` in `.env.local` e configurare i valori reali solo nel file locale, escluso dal versionamento:
+
+```dotenv
+DATABASE_URL=postgresql://utente_app:password@host:5432/database?sslmode=require
+APP_ORIGIN=http://localhost:5173
+LOGIN_RATE_LIMIT_SECRET=una-stringa-casuale-di-almeno-32-caratteri
+PORT=3001
 ```
 
-## Criteri di analisi
+Non inserire credenziali o stringhe di connessione nei file versionati, nei ticket o nei log.
 
-Le analisi sono organizzate per coorte: si considerano i clienti la cui prima visita ricade nell'intervallo selezionato e si osservano gli eventi successivi lungo il percorso di conversione.
+## Migrazioni e bootstrap
 
-Questo criterio consente di confrontare periodi e canali mantenendo costante la base di osservazione. Le definizioni degli indicatori e le relative query sono documentate nei materiali tecnici del progetto.
+Le migrazioni sono esplicite e non vengono applicate automaticamente all'avvio del server.
 
-## Interfacce applicative
-
-Il runtime predefinito `npm run dev` avvia il server PostgreSQL e il client web sulla stessa origine: il client utilizza le API PostgreSQL per accesso, analisi, segmentazione, clienti, funnel, importazione e gestione membri. Il percorso SQLite storico è isolato dietro `npm run dev:sqlite` e non è il runtime standard. L'endpoint `GET /api/export/customers.csv` genera dal server un CSV tenant-scoped, con autorizzazione `data:export` e limite massimo di 100.000 righe. I pulsanti di esportazione dei report aggregati (funnel, andamento e canali) generano invece file nel browser dai dati già caricati. Il collegamento è presente nel codice, ma non è ancora certificato da un collaudo browser end-to-end completo.
-
-## Avvio in ambiente locale
-
-### Requisiti
-
-- Node.js 20 o versione successiva
-- npm
-
-### Installazione e avvio
-
-Dalla cartella principale:
+1. Verificare l'identità del database e il ruolo amministrativo.
+2. Eseguire il preflight in sola lettura:
 
 ```bash
-npm install
+npm run db:migrate -- --check
+```
+
+3. Solo dopo aver verificato backup, destinazione e piano di ripristino, applicare le migrazioni:
+
+```bash
+npm run db:migrate
+```
+
+4. Per un database vuoto, seguire [docs/BOOTSTRAP_POSTGRESQL.md](docs/BOOTSTRAP_POSTGRESQL.md):
+
+```bash
+npm run db:bootstrap -- --confirm-empty-database
+```
+
+Il bootstrap rifiuta database già popolati. Non usarlo per ricreare tenant esistenti.
+
+## Avvio e verifiche
+
+```bash
+npm ci
 npm run dev
 ```
 
-Questo comando avvia il runtime PostgreSQL. Prima dell'avvio occorrono database e ruolo applicativo già predisposti, migrazioni applicate e le variabili d'ambiente descritte in `.env.example`. Il server esegue un preflight read-only e non applica migrazioni automaticamente.
-
-Per eseguire temporaneamente il percorso storico SQLite in sviluppo, usare `npm run dev:sqlite`. L'accesso dimostrativo è consentito solo in modalità sviluppo e va abilitato esplicitamente in `client/.env.local` con:
-
-```dotenv
-VITE_ENABLE_DEMO_MODE=true
-```
-
-Per creare il primo tenant e il relativo amministratore su un database PostgreSQL appena migrato, seguire la procedura documentata in [docs/BOOTSTRAP_POSTGRESQL.md](docs/BOOTSTRAP_POSTGRESQL.md). Il bootstrap richiede una connessione amministrativa dedicata, un nome database confermato e il flag esplicito; rifiuta database già popolati.
-
-Per applicare o verificare le migrazioni usare `npm run db:migrate` e `npm run db:migrate -- --check` con le credenziali amministrative appropriate. Il comando `npm start` avvia il runtime PostgreSQL compilato.
-
-L'interfaccia è disponibile all'indirizzo:
-
-[http://localhost:5173](http://localhost:5173)
-
-Il server API locale è disponibile all'indirizzo:
-
-[http://localhost:3001](http://localhost:3001)
-
-Per caricare dati dimostrativi SQLite occorre abilitarli esplicitamente in un ambiente non di produzione:
-
-```bash
-ALLOW_DEMO_SEED=true npm run seed
-```
-
-Il caricamento dimostrativo è bloccato in produzione. Utilizzare esclusivamente dati sintetici e un ambiente locale separato da qualsiasi archivio aziendale.
-
-## Verifiche automatiche
-
-Per eseguire le verifiche dei moduli:
+L'interfaccia è disponibile su [http://localhost:5173](http://localhost:5173); il server HTTP usa la porta 3001.
 
 ```bash
 npm test
-```
-
-Per compilare l'applicazione:
-
-```bash
 npm run build
 ```
 
-Le verifiche automatiche del ramo di sviluppo vengono eseguite su Node.js 20 e 22. I test PostgreSQL utilizzano un servizio temporaneo predisposto per la durata dell'esecuzione: non operano sul database Neon.
+La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Questo non dimostra lo stato del database remoto.
 
-## Architettura e sicurezza
+## Sicurezza e rilascio
 
-Il percorso di evoluzione prevede PostgreSQL come unico database di destinazione, con separazione dei dati per organizzazione, ruoli, sessioni, registri di controllo e verifiche d'integrità.
+- L'organizzazione deriva dalla sessione verificata, non da parametri del browser.
+- Le API e i repository applicano filtri tenant-scoped; le tabelle operative applicano RLS.
+- Il ruolo HTTP non è proprietario, superuser o BYPASSRLS e non eredita privilegi.
+- Le migrazioni sono versionate, verificate tramite checksum e protette da advisory lock.
+- Lo startup controlla lo storico migrazioni e i privilegi; non modifica lo schema.
+- Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
+- Gli inviti sono monouso, con token hashato nel database e scadenza; l'email automatica non è configurata.
 
-Nel ramo di sviluppo sono presenti migrazioni versionate, autenticazione PostgreSQL, cookie di sessione, scadenza per inattività dopo 30 minuti e scadenza assoluta, middleware per i ruoli, API tenant-scoped iniziali, limiti persistenti ai tentativi di accesso e un preflight che rifiuta ruoli PostgreSQL non sicuri. Il server PostgreSQL si avvia solo se lo storico migrazioni è completo e coerente e se il ruolo runtime è separato dal proprietario, non privilegiato e dotato dei permessi minimi.
-
-Il runtime predefinito continua a utilizzare SQLite. Il client può essere avviato in sviluppo contro il runtime PostgreSQL, ma l'avvio in produzione rimane bloccato fino al completamento e alla verifica di:
-- test end-to-end completi del client con il runtime PostgreSQL e verifica della parità funzionale;
-- test end-to-end di login, logout, permessi e isolamento tra organizzazioni;
-- verifiche operative di backup, ripristino e osservabilità;
-- migrazione definitiva del runtime predefinito a PostgreSQL e rimozione controllata del percorso SQLite;
-- prove di aggiornamento, backup e ripristino;
-- collaudo in un ambiente separato.
-
-Nessuna migrazione di questo ramo è stata applicata al database Neon. Prima di qualsiasi trasferimento occorre verificarne lo storico e accertare la presenza di eventuali dati reali.
+Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, collaudo browser end-to-end, test cross-tenant, monitoraggio, test di carico e staging con dati sintetici.
 
 ## Documentazione
 
-La cartella `docs/` contiene:
-- descrizione dell'architettura e delle scelte progettuali;
-- inventario delle API e piano di evoluzione;
-- decisione architetturale relativa a PostgreSQL;
-- contratto dei dati e regole di isolamento;
-- piano delle migrazioni e registro delle evidenze;
-- criteri di prodotto, collaudo e rilascio.
+La cartella `docs/` contiene architettura, modello dati, procedure di bootstrap, distribuzione, migrazioni e registro delle verifiche.
 
 ## Licenza
 
-Licenza MIT. Consultare il file [LICENSE](LICENSE).
+MIT. Consultare [LICENSE](LICENSE).
