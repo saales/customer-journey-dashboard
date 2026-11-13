@@ -475,7 +475,17 @@ export function createApp(db: Db) {
   });
 
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
+    // Liveness + readiness minima: non basta che Express risponda,
+    // anche il database deve essere interrogabile.
+    try {
+      db.prepare("SELECT 1 AS ready").get();
+      res.json({ status: "ok", database: "connected" });
+    } catch {
+      res.status(503).json({
+        status: "error",
+        database: "unavailable",
+      });
+    }
   });
 
   app.get("/api/meta", (_req, res) => {
