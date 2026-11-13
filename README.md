@@ -2,11 +2,11 @@
 
 Dashboard web per analizzare il **funnel di conversione** e il **customer journey**: dal primo contatto (visita) all'acquisto, passando per contatto, qualificazione e opportunità.
 
-Il progetto permette di monitorare le performance del percorso di conversione, individuare i punti di abbandono e confrontare l'efficacia dei diversi canali di acquisizione.
+Il progetto permette di monitorare le performance del percorso di conversione, individuare i punti di abbandono e confrontare l'efficacia dei diversi canali di acquisizione. **Nota sullo stato:** il backend attualmente esegue ancora su SQLite; PostgreSQL, autenticazione e isolamento multi-tenant non sono ancora completati e verificati per la produzione.
 
 [![CI](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
-> **Dati dimostrativi:** il progetto utilizza dati sintetici, generati automaticamente al primo avvio. Non contiene informazioni reali di clienti o aziende.
+> **Dati dimostrativi:** il generatore crea dati sintetici esclusivamente quando viene abilitato esplicitamente con `ALLOW_DEMO_SEED=true` in un ambiente non di produzione. Il server non inserisce dati dimostrativi automaticamente e rifiuta l'opzione in `NODE_ENV=production`. Non usare dati sintetici come dati aziendali reali.
 
 ## Funzionalità
 
@@ -28,7 +28,7 @@ Il progetto permette di monitorare le performance del percorso di conversione, i
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Recharts, Lucide React |
 | Backend | Node.js, Express, TypeScript |
-| Database | SQLite con better-sqlite3 e query SQL di aggregazione |
+| Database attuale | SQLite con better-sqlite3 e query SQL di aggregazione |
 | Test | Vitest, Testing Library |
 | CI | GitHub Actions, test e build su Node.js 20 e 22 |
 
