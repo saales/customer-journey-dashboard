@@ -27,7 +27,7 @@ export function AuthGate({ children }: AuthGateProps) {
       const result = await readSession();
       if (result.response.ok) { setState("authenticated"); return; }
       if (result.response.status === 401) { setState("anonymous"); return; }
-      if (result.response.status === 404 && import.meta.env.DEV) { setState("demo"); return; }
+      if (result.response.status === 404 && import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === "true") { setState("demo"); return; }
       throw new Error("Servizio di accesso non disponibile. Verificare il runtime PostgreSQL.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Impossibile verificare la sessione.");
