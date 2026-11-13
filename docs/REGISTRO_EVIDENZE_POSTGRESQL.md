@@ -20,7 +20,7 @@ Stato database remoto: non verificato in questa attività.
 | Tenant | `tenant-transaction.ts` e repository PostgreSQL |
 | API | `postgres-app.ts` |
 | Inviti | `postgres-invitations-repository.ts`, migration 008 e schermata admin |
-| Audit | repository clienti, funnel, import, membership e inviti |
+| Audit | repository clienti, funnel, import, membership, inviti ed export CSV |
 | Export | `postgres-export-repository.ts`; evento audit `data.exported` nella stessa transazione |
 
 ## CI
@@ -56,6 +56,13 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - Flusso verificato: login admin, creazione cliente, aggiunta fase funnel, importazione CSV, export admin, invito e accettazione analista, export analista, rifiuto HTTP 403 della lettura audit e della creazione cliente invocata direttamente dall'analista, logout e revoca sessione verificata con HTTP 401.
 - Non è un test completo di tutti i ruoli o dell'isolamento cross-tenant; non sono stati eseguiti test di carico.
 - Il test non accede al database Neon, non usa dati reali e non effettua deploy.
+
+## Migrazione 010 — lettura audit tenant-scoped
+
+- La suite E2E ha evidenziato che il ruolo runtime poteva inserire audit, ma non leggere il registro: il preflight non rilevava il privilegio SELECT mancante.
+- Aggiunta migrazione 010 per concedere SELECT su `audit_logs` al ruolo applicativo, senza modificarne proprietà, RLS o privilegi di scrittura ulteriori.
+- Il preflight ora richiede e verifica anche `audit_logs:SELECT`; test negativo dedicato per il ruolo privo di questo privilegio.
+- Il test browser verifica che l'export admin generi l'evento `data.exported` consultabile dall'amministratore e che l'analista resti privo di `audit:read`.
 
 ## Hardening del preflight runtime
 
