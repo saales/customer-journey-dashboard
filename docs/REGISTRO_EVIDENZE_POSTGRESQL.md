@@ -61,3 +61,12 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 
 - Il preflight verifica anche SELECT/INSERT/UPDATE/DELETE sulla tabella globale `api_request_limits`, introdotta dalla migrazione 009.
 - Test unitario negativo dedicato: un ruolo senza INSERT su `api_request_limits` deve fallire il preflight. Il preflight ora riporta anche il dettaglio dei privilegi o delle configurazioni non conformi.
+
+
+## Correzione emersa dal collaudo browser — 13 novembre 2026
+
+- Il test Playwright ha individuato una regressione non coperta dal percorso precedente: dopo l'esportazione CSV, la lettura di `/api/audit` come amministratore restituiva HTTP 500.
+- I log PostgreSQL hanno identificato la causa: il ruolo runtime disponeva di `INSERT` su `audit_logs`, ma non di `SELECT`, necessario per la query di consultazione. Il controllo dei privilegi non rilevava questa mancanza.
+- Aggiunta la migrazione incrementale `010_audit_log_read_grant.sql`: concede esclusivamente `SELECT` su `audit_logs` al ruolo `percorso_app`. La policy RLS continua a limitare le righe al tenant impostato dalla sessione; il controllo autorizzativo HTTP continua a riservare l'endpoint agli amministratori.
+- Aggiornati il runner delle migrazioni, il preflight del ruolo runtime, il test negativo per il privilegio mancante e il test d'integrazione che verifica il grant della migrazione 010.
+- Il test browser già presente verifica la lettura audit amministrativa dopo l'export; il suo esito dopo la correzione è ancora da confermare nella CI del commit aggiornato.
