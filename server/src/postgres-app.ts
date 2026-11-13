@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
+import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
 import {
   requirePostgresSession,
   requireOrganizationPermission,
@@ -150,6 +151,46 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     pool,
     production ? "__Host-percorso_session" : "percorso_session",
   );
+
+  const parseAnalyticsFilters = async (req: Request, organizationId: string) => {
+    const meta = await getPostgresMeta(pool, organizationId);
+    const today = new Date().toISOString().slice(0, 10);
+    const from = typeof req.query.from === "string" ? req.query.from : meta.minDate ?? today;
+    const to = typeof req.query.to === "string" ? req.query.to : meta.maxDate ?? today;
+    const validDate = (value: string) => /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+      !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+    if (!validDate(from) || !validDate(to) || from > to) throw new ApiError(400, "Intervallo date non valido.");
+    const channel = typeof req.query.channel === "string" && req.query.channel ? req.query.channel : undefined;
+    if (channel && !(CHANNELS as readonly string[]).includes(channel)) throw new ApiError(400, "Canale non valido.");
+    return { from, to, channel };
+  };
+
+  app.get("/api/meta", authenticated, requireOrganizationPermission("analytics:read"),
+    async (req, res, next) => {
+      try { res.json(await getPostgresMeta(pool, req.authenticatedSession!.organizationId)); }
+      catch (error) { next(error); }
+    });
+  app.get("/api/summary", authenticated, requireOrganizationPermission("analytics:read"),
+    async (req, res, next) => {
+      try {
+        const org = req.authenticatedSession!.organizationId;
+        res.json(await getPostgresSummary(pool, org, await parseAnalyticsFilters(req, org)));
+      } catch (error) { next(error); }
+    });
+  app.get("/api/channels", authenticated, requireOrganizationPermission("analytics:read"),
+    async (req, res, next) => {
+      try {
+        const org = req.authenticatedSession!.organizationId;
+        res.json(await getPostgresChannels(pool, org, await parseAnalyticsFilters(req, org)));
+      } catch (error) { next(error); }
+    });
+  app.get("/api/timeseries", authenticated, requireOrganizationPermission("analytics:read"),
+    async (req, res, next) => {
+      try {
+        const org = req.authenticatedSession!.organizationId;
+        res.json(await getPostgresTimeseries(pool, org, await parseAnalyticsFilters(req, org)));
+      } catch (error) { next(error); }
+    });
 
   app.get("/api/customers", authenticated,
     requireOrganizationPermission("customers:read"),
