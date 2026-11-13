@@ -37,6 +37,14 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByRole("button", { name: "Aggiungi fase" }).click();
   await expect(page.getByText("Demo completata", { exact: true })).toBeVisible();
 
+  // Conserva l’ID della fase personalizzata del tenant A per il controllo IDOR.
+  const tenantAFunnelStageId = await page.evaluate(async () => {
+    const response = await fetch("/api/funnel-stages");
+    const body = await response.json() as { data: Array<{ id: string; label: string }> };
+    return body.data.find((stage) => stage.label === "Demo completata")?.id ?? null;
+  });
+  expect(tenantAFunnelStageId).toMatch(/^custom_[a-f0-9]{32}$/);
+
   // Importazione di un cliente tramite il flusso CSV reale.
   await page.getByRole("button", { name: "Importazione dati" }).click();
   await page.locator('input[type="file"]').setInputFiles({
@@ -233,8 +241,8 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByLabel("Codice organizzazione").fill("e2e-second-workspace");
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
-  const crossTenantChecks = await page.evaluate(async (foreignCustomerId) => {
-    const [customers, update, remove, exportResponse, audit] = await Promise.all([
+  const crossTenantChecks = await page.evaluate(async ({ foreignCustomerId, foreignStageId }) => {
+    const [customers, update, remove, exportResponse, audit, funnel, updateStage] = await Promise.all([
       fetch("/api/customers?limit=100"),
       fetch(`/api/customers/${encodeURIComponent(foreignCustomerId)}`, {
         method: "PUT",
@@ -244,6 +252,12 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
       fetch(`/api/customers/${encodeURIComponent(foreignCustomerId)}`, { method: "DELETE" }),
       fetch("/api/export/customers.csv"),
       fetch("/api/audit"),
+      fetch("/api/funnel-stages"),
+      fetch(`/api/funnel-stages/${encodeURIComponent(foreignStageId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: "Modifica cross-tenant non autorizzata" }),
+      }),
     ]);
     return {
       customerStatus: customers.status,
@@ -254,8 +268,11 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
       exportCsv: await exportResponse.text(),
       auditStatus: audit.status,
       audit: (await audit.json()).data,
+      funnelStatus: funnel.status,
+      funnelStages: (await funnel.json()).data,
+      updateStageStatus: updateStage.status,
     };
-  }, tenantACustomerId);
+  }, { tenantACustomerId, tenantAFunnelStageId });
   expect(crossTenantChecks.customerStatus).toBe(200);
   expect(crossTenantChecks.customers).toHaveLength(1);
   expect(crossTenantChecks.customers[0]).toMatchObject({ channel: "Advertising", createdAt: "2025-02-01" });
@@ -265,6 +282,9 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   expect(crossTenantChecks.exportCsv).toContain("tenant-b-sentinel");
   expect(crossTenantChecks.exportCsv).not.toContain("e2e-crm-001");
   expect(crossTenantChecks.exportCsv).not.toContain("editor-e2e-001");
+  expect(crossTenantChecks.funnelStatus).toBe(200);
+  expect(crossTenantChecks.funnelStages.some((stage: { label: string }) => stage.label === "Demo completata")).toBe(false);
+  expect(crossTenantChecks.updateStageStatus).toBe(404);
   expect(crossTenantChecks.auditStatus).toBe(200);
   expect(crossTenantChecks.audit.every((entry: { action: string }) =>
     !["membership.invited", "data.imported", "customer.created"].includes(entry.action),
