@@ -285,17 +285,26 @@ export async function updatePostgresCustomer(
       [organizationId, customerId],
     );
     if (current.rowCount !== 1) throw new Error("Cliente non trovato.");
-    const stageRows = await client.query<{id:string;position:number}>(
-      "SELECT id,position FROM funnel_stages WHERE organization_id=$1::uuid AND is_active=TRUE ORDER BY position",
+    const stageRows = await client.query<{id:string;position:number;is_active:boolean}>(
+      "SELECT id,position,is_active FROM funnel_stages WHERE organization_id=$1::uuid ORDER BY position",
       [organizationId],
     );
-    const positions = new Map(stageRows.rows.map(row=>[row.id,row.position]));
-    if (positions.get("visit") !== 0) throw new Error("Configurazione delle fasi non valida.");
+    const stages = new Map(stageRows.rows.map(row=>[row.id,{position:row.position,isActive:row.is_active}]));
+    if (stages.get("visit")?.position !== 0) throw new Error("Configurazione delle fasi non valida.");
+    const previousEvents = await client.query<{stage_id:string;occurred_at:string}>(
+      "SELECT stage_id,occurred_at::date::text AS occurred_at FROM events WHERE organization_id=$1::uuid AND customer_id=$2::bigint",
+      [organizationId,customerId],
+    );
+    const previousDates = new Map(previousEvents.rows.map(row=>[row.stage_id,row.occurred_at]));
     const seen = new Set<string>();
     let previousPosition = -1, previousDate = input.createdAt;
     for (const event of input.events) {
-      const position = positions.get(event.stage);
+      const stage = stages.get(event.stage);
+      const position = stage?.position;
+      const inactiveStageWasAlreadyRecorded =
+        stage !== undefined && !stage.isActive && previousDates.get(event.stage) === event.occurredAt;
       if (position === undefined || position <= previousPosition || seen.has(event.stage) ||
+          (!stage.isActive && !inactiveStageWasAlreadyRecorded) ||
           !validDate(event.occurredAt) || event.occurredAt < previousDate) {
         throw new Error("Le fasi e le date del percorso non sono valide.");
       }
