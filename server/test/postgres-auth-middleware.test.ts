@@ -85,6 +85,26 @@ describe("PostgreSQL authentication middleware", () => {
 });
 
 describe("organization role and permission policy", () => {
+  it.each([
+    ["admin", [
+      "analytics:read", "customers:read", "customers:write",
+      "funnel:read", "funnel:write", "data:import", "data:export",
+      "members:manage", "audit:read",
+    ]],
+    ["editor", [
+      "analytics:read", "customers:read", "customers:write",
+      "funnel:read", "funnel:write", "data:import", "data:export",
+    ]],
+    ["analyst", [
+      "analytics:read", "customers:read", "funnel:read", "data:export",
+    ]],
+    ["viewer", [
+      "analytics:read", "customers:read", "funnel:read",
+    ]],
+  ] as const)("enforces the complete least-privilege permission matrix for %s", (role, expected) => {
+    expect([...getRolePermissions(role)].sort()).toEqual([...expected].sort());
+  });
+
   it("allows an analyst to read analytics and denies customer mutation", () => {
     const req = { authenticatedSession: SESSION } as Request;
     const response = {
