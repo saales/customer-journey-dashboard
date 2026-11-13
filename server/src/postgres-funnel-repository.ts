@@ -28,6 +28,13 @@ async function writeFunnelAudit(
   );
 }
 
+export class PostgresFunnelStageNotFoundError extends Error {
+  constructor() {
+    super("Fase del percorso non trovata.");
+    this.name = "PostgresFunnelStageNotFoundError";
+  }
+}
+
 export interface PostgresFunnelStage {
   id: string;
   label: string;
@@ -201,7 +208,7 @@ export async function updatePostgresFunnelStage(
       [organizationId, stageId],
     );
     if (existing.rowCount !== 1) {
-      throw new Error("Fase del percorso non trovata.");
+      throw new PostgresFunnelStageNotFoundError();
     }
 
     if (label !== undefined) {
@@ -230,7 +237,7 @@ export async function updatePostgresFunnelStage(
       [organizationId, stageId, label ?? null, isActive ?? null],
     );
     if (!result.rows[0]) {
-      throw new Error("Fase del percorso non trovata.");
+      throw new PostgresFunnelStageNotFoundError();
     }
     await writeFunnelAudit(client, organizationId, actorUserId, "funnel.stage.updated", "funnel_stage", stageId, {
       label: result.rows[0].label,
