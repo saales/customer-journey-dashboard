@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
+import { isIP } from "node:net";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
 import { exportPostgresCustomersCsv, PostgresExportError } from "./postgres-export-repository.js";
@@ -30,12 +31,31 @@ export interface PostgresAppOptions {
   allowedOrigins: string[];
   rateLimitSecret: string;
   production?: boolean;
+  trustedProxyIps?: string[];
 }
 
 class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
+}
+
+function validateTrustedProxyIps(values: string[] = []): string[] {
+  if (!Array.isArray(values)) throw new Error("TRUSTED_PROXY_IPS deve essere un elenco di indirizzi IP o CIDR.");
+  return values.map((value) => {
+    if (typeof value !== "string" || !value.trim()) throw new Error("Indirizzo proxy attendibile non valido.");
+    const [address, prefix, ...extra] = value.trim().split("/");
+    const version = isIP(address ?? "");
+    if (version === 0 || extra.length > 0) throw new Error("Indirizzo proxy attendibile non valido.");
+    if (prefix !== undefined) {
+      const bits = Number(prefix);
+      const max = version === 4 ? 32 : 128;
+      if (!/^\d+$/.test(prefix) || !Number.isInteger(bits) || bits < 0 || bits > max) {
+        throw new Error("Prefisso CIDR proxy non valido.");
+      }
+    }
+    return value.trim();
+  });
 }
 
 function parseAllowedOrigins(values: string[], production: boolean): Set<string> {
@@ -112,6 +132,8 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
   const production = options.production ?? process.env.NODE_ENV === "production";
   const origins = parseAllowedOrigins(options.allowedOrigins, production);
   const app = express();
+  const trustedProxyIps = validateTrustedProxyIps(options.trustedProxyIps);
+  app.set("trust proxy", trustedProxyIps);
   app.disable("x-powered-by");
 
   app.use((_req, res, next) => {

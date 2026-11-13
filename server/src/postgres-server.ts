@@ -36,6 +36,7 @@ async function main(): Promise<void> {
     allowedOrigins,
     rateLimitSecret,
     production,
+    trustedProxyIps: (process.env.TRUSTED_PROXY_IPS ?? "").split(",").map((value) => value.trim()).filter(Boolean),
   });
   const port = Number(process.env.PORT ?? "3001");
   if (!Number.isInteger(port) || port < 1 || port > 65535) {

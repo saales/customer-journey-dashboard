@@ -6,6 +6,7 @@
 - Backup verificato e prova di ripristino completata.
 - Ruolo owner separato dal ruolo runtime `percorso_app` (NOINHERIT, non superuser, senza BYPASSRLS).
 - `DATABASE_URL`, `APP_ORIGIN` HTTPS e `LOGIN_RATE_LIMIT_SECRET` configurati come secret di ambiente.
+- `TRUSTED_PROXY_IPS` valorizzato con gli IP/CIDR esatti dei reverse proxy fidati; lasciare vuoto solo se il processo riceve direttamente il traffico client.
 - DNS, TLS, reverse proxy e monitoraggio pronti.
 
 ## Procedura

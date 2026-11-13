@@ -18,7 +18,8 @@
     "db:check": "npm run db:check -w server",
     "db:inspect": "npm run db:inspect -w server",
     "db:migrate": "npm run db:migrate -w server --",
-    "db:bootstrap": "npm run db:bootstrap -w server --"
+    "db:bootstrap": "npm run db:bootstrap -w server --",
+    "db:cleanup-login-attempts": "npm run db:cleanup-login-attempts -w server"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"

@@ -11,7 +11,8 @@
     "db:check": "tsx src/check-postgres.ts",
     "db:inspect": "tsx src/inspect-postgres-schema.ts",
     "db:migrate": "tsx src/migrate-postgres.ts",
-    "db:bootstrap": "tsx src/bootstrap-postgres.ts"
+    "db:bootstrap": "tsx src/bootstrap-postgres.ts",
+    "db:cleanup-login-attempts": "tsx src/cleanup-login-attempts.ts"
   },
   "dependencies": {
     "dotenv": "^18.0.10",

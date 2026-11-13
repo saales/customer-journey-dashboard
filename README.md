@@ -100,6 +100,8 @@ La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvi
 - Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
 - Gli inviti sono monouso, con token hashato nel database e scadenza; l'email automatica non è configurata.
 
+La pulizia dei tentativi di login è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
+
 Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, collaudo browser end-to-end, test cross-tenant, monitoraggio, test di carico e staging con dati sintetici.
 
 ## Documentazione

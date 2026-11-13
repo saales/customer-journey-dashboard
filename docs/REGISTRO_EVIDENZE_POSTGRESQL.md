@@ -25,8 +25,7 @@ Stato database remoto: non verificato in questa attività.
 
 ## CI
 
-- Il commit `f8eaa2fe` ha superato test, build, migrazioni 001–007, verifica checksum e smoke test runtime con ruolo limitato su Node.js 20 e 22: run [43468074310](https://github.com/saales/customer-journey-dashboard/actions/runs/43468074310).
-- I commit successivi hanno aggiunto onboarding inviti e test delle relative API; il loro risultato va verificato sulla run più recente prima di dichiararli verdi.
+- Il commit `c55284a` ha superato test, build, migrazioni 001–008, verifica checksum e smoke test runtime con ruolo limitato su Node.js 20 e 22: run [43470634828](https://github.com/saales/customer-journey-dashboard/actions/runs/43470634828).
 - La CI usa PostgreSQL temporaneo e non accede a Neon.
 
 ## Verifiche remote non eseguite
@@ -40,3 +39,11 @@ Stato database remoto: non verificato in questa attività.
 ## Limiti prima del rilascio
 
 Restano necessari test browser end-to-end completi, test di carico, prova backup/restore, verifica database remoto, staging, osservabilità e invio email automatico/recupero account. Fino ad allora il prodotto non va presentato come pronto per dati aziendali reali o vendita.
+
+## Manutenzione sicurezza — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Pulizia in batch dei record HMAC del rate limiter oltre retention | `cleanupPostgresLoginAttemptLimits` | Implementata; comando pianificabile giornalmente |
+| Configurazione esplicita dei proxy attendibili per risolvere l'IP client | `TRUSTED_PROXY_IPS`, `req.ip` e `validateTrustedProxyIps` | Implementata; richiede configurazione corretta del reverse proxy |
+| Test retention/batch e validazione IP/CIDR | test unitari e PostgreSQL integration | Aggiunti; CI da verificare sul commit successivo |

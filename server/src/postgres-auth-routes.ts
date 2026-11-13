@@ -112,7 +112,13 @@ export async function consumePostgresLoginAttempt(
   try {
     await client.query("BEGIN");
     transaction = true;
-    await client.query("DELETE FROM login_attempt_limits WHERE updated_at < NOW() - INTERVAL '30 days'");
+    await client.query(`WITH stale AS (
+      SELECT key_hash FROM login_attempt_limits
+      WHERE updated_at < NOW() - INTERVAL '30 days'
+      ORDER BY updated_at LIMIT 100
+    )
+    DELETE FROM login_attempt_limits AS limits USING stale
+    WHERE limits.key_hash = stale.key_hash`);
     const ipAllowed = await consumeLoginBucket(client, ipHash, MAX_IP_LOGIN_ATTEMPTS);
     const identityAllowed = await consumeLoginBucket(client, identityHash, MAX_LOGIN_ATTEMPTS);
     await client.query("COMMIT");
@@ -183,8 +189,8 @@ export function createPostgresAuthRouter(
 
     try {
       // Non fidarsi di X-Forwarded-For: usare l'indirizzo del peer TCP.
-      const address = req.socket.remoteAddress ?? "unknown";
-      if (!await consumeLoginAttempt(pool, options.rateLimitSecret, address, email)) {
+      const address = req.ip || req.socket.remoteAddress || "unknown";
+      if (!await consumePostgresLoginAttempt(pool, options.rateLimitSecret, address, email)) {
         res.setHeader("Retry-After", String(RATE_WINDOW_MS / 1000));
         res.status(429).json({ error: "Troppi tentativi. Riprovare più tardi." });
         return;
