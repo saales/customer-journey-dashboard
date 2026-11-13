@@ -48,6 +48,14 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByRole("button", { name: "Esporta tutti i clienti CSV" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("percorso-clienti.csv");
+  const exportAudit = await page.evaluate(async () => {
+    const response = await fetch("/api/audit?action=data.exported");
+    return { status: response.status, body: await response.json() };
+  });
+  expect(exportAudit.status).toBe(200);
+  expect(exportAudit.body.data).toEqual(expect.arrayContaining([
+    expect.objectContaining({ action: "data.exported", resourceType: "customer_export" }),
+  ]));
 
   // Invito reale monouso e verifica dei permessi di un analista.
   await page.getByRole("button", { name: "Impostazioni" }).click();
