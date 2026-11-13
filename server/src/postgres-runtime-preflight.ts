@@ -95,6 +95,7 @@ export async function inspectPostgresRuntimeRole(
        ARRAY['schema_migrations','users','users','organizations','memberships','memberships','memberships',
              'sessions','sessions','sessions',
              'login_attempt_limits','login_attempt_limits','login_attempt_limits','login_attempt_limits',
+             'api_request_limits','api_request_limits','api_request_limits','api_request_limits',
              'customers','customers','customers','customers',
              'events','events','events','events',
              'funnel_stages','funnel_stages','funnel_stages',
