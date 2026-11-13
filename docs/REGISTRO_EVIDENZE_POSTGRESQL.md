@@ -207,3 +207,17 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Audit log dell'importazione | inserimento in `audit_logs` | Implementato |
 | API protetta dal permesso data:import e limiti dimensione richiesta | `POST /api/import`, middleware HTTP | Implementata |
 | Test integrazione import, deduplica, audit e isolamento tra organizzazioni | `postgres-import-repository.integration.test.ts` | Aggiunti; CI del commit finale da verificare |
+
+
+## Gestione membri ed esportazione server-side — aggiornamento 2026-11-13
+
+| Intervento | Evidenza | Stato |
+|---|---|---|
+| Elenco membri e aggiornamento ruolo/stato limitati all'organizzazione autenticata | `server/src/postgres-members-repository.ts`, route `GET/PATCH /api/members` | Codice presente; verifica CI del commit 610dd6f completata con successo |
+| Protezioni contro auto-modifica e rimozione/sospensione dell'ultimo amministratore attivo | `updateOrganizationMember` e `server/test/postgres-members-repository.test.ts` | Test presenti; CI completata con successo sul commit 610dd6f |
+| Schermata amministrativa dei membri visibile solo agli amministratori autenticati, non in demo | `client/src/components/AuthGate.tsx`, `client/src/App.tsx`, `client/src/components/MemberManagement.tsx` | Implementazione presente nel ramo; CI del commit successivo da completare |
+| Esportazione CSV clienti dal server, filtrata per tenant e protetta da `data:export` | `server/src/postgres-export-repository.ts`, route `GET /api/export/customers.csv` | Implementazione presente nel ramo; limite massimo 100.000 righe per richiesta |
+| Protezione CSV da formula injection e test intestazioni/tenant | `server/src/postgres-export-repository.ts`, `server/test/postgres-export-repository.test.ts` | Test aggiunti; CI del commit corrente da completare |
+| Pulsante UI per esportare l'intero elenco clienti autorizzato dal server | `client/src/components/CustomerManagement.tsx` | Implementazione presente; test browser end-to-end ancora da eseguire |
+
+La gestione membri non include ancora inviti o consegna email. Il CSV lato server riguarda i dati cliente e gli eventi; i report aggregati continuano a essere generati nel browser.

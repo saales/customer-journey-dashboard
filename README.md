@@ -4,7 +4,7 @@ Applicazione web per osservare e comprendere il percorso che conduce una persona
 
 L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
 
-> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Il ramo contiene un server HTTP PostgreSQL separato con autenticazione, sessioni, ruoli, API tenant-scoped per analisi, segmentazione, clienti, funnel e importazione, oltre a controlli di sicurezza all'avvio. Il client può essere avviato in sviluppo contro queste API; le esportazioni restano lato browser. È in preparazione il bootstrap amministrativo iniziale e sono ancora necessari test end-to-end completi, confronto funzionale, verifiche operative e collaudo in staging. Il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
+> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Il ramo contiene un server HTTP PostgreSQL separato con autenticazione, sessioni, ruoli, API tenant-scoped per analisi, segmentazione, clienti, funnel, importazione e gestione dei membri. È disponibile anche un endpoint CSV lato server per l'esportazione dei clienti, protetto dal permesso dedicato e con un limite esplicito di righe. I report di funnel, andamento e canali continuano a essere generati nel browser. Il client può essere avviato in sviluppo contro il runtime PostgreSQL; la CI copre test e build, ma non sostituisce il collaudo browser end-to-end. Sono ancora necessari verifiche operative, confronto funzionale e collaudo in staging. Il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
 
 [![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
@@ -62,7 +62,7 @@ Questo criterio consente di confrontare periodi e canali mantenendo costante la 
 
 ## Interfacce applicative
 
-Le API operative del runtime predefinito sono ancora quelle SQLite. In parallelo, il ramo include un runtime PostgreSQL separato (`server/src/postgres-server.ts`) con rotte di autenticazione, clienti e fasi funnel. Questo runtime non sostituisce ancora SQLite e non offre tutta la parità funzionale: il client web, le analisi, l'importazione e le esportazioni devono ancora essere collegati e collaudati.
+Il runtime predefinito `npm run dev` continua a usare SQLite. In parallelo, `npm run dev:postgres` avvia il server PostgreSQL e il client web sulla stessa origine: il client utilizza le API PostgreSQL per accesso, analisi, segmentazione, clienti, funnel, importazione e gestione membri. L'endpoint `GET /api/export/customers.csv` genera dal server un CSV tenant-scoped, con autorizzazione `data:export` e limite massimo di 100.000 righe. I pulsanti di esportazione dei report aggregati (funnel, andamento e canali) generano invece file nel browser dai dati già caricati. Il collegamento è presente nel codice, ma non è ancora certificato da un collaudo browser end-to-end completo.
 
 ## Avvio in ambiente locale
 
