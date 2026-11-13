@@ -46,6 +46,94 @@ function validateMigrations(migrations: PostgresMigration[]): void {
   }
 }
 
+export interface PostgresMigrationPlan {
+  applied: string[];
+  pending: string[];
+  drift: string[];
+}
+
+/**
+ * Confronta file e storico migrazioni senza eseguire DDL o scrivere dati.
+ * La transazione READ ONLY rende questo controllo adatto a un preflight.
+ */
+export async function planPostgresMigrations(
+  pool: Pick<Pool, "connect">,
+  migrations: PostgresMigration[],
+): Promise<PostgresMigrationPlan> {
+  validateMigrations(migrations);
+  const client = await pool.connect();
+  let transactionOpen = false;
+  let destroyClient = false;
+  let failure: unknown;
+  let plan: PostgresMigrationPlan | undefined;
+
+  try {
+    await client.query("BEGIN READ ONLY");
+    transactionOpen = true;
+    const existence = await client.query<{ exists: boolean }>(
+      "SELECT to_regclass('public.schema_migrations') IS NOT NULL AS exists",
+    );
+    const recorded = new Map<string, AppliedMigration>();
+
+    if (existence.rows[0]?.exists) {
+      const result = await client.query<AppliedMigration>(`
+        SELECT version, name, checksum
+        FROM public.schema_migrations
+        ORDER BY version
+      `);
+      for (const row of result.rows) recorded.set(row.version, row);
+    }
+
+    const knownVersions = new Set(migrations.map((migration) => migration.version));
+    const drift: string[] = [];
+    const applied: string[] = [];
+    const pending: string[] = [];
+
+    for (const row of recorded.values()) {
+      if (!knownVersions.has(row.version)) {
+        drift.push(`Versione registrata non presente nei file: ${row.version}`);
+      }
+    }
+
+    let encounteredPending = false;
+    for (const migration of migrations) {
+      const row = recorded.get(migration.version);
+      if (!row) {
+        encounteredPending = true;
+        pending.push(migration.version);
+        continue;
+      }
+
+      if (encounteredPending) {
+        drift.push(`Storico non contiguo: ${migration.version} risulta applicata dopo una versione mancante`);
+      }
+      if (row.name !== migration.name || row.checksum.trim() !== checksum(migration.sql)) {
+        drift.push(`Nome o checksum non coerente per la versione ${migration.version}`);
+      } else {
+        applied.push(migration.version);
+      }
+    }
+
+    plan = { applied, pending, drift };
+  } catch (error) {
+    failure = error;
+  } finally {
+    if (transactionOpen) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (error) {
+        destroyClient = true;
+        if (failure === undefined) failure = error;
+      }
+    }
+    client.release(destroyClient);
+  }
+
+  if (failure !== undefined) throw failure;
+  if (!plan) throw new Error("Piano migrazioni senza risultato.");
+  return plan;
+}
+
 /**
  * Applica le migrazioni sul database indicato dal pool.
  * Ogni file è atomico, le modifiche concorrenti sono serializzate da un
