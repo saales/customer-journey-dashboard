@@ -28,7 +28,7 @@ describe("exportPostgresCustomersCsv", () => {
   });
   it("neutralizza valori interpretabili come formule nei fogli di calcolo", async () => {
     const mock = mockPool([{ id:"2", externalId:"=HYPERLINK", channel:"+cmd", createdAt:"2026-01-01", stage:"@SUM", occurredAt:"-1" }]);
-    const result = await exportPostgresCustomersCsv(mock.pool, "11111111-1111-4111-8111-111111111111");
+    const result = await exportPostgresCustomersCsv(mock.pool, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222");
     expect(result.csv).toContain("'=HYPERLINK");
     expect(result.csv).toContain("'+cmd");
     expect(result.csv).toContain("'@SUM");
