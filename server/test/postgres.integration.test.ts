@@ -81,6 +81,8 @@ describe("PostgreSQL integration smoke test", () => {
 
     await pool!.query(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE`);
     await pool!.query(`CREATE SCHEMA ${schemaName}`);
+    await pool!.query("DROP ROLE IF EXISTS inspection_reader");
+    await pool!.query("CREATE ROLE inspection_reader NOLOGIN");
 
     try {
       await pool!.query(`
@@ -95,7 +97,10 @@ describe("PostgreSQL integration smoke test", () => {
         FOR SELECT USING (true)
       `);
 
+      await pool!.query(`GRANT USAGE ON SCHEMA ${schemaName} TO inspection_reader`);
+      await pool!.query(`GRANT SELECT ON ${schemaName}.catalog_probe TO inspection_reader`);
       const client = await pool!.connect();
+      await client.query("SET ROLE inspection_reader");
       const report = await inspectPostgresSchema(client);
 
       const table = report.tables.find(
@@ -125,10 +130,15 @@ describe("PostgreSQL integration smoke test", () => {
         ),
       ).toBe(true);
       expect(report.safety).toContain("READ ONLY");
+      expect(report.currentRoleCapabilities?.role).toBe("inspection_reader");
+      expect(report.currentRoleCapabilities?.is_superuser).toBe(false);
+      expect(report.currentRoleCapabilities?.bypasses_rls).toBe(false);
       expect(
         report.tables.every((row) => typeof row.schema !== "string" || !row.schema.startsWith("pg_")),
       ).toBe(true);
     } finally {
+      await pool!.query("RESET ROLE");
+      await pool!.query("DROP ROLE IF EXISTS inspection_reader");
       await pool!.query(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE`);
     }
   });
