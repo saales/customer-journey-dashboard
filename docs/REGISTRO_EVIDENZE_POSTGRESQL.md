@@ -21,7 +21,7 @@ Stato database remoto: non verificato in questa attività.
 | API | `postgres-app.ts` |
 | Inviti | `postgres-invitations-repository.ts`, migration 008 e schermata admin |
 | Audit | repository clienti, funnel, import, membership e inviti |
-| Export | `postgres-export-repository.ts` |
+| Export | `postgres-export-repository.ts`; evento audit `data.exported` nella stessa transazione |
 
 ## CI
 
