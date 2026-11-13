@@ -2,7 +2,7 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit di riferimento:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58`.
+**Commit di riferimento:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58` (codice verificato dalla CI).
 
 Questo registro separa ciò che è stato verificato nel repository e nella CI da ciò che proviene da riepiloghi storici o resta da verificare. Non certifica lo stato del database Neon.
 
@@ -21,7 +21,7 @@ Questo registro separa ciò che è stato verificato nel repository e nella CI da
 | Il test d'integrazione crea uno schema/tabella temporanei, attiva RLS e verifica proprietario, colonne, PK, indice e policy | `server/test/postgres.integration.test.ts` | Verificato nel branch |
 | Il test esegue l'ispezione come ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
 | L'ispezione limita tabelle, colonne, vincoli, indici e policy agli oggetti per cui il ruolo corrente ha `SELECT` | `server/src/postgres-schema-inspection.ts` e test d'integrazione con `private_probe` senza grant | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
-| Test e build sono passati su Node 20 e Node 22 sul commit con ruolo limitato | CI run [43417529693](https://github.com/saales/customer-journey-dashboard/actions/runs/43417529693), entrambi i job conclusi `success` | Verificato su CI |
+| Test e build sono passati su Node 20 e Node 22 sul commit con filtro dei metadati | CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), entrambi i job conclusi `success` | Verificato su CI |
 | La PR resta aperta in bozza e `main` non è stata modificata | PR #1, branch e base verificati dopo il commit | Verificato al momento dell'aggiornamento |
 
 ## Evidenze storiche non confermate
