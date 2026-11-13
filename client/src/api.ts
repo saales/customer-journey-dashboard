@@ -1,7 +1,7 @@
 
 export interface Meta {
-  minDate: string;
-  maxDate: string;
+  minDate: string | null;
+  maxDate: string | null;
   channels: string[];
 }
 
