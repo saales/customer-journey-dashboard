@@ -21,6 +21,7 @@ import {
   updatePostgresCustomer,
   deletePostgresCustomer,
   listPostgresCustomers,
+  PostgresCustomerNotFoundError,
 } from "./postgres-customer-repository.js";
 import {
   createPostgresFunnelStage,
@@ -369,7 +370,10 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       try {
         const input = validateCustomerBody(req.body);
         res.json(await updatePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id, input, req.authenticatedSession!.userId));
-      } catch (error) { next(error); }
+      } catch (error) {
+        if (error instanceof PostgresCustomerNotFoundError) { res.status(404).json({ error: error.message }); return; }
+        next(error);
+      }
     });
 
   app.delete("/api/customers/:id", authenticated,
@@ -378,7 +382,10 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       try {
         await deletePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id, req.authenticatedSession!.userId);
         res.status(204).send();
-      } catch (error) { next(error); }
+      } catch (error) {
+        if (error instanceof PostgresCustomerNotFoundError) { res.status(404).json({ error: error.message }); return; }
+        next(error);
+      }
     });
 
   app.post("/api/funnel-stages", authenticated,
