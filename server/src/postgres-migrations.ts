@@ -125,15 +125,17 @@ export async function applyPostgresMigrations(
     }
     throw error;
   } finally {
+    let unlockError: unknown;
     if (lockAcquired) {
       try {
         await client.query("SELECT pg_advisory_unlock($1::bigint)", [MIGRATION_LOCK_ID]);
       } catch (error) {
         destroyClient = true;
-        if (!failed) throw error;
+        unlockError = error;
       }
     }
     client.release(destroyClient);
+    if (unlockError && !failed) throw unlockError;
   }
 }
 
