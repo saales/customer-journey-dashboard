@@ -151,7 +151,8 @@ async function handleDelete(customerId: number) {
   try {
     setError(null);
     await api.deleteCustomer(customerId);
-    await loadCustomers();
+    const nextPage = customers.length === 1 && page > 1 ? page - 1 : page;
+    await loadCustomers(nextPage);
     onDataChange();
   } catch (err) {
     setError(
