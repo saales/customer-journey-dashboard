@@ -113,4 +113,26 @@ describe("withTenantTransaction", () => {
     expect(mock.release).toHaveBeenCalledWith(false);
   });
 
+  it("esegue rollback se COMMIT fallisce e conserva l'errore del commit", async () => {
+    const mock = createPoolMock();
+    const failure = new Error("commit failed");
+    mock.query.mockImplementation(async (sql: string) => {
+      if (sql === "COMMIT") throw failure;
+      return { rows: [] };
+    });
+
+    await expect(
+      withTenantTransaction(mock.pool, "org-a", async () => "done"),
+    ).rejects.toBe(failure);
+
+    expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
+      "BEGIN",
+      "SELECT set_config('app.organization_id', $1, true)",
+      "COMMIT",
+      "ROLLBACK",
+    ]);
+    expect(mock.release).toHaveBeenCalledOnce();
+    expect(mock.release).toHaveBeenCalledWith(false);
+  });
+
 });
