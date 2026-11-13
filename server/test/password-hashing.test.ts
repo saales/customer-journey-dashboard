@@ -15,6 +15,7 @@ describe("password hashing", () => {
   it("rejects weak passwords and malformed hashes", async () => {
     await expect(hashPassword("short")).rejects.toThrow("12 e 1024");
     await expect(verifyPassword("password", "not-a-hash")).resolves.toBe(false);
+    await expect(verifyPassword("x".repeat(1025), "scrypt$32768$8$1$AAAAAAAAAAAAAAAAAAAAAA$" + "A".repeat(86))).resolves.toBe(false);
     await expect(verifyPassword("password", "scrypt$999999$8$1$bad$bad")).resolves.toBe(false);
   });
 });
