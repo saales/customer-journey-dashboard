@@ -102,6 +102,7 @@ export async function applyPostgresMigrations(
 
       await client.query("BEGIN");
       transactionStarted = true;
+      await client.query("SET LOCAL search_path TO public");
       await client.query(migration.sql);
       await client.query(
         `INSERT INTO public.schema_migrations (version, name, checksum)
