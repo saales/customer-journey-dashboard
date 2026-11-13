@@ -86,3 +86,11 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - Run CI [43499933923](https://github.com/saales/customer-journey-dashboard/actions/runs/43499933923) sul commit `b64e6cd8f7ca278b612784ab25727f592d05a3e8`: Node.js 20 e 22 completati con successo; test, build, audit, migrazioni 001–010/checksum e avvio runtime limitato; su Node.js 22 anche bootstrap tenant sintetico e Playwright/Chromium.
 - I test PostgreSQL di migrazione verificano RLS con un ruolo non proprietario e due organizzazioni. Rimangono necessari casi API cross-tenant più estesi e un percorso browser dedicato al ruolo editor.
 - Non sono state eseguite verifiche o scritture su Neon; staging, backup/restore, monitoraggio, carico e revisione indipendente restano fuori da questa CI.
+
+
+## Verifica browser del ruolo editor — 13 novembre 2026
+
+- Esteso `e2e/customer-journey.spec.ts` con invito e accettazione reali del ruolo editor nel PostgreSQL effimero della CI.
+- Il browser verifica che l'editor possa creare clienti, aggiungere fasi funnel, importare ed esportare CSV; verifica inoltre HTTP 403 su audit e gestione membri.
+- CI [43502016449](https://github.com/saales/customer-journey-dashboard/actions/runs/43502016449), commit `c2c3112c9562add0d98ed7f28b14dad79c37620e`: successo su Node.js 20 e 22. Entrambi i runtime hanno superato `npm ci`, npm audit, test, build, migrazioni 001–010, verifica storico/checksum e avvio PostgreSQL con ruolo runtime limitato. Su Node.js 22 è passato anche Playwright/Chromium con gli scenari admin, analyst, viewer ed editor.
+- La pipeline usa un database temporaneo e dati sintetici; non costituisce una verifica del database Neon né una prova completa di isolamento API cross-tenant.
