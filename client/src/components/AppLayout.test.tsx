@@ -49,5 +49,9 @@ describe("AppLayout", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apri menu" }));
     fireEvent.click(screen.getByRole("button", { name: "Chiudi menu di navigazione" }));
     expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Apri menu" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
   });
 });
