@@ -4,7 +4,7 @@ Applicazione web per osservare e comprendere il percorso che conduce una persona
 
 L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
 
-> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Il ramo contiene un server HTTP PostgreSQL separato con autenticazione, sessioni, ruoli, API tenant-scoped per analisi, segmentazione, clienti, funnel, importazione e gestione dei membri. È disponibile anche un endpoint CSV lato server per l'esportazione dei clienti, protetto dal permesso dedicato e con un limite esplicito di righe. I report di funnel, andamento e canali continuano a essere generati nel browser. Il client può essere avviato in sviluppo contro il runtime PostgreSQL; la CI copre test e build, ma non sostituisce il collaudo browser end-to-end. Sono ancora necessari verifiche operative, confronto funzionale e collaudo in staging. Il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
+> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Il ramo contiene un server HTTP PostgreSQL separato con autenticazione, sessioni, ruoli, API tenant-scoped per analisi, segmentazione, clienti, funnel, importazione e gestione dei membri. È disponibile anche un endpoint CSV lato server per l'esportazione dei clienti, protetto dal permesso dedicato e con un limite esplicito di righe. I report di funnel, andamento e canali continuano a essere generati nel browser. Il client può essere avviato in sviluppo contro il runtime PostgreSQL; la CI copre test e build, ma non sostituisce il collaudo browser end-to-end. Sono ancora necessari verifiche operative, confronto funzionale e collaudo in staging. Il runtime predefinito è PostgreSQL; il percorso SQLite storico è isolato dietro comandi espliciti e non è usato dall'avvio standard. L'avvio in produzione resta subordinato al collaudo in staging. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
 
 [![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
@@ -29,8 +29,8 @@ Le funzioni sono in fase di consolidamento e non devono essere interpretate come
 |---|---|
 | Interfaccia web | React, TypeScript, Vite, Recharts |
 | Server applicativo | Node.js, Express, TypeScript |
-| Database attuale | SQLite |
-| Database di destinazione | PostgreSQL |
+| Database applicativo predefinito | PostgreSQL |
+| Percorso storico isolato | SQLite (solo comando esplicito) |
 | Verifiche | Vitest, Testing Library, PostgreSQL temporaneo |
 | Automazione delle verifiche | GitHub Actions, Node.js 20 e 22 |
 
@@ -62,7 +62,7 @@ Questo criterio consente di confrontare periodi e canali mantenendo costante la 
 
 ## Interfacce applicative
 
-Il runtime predefinito `npm run dev` continua a usare SQLite. In parallelo, `npm run dev:postgres` avvia il server PostgreSQL e il client web sulla stessa origine: il client utilizza le API PostgreSQL per accesso, analisi, segmentazione, clienti, funnel, importazione e gestione membri. L'endpoint `GET /api/export/customers.csv` genera dal server un CSV tenant-scoped, con autorizzazione `data:export` e limite massimo di 100.000 righe. I pulsanti di esportazione dei report aggregati (funnel, andamento e canali) generano invece file nel browser dai dati già caricati. Il collegamento è presente nel codice, ma non è ancora certificato da un collaudo browser end-to-end completo.
+Il runtime predefinito `npm run dev` avvia il server PostgreSQL e il client web sulla stessa origine: il client utilizza le API PostgreSQL per accesso, analisi, segmentazione, clienti, funnel, importazione e gestione membri. Il percorso SQLite storico è isolato dietro `npm run dev:sqlite` e non è il runtime standard. L'endpoint `GET /api/export/customers.csv` genera dal server un CSV tenant-scoped, con autorizzazione `data:export` e limite massimo di 100.000 righe. I pulsanti di esportazione dei report aggregati (funnel, andamento e canali) generano invece file nel browser dai dati già caricati. Il collegamento è presente nel codice, ma non è ancora certificato da un collaudo browser end-to-end completo.
 
 ## Avvio in ambiente locale
 
@@ -80,7 +80,9 @@ npm install
 npm run dev
 ```
 
-Questo comando avvia il runtime storico SQLite per sviluppo locale. Il database viene creato vuoto. L'accesso dimostrativo del browser non è automatico: per abilitarlo esplicitamente, creare `client/.env.local` con:
+Questo comando avvia il runtime PostgreSQL. Prima dell'avvio occorrono database e ruolo applicativo già predisposti, migrazioni applicate e le variabili d'ambiente descritte in `.env.example`. Il server esegue un preflight read-only e non applica migrazioni automaticamente.
+
+Per eseguire temporaneamente il percorso storico SQLite in sviluppo, usare `npm run dev:sqlite`. L'accesso dimostrativo è consentito solo in modalità sviluppo e va abilitato esplicitamente in `client/.env.local` con:
 
 ```dotenv
 VITE_ENABLE_DEMO_MODE=true
@@ -88,19 +90,13 @@ VITE_ENABLE_DEMO_MODE=true
 
 Per creare il primo tenant e il relativo amministratore su un database PostgreSQL appena migrato, seguire la procedura documentata in [docs/BOOTSTRAP_POSTGRESQL.md](docs/BOOTSTRAP_POSTGRESQL.md). Il bootstrap richiede una connessione amministrativa dedicata, un nome database confermato e il flag esplicito; rifiuta database già popolati.
 
-Per avviare il client con il runtime PostgreSQL:
-
-```bash
-npm run dev:postgres
-```
-
-Il comando avvia il server PostgreSQL e il client Vite insieme. Richiede che le variabili `DATABASE_URL`, `APP_ORIGIN=http://localhost:5173` e `LOGIN_RATE_LIMIT_SECRET` (almeno 32 caratteri casuali) siano configurate nell'ambiente server, e che lo schema sia già stato migrato e il ruolo runtime abbia i privilegi minimi previsti. Il server esegue soltanto un controllo read-only all'avvio: non applica migrazioni automaticamente. Se la configurazione o il database non sono pronti, l'avvio fallisce in modo esplicito.
+Per applicare o verificare le migrazioni usare `npm run db:migrate` e `npm run db:migrate -- --check` con le credenziali amministrative appropriate. Il comando `npm start` avvia il runtime PostgreSQL compilato.
 
 L'interfaccia è disponibile all'indirizzo:
 
 [http://localhost:5173](http://localhost:5173)
 
-Il server locale è disponibile all'indirizzo:
+Il server API locale è disponibile all'indirizzo:
 
 [http://localhost:3001](http://localhost:3001)
 
