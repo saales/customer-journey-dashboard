@@ -2006,3 +2006,191 @@ button:disabled {
     font-size: 0.55rem;
   }
 }
+
+
+/* --------------------------------------------------------------------------
+   Final polish: responsive navigation, enterprise controls and accessibility
+   -------------------------------------------------------------------------- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.app-shell .sidebar-toggle,
+.app-shell .mobile-menu-button,
+.app-shell .theme-toggle,
+.app-shell .logout-toggle,
+.app-shell .nav-item {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell .nav-item {
+  min-width: 0;
+}
+
+.app-shell .nav-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell .card,
+.app-shell .kpi,
+.app-shell .chart-card {
+  min-width: 0;
+}
+
+.app-shell :focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 68%, transparent);
+  outline-offset: 3px;
+}
+
+.app-shell button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.app-shell input:disabled,
+.app-shell select:disabled,
+.app-shell textarea:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+@media (min-width: 761px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    min-height: 100vh;
+  }
+
+  .app-shell .mobile-menu-button {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar,
+  .sidebar.collapsed {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: min( min(82vw, 300px), 300px);
+    min-width: 0;
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 22px 14px;
+    overflow-y: auto;
+    box-shadow: 18px 0 42px rgba(8, 20, 39, 0.22);
+    transition: transform 180ms ease;
+    will-change: transform;
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-105%);
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .sidebar:not(.collapsed) .brand-text,
+  .sidebar:not(.collapsed) .sidebar-section-label {
+    display: flex;
+  }
+
+  .sidebar:not(.collapsed) .nav-item {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .app-main {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: nowrap;
+    min-height: 70px;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .header-title {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 10px;
+  }
+
+  .header-copy {
+    min-width: 0;
+  }
+
+  .header-copy h1,
+  .header-copy p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    gap: 7px;
+  }
+
+  .theme-toggle,
+  .logout-toggle {
+    min-width: 38px;
+    justify-content: center;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header-actions {
+    gap: 5px;
+  }
+
+  .theme-toggle span {
+    display: none;
+  }
+
+  .logout-toggle {
+    font-size: 0.75rem;
+  }
+
+  .app-content {
+    padding: 16px 12px 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
