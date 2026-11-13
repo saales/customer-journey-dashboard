@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BarChart3,
   ChevronLeft,
@@ -61,6 +61,9 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
   );
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [activeSection, setActiveSection] = useState<Section>("dashboard");
+  const sidebarRef = useRef<HTMLElement>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const previousCollapsed = useRef(collapsed);
 
   useEffect(() => {
     try {
@@ -71,10 +74,43 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
   }, [theme]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || window.innerWidth > 760) return;
+
+    if (previousCollapsed.current !== collapsed) {
+      if (collapsed) {
+        mobileMenuButtonRef.current?.focus();
+      } else {
+        sidebarRef.current?.querySelector<HTMLButtonElement>(".nav-item")?.focus();
+      }
+      previousCollapsed.current = collapsed;
+    }
+  }, [collapsed]);
+
+  useEffect(() => {
     if (collapsed || typeof window === "undefined" || window.innerWidth > 760) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setCollapsed(true);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setCollapsed(true);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const items = sidebarRef.current?.querySelectorAll<HTMLButtonElement>(
+        ".nav-item:not(:disabled)",
+      );
+      if (!items?.length) return;
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -112,6 +148,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
     <div className={`app-shell theme-${theme}`}>
       <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
       <aside
+        ref={sidebarRef}
         id="primary-navigation"
         className={`sidebar ${collapsed ? "collapsed" : ""}`}
         aria-label="Navigazione principale"
@@ -134,6 +171,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Espandi menu" : "Comprimi menu"}
           aria-expanded={!collapsed}
+          aria-controls="primary-navigation"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
@@ -180,6 +218,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
         <header className="app-header">
           <div className="header-title">
             <button
+              ref={mobileMenuButtonRef}
               className="mobile-menu-button"
               aria-label={collapsed ? "Apri menu" : "Chiudi menu"}
               aria-expanded={!collapsed}
