@@ -48,7 +48,6 @@ jobs:
 
       # Keep dependency findings visible in PR CI without masking the test/build result.
       - name: Audit npm dependencies
-        continue-on-error: true
         run: |
           npm audit --json > "$RUNNER_TEMP/npm-audit.json" || true
           node --input-type=commonjs <<'NODE'
@@ -78,6 +77,10 @@ jobs:
               `- ${name}: ${finding.severity}; direct=${finding.isDirect}; range=${finding.range}; fixAvailable=${JSON.stringify(finding.fixAvailable)}`
             );
             for (const advisory of advisories) console.log(`  advisory: ${advisory}`);
+          }
+          if (Object.keys(report.vulnerabilities || {}).length > 0) {
+            console.error("Dependency audit failed: vulnerabilities remain.");
+            process.exitCode = 1;
           }
           NODE
       - run: npm test
