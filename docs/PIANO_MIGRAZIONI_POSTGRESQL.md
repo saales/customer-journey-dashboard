@@ -7,7 +7,7 @@ Assicurare che il database effettivamente usato dal prodotto sia PostgreSQL, che
 ## Stato codice
 
 - Runtime standard PostgreSQL.
-- Migrazioni versionate 001–009.
+- Migrazioni versionate 001–010.
 - Runner con checksum, ordine e advisory lock.
 - Startup read-only che si interrompe in caso di migrazioni pendenti o drift.
 - CI con PostgreSQL temporaneo, applicazione migrazioni e avvio con ruolo limitato; test browser Playwright rappresentativo su Node.js 22.
