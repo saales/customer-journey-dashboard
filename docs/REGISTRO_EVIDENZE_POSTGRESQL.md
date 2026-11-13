@@ -19,8 +19,8 @@ Questo registro separa ciò che è stato verificato nel repository e nella CI da
 | I test controllano alias SQL, filtri schema e comportamento read-only con mock | `server/test/postgres-schema-inspection.test.ts` | Verificato nel branch |
 | La CI dispone di PostgreSQL 16 effimero | `.github/workflows/ci.yml` | Verificato nella configurazione |
 | Il test d'integrazione crea uno schema/tabella temporanei, attiva RLS e verifica proprietario, colonne, PK, indice e policy | `server/test/postgres.integration.test.ts` | Verificato nel branch |
-| Il test esegue l'ispezione anche come ruolo `NOLOGIN` non superuser e senza `BYPASSRLS`, con soli privilegi sulla tabella di prova | `server/test/postgres.integration.test.ts` | Implementato nel branch; CI sul commit corrente ancora da verificare |
-| Test e build sono passati su Node 20 e Node 22 con il commit di riferimento | CI run [43415968347](https://github.com/saales/customer-journey-dashboard/actions/runs/43415968347), entrambi i job conclusi `success` | Verificato su CI |
+| Il test esegue l'ispezione come ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS`; verifica anche che `information_schema.columns` non mostri le colonne di una tabella senza grant | `server/test/postgres.integration.test.ts` | Verificato in CI run [43416584671](https://github.com/saales/customer-journey-dashboard/actions/runs/43416584671), Node 20 e 22 |
+| Test e build sono passati su Node 20 e Node 22 sul commit con ruolo limitato | CI run [43416584671](https://github.com/saales/customer-journey-dashboard/actions/runs/43416584671), entrambi i job conclusi `success` | Verificato su CI |
 | La PR resta aperta in bozza e `main` non è stata modificata | PR #1, branch e base verificati dopo il commit | Verificato al momento dell'aggiornamento |
 
 ## Evidenze storiche non confermate
@@ -39,13 +39,13 @@ Queste informazioni non sono state ricostruite da file SQL originali né verific
 - Autenticazione, sessioni, inviti e autorizzazione tenant runtime: **non implementati**.
 - Repository PostgreSQL per le route applicative: **non implementati**.
 - Isolamento multi-tenant end-to-end delle API: **non implementato**.
-- Test delle query catalogo con un ruolo PostgreSQL non privilegiato: **da aggiungere**.
+- La visibilità di `information_schema.columns` è verificata con un ruolo senza grant sulla tabella privata; la visibilità degli altri cataloghi resta dipendente dai privilegi PostgreSQL e va valutata per l'ambiente reale.
 - Prova di upgrade da una copia dello schema storico: **bloccata finché la baseline non è disponibile**.
 - Connessione o modifica del database Neon: **non eseguita**.
 
 ## Prossimi passi sicuri
 
-1. Ottenere un'esecuzione CI verde sul commit che contiene anche il test con ruolo non privilegiato.
+1. Ampliare la verifica della visibilità dei cataloghi con i privilegi effettivi previsti per il ruolo applicativo.
 2. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
 3. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
 

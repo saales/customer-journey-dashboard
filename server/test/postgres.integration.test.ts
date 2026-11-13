@@ -91,6 +91,12 @@ describe("PostgreSQL integration smoke test", () => {
           label text NOT NULL
         )
       `);
+      await pool!.query(`
+        CREATE TABLE ${schemaName}.private_probe (
+          id integer PRIMARY KEY,
+          secret_label text NOT NULL
+        )
+      `);
       await pool!.query(`ALTER TABLE ${schemaName}.catalog_probe ENABLE ROW LEVEL SECURITY`);
       await pool!.query(`
         CREATE POLICY catalog_probe_read ON ${schemaName}.catalog_probe
@@ -114,6 +120,12 @@ describe("PostgreSQL integration smoke test", () => {
           (row) => row.schema === schemaName && row.table === "catalog_probe" && row.column_name === "label",
         ),
       ).toBe(true);
+      // information_schema.columns hides columns on which the current role has no privilege.
+      expect(
+        report.columns.some(
+          (row) => row.schema === schemaName && row.table === "private_probe",
+        ),
+      ).toBe(false);
       expect(
         report.constraints.some(
           (row) => row.schema === schemaName && row.table === "catalog_probe" && row.type === "p",
