@@ -13,7 +13,7 @@ Stato database remoto: non verificato in questa attività.
 |---|---|
 | Runtime unico | `server/src/postgres-server.ts`; script standard root e server |
 | Pool | `server/src/postgres.ts` |
-| Migrazioni | `server/migrations/001`–`008` |
+| Migrazioni | `server/migrations/001`–`009` |
 | Runner | `server/src/postgres-migrations.ts` |
 | Preflight | `server/src/postgres-runtime-preflight.ts` |
 | Autenticazione | `postgres-authentication.ts`, `postgres-auth-*`, `postgres-session-*` |
@@ -25,7 +25,8 @@ Stato database remoto: non verificato in questa attività.
 
 ## CI
 
-- Il commit `c55284a` ha superato test, build, migrazioni 001–008, verifica checksum e smoke test runtime con ruolo limitato su Node.js 20 e 22: run [43470634828](https://github.com/saales/customer-journey-dashboard/actions/runs/43470634828).
+- Il commit `108ee9df` ha superato test, build, audit dipendenze, migrazioni 001–009, verifica checksum e avvio runtime con ruolo limitato su Node.js 20 e 22: run [43493277471](https://github.com/saales/customer-journey-dashboard/actions/runs/43493277471).
+- Sul runtime Node.js 22 la stessa CI ha completato Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
 - La CI usa PostgreSQL temporaneo e non accede a Neon.
 
 ## Verifiche remote non eseguite
@@ -50,13 +51,13 @@ Restano necessari test browser end-to-end completi, test di carico, prova backup
 
 ## Collaudo browser end-to-end — 13 novembre 2026
 
-- Run CI [43492421898](https://github.com/saales/customer-journey-dashboard/actions/runs/43492421898), commit `a7f6c3139296f3b2ef2091e5c87c7006b504b62e`: concluso con successo su Node.js 20 e 22.
+- Run CI [43493277471](https://github.com/saales/customer-journey-dashboard/actions/runs/43493277471), commit `108ee9df5ffd7a2f888109a8819ffd8b23504baa`: concluso con successo su Node.js 20 e 22.
 - Il job Node.js 22 ha eseguito Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
-- Flusso verificato: login admin, creazione cliente, aggiunta fase funnel, importazione CSV, esportazione CSV, invito e accettazione analista, controllo HTTP 403 sulla creazione cliente invocata direttamente dall'analista.
+- Flusso verificato: login admin, creazione cliente, aggiunta fase funnel, importazione CSV, export admin, invito e accettazione analista, export analista, rifiuto HTTP 403 della lettura audit e della creazione cliente invocata direttamente dall'analista, logout e revoca sessione verificata con HTTP 401.
 - Non è un test completo di tutti i ruoli o dell'isolamento cross-tenant; non sono stati eseguiti test di carico.
 - Il test non accede al database Neon, non usa dati reali e non effettua deploy.
 
 ## Hardening del preflight runtime
 
 - Il preflight verifica anche SELECT/INSERT/UPDATE/DELETE sulla tabella globale `api_request_limits`, introdotta dalla migrazione 009.
-- Test unitario negativo dedicato: un ruolo senza INSERT su `api_request_limits` deve fallire il preflight.
+- Test unitario negativo dedicato: un ruolo senza INSERT su `api_request_limits` deve fallire il preflight. Il preflight ora riporta anche il dettaglio dei privilegi o delle configurazioni non conformi.
