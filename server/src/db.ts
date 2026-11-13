@@ -5,7 +5,7 @@ export type Db = Database.Database;
 
 const DEFAULT_FUNNEL_STAGES = [
   { id: "visit", label: "Visita", position: 0 },
-  { id: "lead", label: "Lead", position: 1 },
+  { id: "lead", label: "Contatto", position: 1 },
   { id: "qualified", label: "Qualificato", position: 2 },
   { id: "opportunity", label: "Opportunità", position: 3 },
   { id: "customer", label: "Cliente", position: 4 },
