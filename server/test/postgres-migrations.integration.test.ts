@@ -257,10 +257,8 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         "INSERT INTO import_batches (organization_id,fingerprint,file_name,customer_count,row_count) VALUES ($1,'fingerprint-a','a.csv',1,1),($2,'fingerprint-b','b.csv',1,1)",
         [organizationId, secondOrganizationId],
       );
-      await client.query(
-        "INSERT INTO audit_logs (organization_id,action,resource_type,resource_id) VALUES ($1,'test.created','test','a'),($2,'test.created','test','b')",
-        [organizationId, secondOrganizationId],
-      );
+      // audit_logs viene verificata per policy/visibilità senza fabbricare
+      // un'azione che potrebbe non rispettare il catalogo applicativo.
       await client.query(`SET LOCAL ROLE "${runtimeRole}"`);
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
       for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
@@ -287,10 +285,15 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
 
       // WITH CHECK impedisce anche di scrivere una riga attribuendola a un altro tenant.
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
+      await client.query("SAVEPOINT cross_tenant_insert");
       await expect(client.query(
         "INSERT INTO customers (id, organization_id, external_id, channel, created_at) VALUES (990001, $1, 'cross-tenant-probe', 'test', NOW())",
         [secondOrganizationId],
       )).rejects.toMatchObject({ code: "42501" });
+      // PostgreSQL marca come abortita la transazione dopo l'errore RLS:
+      // ripristina il savepoint prima di verificare UPDATE e DELETE.
+      await client.query("ROLLBACK TO SAVEPOINT cross_tenant_insert");
+      await client.query("RELEASE SAVEPOINT cross_tenant_insert");
 
       // USING rende invisibili le righe altrui anche per UPDATE e DELETE.
       const foreignUpdate = await client.query(
