@@ -428,8 +428,12 @@ function validateImport(
 /** Legge e valida from / to / channel dalla query string. */
 function parseFilters(req: Request, db: Db): Filters {
   const meta = getMeta(db);
-  const from = String(req.query.from ?? meta.minDate ?? "");
-  const to = String(req.query.to ?? meta.maxDate ?? "");
+  // Le organizzazioni appena create possono essere vuote: in questo caso
+  // usiamo la data corrente come intervallo neutro, così le API restituiscono
+  // aggregazioni a zero invece di un errore 400.
+  const today = new Date().toISOString().slice(0, 10);
+  const from = String(req.query.from ?? meta.minDate ?? today);
+  const to = String(req.query.to ?? meta.maxDate ?? today);
 
   if (!isValidDate(from) || !isValidDate(to)) {
     throw new HttpError(
