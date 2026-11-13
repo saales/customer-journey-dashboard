@@ -62,7 +62,16 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByLabel("Nome e cognome").fill("E2E Analyst");
   await page.getByLabel("Password", { exact: true }).fill("E2E-analyst-password-2026!");
   await page.getByLabel("Conferma password").fill("E2E-analyst-password-2026!");
+  const acceptanceResponsePromise = page.waitForResponse((response) =>
+    response.url().endsWith("/api/invitations/accept") &&
+    response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Accetta invito" }).click();
+  const acceptanceResponse = await acceptanceResponsePromise;
+  const acceptanceBody = await acceptanceResponse.json();
+  expect(acceptanceResponse.status(), JSON.stringify(acceptanceBody)).toBe(200);
+  const sessionStatus = await page.evaluate(async () => (await fetch("/api/auth/session")).status);
+  expect(sessionStatus).toBe(200);
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
 
   await expect(page.getByRole("button", { name: "Importazione dati" })).toHaveCount(0);
