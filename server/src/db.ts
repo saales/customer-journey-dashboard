@@ -13,6 +13,9 @@ const DEFAULT_FUNNEL_STAGES = [
 
 /** Crea lo schema (idempotente). */
 export function initSchema(db: Db): void {
+  // SQLite disabilita le foreign key per default: abilitarle su ogni connessione
+  // prima di creare/usare lo schema, così gli eventi orfani vengono rifiutati.
+  db.pragma("foreign_keys = ON");
   db.exec(`
     CREATE TABLE IF NOT EXISTS customers (
       id          INTEGER PRIMARY KEY,
