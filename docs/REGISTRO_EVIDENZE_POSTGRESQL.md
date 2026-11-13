@@ -3,7 +3,7 @@
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
 **Commit codice verificato:** `d35d395d5e63bdab8c7a2fcf361cae0d806c67ad` (CI Node 20/22, run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146)).  
-**Branch HEAD al checkpoint:** `d35d395d5e63bdab8c7a2fcf361cae0d806c67ad`.  
+**Branch HEAD al checkpoint documentale:** `669fe89d82fdbf9d172a76e9c57fbbe36b53e6f3` (include aggiornamenti documentali successivi al checkpoint codice `d35d395`).  
 **PR:** [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta in bozza, non merged.
 
 Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
@@ -13,13 +13,14 @@ Questo registro distingue il codice effettivamente presente nel branch, gli arte
 | Affermazione | Evidenza | Stato |
 |---|---|---|
 | Il runtime applicativo del branch usa ancora SQLite | `server/src/index.ts`, `server/src/app.ts`, `server/src/db.ts` | Verificato |
-| Il pool PostgreSQL non è ancora il repository usato dalle route del branch | `server/src/postgres.ts`; route e query correnti restano basate su SQLite | Verificato |
+| Un repository PostgreSQL read-only per listing clienti esiste ma non è collegato alle route | `server/src/postgres-customer-repository.ts`; Express usa ancora SQLite | Verificato al commit `d35d395` |
 | È presente un'ispezione read-only dei cataloghi PostgreSQL | `server/src/postgres-schema-inspection.ts` | Verificato |
 | L'ispezione usa `BEGIN READ ONLY`, legge metadati e cataloghi, fa `ROLLBACK` e rilascia il client | Implementazione di `inspectPostgresSchema` | Verificato nel codice |
 | L'ispezione non legge righe applicative | Query su database identity, cataloghi, `information_schema`, ruolo e presenza di `schema_migrations` | Verificato nel codice |
 | Il report filtra tabelle, colonne, vincoli, indici e policy in base al privilegio SELECT | `has_table_privilege(..., 'SELECT')` e test `private_probe` | Verificato in CI |
 | Il test d'integrazione usa un ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
-| Test e build sul checkpoint corrente sono passati su Node 20 e 22 | CI run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401): `npm ci`, `npm test`, `npm run build` tutti success su entrambi i runtime | Verificato al commit `c4c927a` |
+| Test e build sul checkpoint codice precedente sono passati su Node 20 e 22 | CI run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401): `npm ci`, `npm test`, `npm run build` tutti success su entrambi i runtime | Verificato al commit `c4c927a` |
+| Repository clienti PostgreSQL e test d'isolamento a livello query passano su PostgreSQL 16 | `server/src/postgres-customer-repository.ts`, `server/test/postgres-customer-repository.integration.test.ts`; CI run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146) | Verificato al commit `d35d395`, Node 20/22 |
 | Il runner PostgreSQL e il preflight read-only sono presenti nel branch | `server/src/postgres-migrations.ts`, `server/src/migrate-postgres.ts`, script `db:migrate -- --check`; test unitari inclusi nella CI | Verificato nel branch |
 | PR #1 resta aperta in bozza, non merged; `main` invariata | PR #1 e confronto branch | Verificato al 2026-11-13 |
 
