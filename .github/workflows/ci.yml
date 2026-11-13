@@ -44,12 +44,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      # Regenerate a reproducible lockfile using only non-breaking advisory fixes.
-      - name: Resolve compatible dependency security updates
-        run: |
-          npm install --global npm@10.9.4
-          npm install --package-lock-only --ignore-scripts --no-audit
-          npm audit fix --package-lock-only --ignore-scripts || true
       - run: npm ci
 
       # Keep dependency findings visible in PR CI without masking the test/build result.
@@ -118,11 +112,3 @@ jobs:
           grep -q '"database":"connected"' /tmp/percorso-health.json
           session_status="$(curl -sS -o /tmp/percorso-session.json -w '%{http_code}' http://127.0.0.1:3001/api/auth/session)"
           test "$session_status" = "401"
-
-      # Emit the tested lockfile so it can be committed to the PR branch.
-      - name: Export tested package lockfile
-        if: always()
-        run: |
-          printf 'LOCKFILE_BASE64:'
-          base64 -w0 package-lock.json
-          echo
