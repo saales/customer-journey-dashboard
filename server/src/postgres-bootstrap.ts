@@ -87,7 +87,7 @@ export async function bootstrapInitialPostgresOrganization(
   await client.query(
    `INSERT INTO audit_logs(organization_id,actor_user_id,action,resource_type,resource_id,details)
     VALUES($1::uuid,$2::uuid,'organization.bootstrapped','organization',$1::text,
-      jsonb_build_object('initialStageCount',$3))`,
+      jsonb_build_object('initialStageCount',$3::integer))`,
    [organizationId,adminUserId,INITIAL_STAGES.length]);
   await client.query("COMMIT");begun=false;
   return {database,organizationId,organizationSlug:input.organizationSlug,adminUserId,
