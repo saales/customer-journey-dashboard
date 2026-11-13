@@ -103,12 +103,12 @@ function downloadExcel(
 
   workbook.Props = {
     Title: title,
-    Subject: "Report Customer Journey Intelligence",
-    Author: "Customer Journey Intelligence",
+    Subject: "Analisi del percorso cliente",
+    Author: "Analisi del percorso cliente",
     CreatedDate: generatedAt,
   };
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Analisi");
 
   XLSX.writeFile(workbook, `${getBaseFilename(filename)}.xlsx`, {
     compression: true,
@@ -135,8 +135,8 @@ function downloadPdf(
 
   doc.setProperties({
     title,
-    subject: "Report Customer Journey Intelligence",
-    creator: "Customer Journey Intelligence",
+    subject: "Analisi del percorso cliente",
+    creator: "Analisi del percorso cliente",
   });
 
   doc.setFont("helvetica", "bold");
@@ -215,7 +215,7 @@ function downloadPdf(
   doc.setTextColor(120, 120, 120);
 
   doc.text(
-    `Customer Journey Intelligence | Pagina ${currentPage}`,
+    `Analisi del percorso cliente | Pagina ${currentPage}`,
     14,
     pageHeight - 8
   );
