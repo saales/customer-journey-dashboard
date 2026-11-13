@@ -47,6 +47,7 @@ jobs:
       # Regenerate a reproducible lockfile using only non-breaking advisory fixes.
       - name: Resolve compatible dependency security updates
         run: |
+          npm install --global npm@10.9.4
           npm install --package-lock-only --ignore-scripts --no-audit
           npm audit fix --package-lock-only --ignore-scripts || true
       - run: npm ci
