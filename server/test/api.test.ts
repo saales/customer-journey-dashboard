@@ -223,7 +223,7 @@ it("elimina un cliente e i suoi eventi", async () => {
   const customersRes = await fetch(`${base}/api/customers`);
   const customers = await customersRes.json();
 
-  expect(customers.some((customer: { id: number }) => customer.id === created.id)).toBe(false);
+  expect(customers.data.some((customer: { id: number }) => customer.id === created.id)).toBe(false);
 });
 
 
@@ -297,7 +297,7 @@ it("elimina un cliente e i suoi eventi", async () => {
       await fetch(`${base}/api/customers`)
     ).json();
 
-    expect(customersAfter).toHaveLength(customersBefore.length + 3);
+    expect(customersAfter.pagination.total).toBe(customersBefore.pagination.total + 3);
   });
 
 
