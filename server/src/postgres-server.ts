@@ -18,6 +18,11 @@ async function main(): Promise<void> {
   if (rateLimitSecret.length < 32) {
     throw new Error("LOGIN_RATE_LIMIT_SECRET deve contenere almeno 32 caratteri casuali.");
   }
+  const emailApiKey = process.env.RESEND_API_KEY?.trim() || undefined;
+  const emailFrom = process.env.EMAIL_FROM?.trim() || undefined;
+  if (Boolean(emailApiKey) !== Boolean(emailFrom)) {
+    throw new Error("Configurare insieme RESEND_API_KEY ed EMAIL_FROM, oppure lasciare entrambi vuoti.");
+  }
 
   // Startup read-only: non applica mai migrazioni o modifica dati remoti.
   const migrations = await loadPostgresMigrations();
