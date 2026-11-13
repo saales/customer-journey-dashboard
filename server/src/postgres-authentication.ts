@@ -32,7 +32,7 @@ export async function authenticatePostgresCredentials(
       passwordHash: string;
       organizationId: string;
     }>(
-      \`SELECT u.id::text AS "userId",
+      `SELECT u.id::text AS "userId",
               u.password_hash AS "passwordHash",
               o.id::text AS "organizationId"
        FROM users u
@@ -41,7 +41,7 @@ export async function authenticatePostgresCredentials(
        WHERE LOWER(u.email) = $1
          AND u.status = 'active'
          AND o.slug = $2
-       LIMIT 1\`,
+       LIMIT 1`,
       [normalizedEmail, organizationSlug],
     );
     credential = result.rows[0];
