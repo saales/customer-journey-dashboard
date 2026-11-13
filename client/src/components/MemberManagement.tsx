@@ -22,7 +22,7 @@ export function MemberManagement() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  async function load() {
+  async function load(): Promise<boolean> {
     setLoading(true);
     setError("");
     try {
@@ -30,8 +30,10 @@ export function MemberManagement() {
       setMembers(memberRows);
       setInvitations(invitationRows);
       setPendingRoles({});
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile caricare i membri.");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -45,8 +47,10 @@ export function MemberManagement() {
     setMessage("");
     try {
       await api.updateMember(member.membershipId, changes);
-      await load();
-      setMessage("Permessi del membro aggiornati.");
+      const refreshed = await load();
+      setMessage(refreshed
+        ? "Permessi del membro aggiornati."
+        : "Modifica salvata, ma non è stato possibile aggiornare l'elenco. Usa Aggiorna per verificare i dati.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile aggiornare il membro.");
     } finally {
@@ -64,8 +68,10 @@ export function MemberManagement() {
       const created = await api.createInvitation({ email: inviteEmail, role: inviteRole, expiresInDays: 7 });
       setInviteUrl(created.inviteUrl);
       setInviteEmail("");
-      await load();
-      setMessage("Invito creato. Condividi il collegamento con il destinatario tramite un canale sicuro.");
+      const refreshed = await load();
+      setMessage(refreshed
+        ? "Invito creato. Condividi il collegamento con il destinatario tramite un canale sicuro."
+        : "Invito creato, ma l'elenco non si è aggiornato. Il collegamento è disponibile qui sopra.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile creare l'invito.");
     } finally {
@@ -78,8 +84,10 @@ export function MemberManagement() {
     setMessage("");
     try {
       await api.revokeInvitation(invitation.id);
-      await load();
-      setMessage("Invito revocato.");
+      const refreshed = await load();
+      setMessage(refreshed
+        ? "Invito revocato."
+        : "Invito revocato, ma l'elenco non si è aggiornato. Usa Aggiorna per verificare lo stato.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile revocare l'invito.");
     }
