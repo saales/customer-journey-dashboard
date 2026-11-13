@@ -20,7 +20,8 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByLabel("Canale di acquisizione").selectOption("Email");
   await page.getByLabel("Data della prima visita").fill("2025-03-10");
   await page.getByRole("button", { name: "Salva dati cliente" }).click();
-  await expect(page.getByText("Email", { exact: true })).toBeVisible();
+  const createdCustomerRow = page.getByRole("row").filter({ hasText: "2025-03-10" });
+  await expect(createdCustomerRow).toContainText("Email");
 
   // Aggiunta di una fase funnel persistente.
   await page.getByRole("button", { name: "Impostazioni" }).click();
