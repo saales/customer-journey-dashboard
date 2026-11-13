@@ -10,7 +10,7 @@ function createClientMock() {
     if (sql.includes("current_database()")) {
       return { rows: [{ database: "test_db", database_user: "app", current_schema: "public", server_version: "16" }] };
     }
-    if (sql.includes("pg_catalog.pg_class")) {
+    if (sql.includes("c.relrowsecurity")) {
       return { rows: [{ schema: "public", table: "customers", row_level_security_enabled: true, row_level_security_forced: false }] };
     }
     if (sql.includes("to_regclass")) return { rows: [{ exists: true }] };
