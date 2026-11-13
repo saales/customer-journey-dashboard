@@ -244,6 +244,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
 
   const settingsSection = (
     <div>
+      <AccountSettings />
       <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite} />
       {organizationRole === "admin" && <><OrganizationSettings /><MemberManagement /></>}
 
