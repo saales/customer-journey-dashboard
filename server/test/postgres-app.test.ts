@@ -54,6 +54,13 @@ describe("Runtime HTTP PostgreSQL", () => {
     expect(await response.json()).toEqual({ error: "Accesso richiesto." });
   });
 
+  it("nega la consultazione del registro attività senza sessione valida", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/audit`);
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Accesso richiesto." });
+  });
+
   it("applica il controllo Origin prima di ogni scrittura API", async () => {
     const base = await startApp();
     const response = await fetch(`${base}/api/customers`, {
