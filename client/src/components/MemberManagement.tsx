@@ -15,6 +15,7 @@ export function MemberManagement() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<OrganizationInvitation["role"]>("editor");
   const [inviteUrl, setInviteUrl] = useState("");
+  const [inviteEmailSent, setInviteEmailSent] = useState(false);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [pendingRoles, setPendingRoles] = useState<Record<string, OrganizationMember["role"]>>({});
   const [loading, setLoading] = useState(true);
@@ -67,10 +68,11 @@ export function MemberManagement() {
     try {
       const created = await api.createInvitation({ email: inviteEmail, role: inviteRole, expiresInDays: 7 });
       setInviteUrl(created.inviteUrl);
+      setInviteEmailSent(created.emailSent);
       setInviteEmail("");
       const refreshed = await load();
       setMessage(refreshed
-        ? "Invito creato. Condividi il collegamento con il destinatario tramite un canale sicuro."
+        ? (created.emailSent ? "Invito creato e inviato via email. Il collegamento resta disponibile per la condivisione manuale." : "Invito creato. Email non configurata: condividi il collegamento tramite un canale sicuro.")
         : "Invito creato, ma l'elenco non si è aggiornato. Il collegamento è disponibile qui sopra.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile creare l'invito.");
@@ -141,7 +143,7 @@ export function MemberManagement() {
       </table></div>}
     <div className="card" style={{ marginTop: 20 }}>
       <h3>Invita un collaboratore</h3>
-      <p className="hint">Crea un collegamento monouso da condividere direttamente. L'invio automatico di email non è configurato.</p>
+      <p className="hint">Crea un collegamento monouso. Se il servizio email è configurato, l'invito viene anche spedito automaticamente.</p>
       <form className="customer-form" onSubmit={(event) => void createInvite(event)}>
         <label>Email<input type="email" required maxLength={254} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} /></label>
         <label>Ruolo<select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as OrganizationInvitation["role"])}>
