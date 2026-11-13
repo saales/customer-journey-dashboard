@@ -108,6 +108,22 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
     );
   });
 
+  it("verifica i privilegi per recupero password e impostazioni organizzazione", async () => {
+    const pool = {
+      query: async (sql: string) => ({
+        rows: sql.includes("pg_roles") ? [goodRole]
+          : sql.includes("pg_auth_members") ? [{ hasRoleMembership: false }]
+          : sql.includes("has_schema_privilege") ? [{ canCreateSchema: false }]
+          : sql.includes("has_table_privilege")
+            ? [{ tableName: "password_reset_tokens", privilege: "INSERT" }]
+            : goodTables,
+        rowCount: 1,
+      }),
+    };
+    const result = await inspectPostgresRuntimeRole(pool as never);
+    expect(result.missingPrivileges).toEqual(["password_reset_tokens:INSERT"]);
+  });
+
   it("rifiuta ruoli che ereditano privilegi o appartengono ad altri ruoli", async () => {
     const unsafe = {
       query: async (sql: string) => ({
