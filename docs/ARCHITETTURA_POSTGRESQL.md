@@ -2,7 +2,7 @@
 
 ## Stato verificato
 
-Checkpoint aggiornato al commit `c4c927a`:
+Checkpoint precedente al commit `c4c927a`:
 - CI PostgreSQL 16 superata su Node 20 e Node 22: installazione, test e build verdi (run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401)).
 - È presente un runner di migrazioni versionate con checksum, advisory lock e transazione per file; il comando `db:migrate -- --check` esegue il confronto read-only tra file e storico registrato.
 - Il planner e il runner hanno test unitari; gli SQL storici 001/002 sono verificati su PostgreSQL effimero.
@@ -17,6 +17,19 @@ Il backend attualmente avviato da `server/src/index.ts` usa ancora SQLite:
 - `server/src/check-postgres.ts` è soltanto un controllo di connettività.
 
 Quindi la presenza di `pg` e di `DATABASE_URL` non equivale a una migrazione completata.
+
+## Primo repository PostgreSQL tenant-scoped
+
+Nel commit `d35d395` è stato aggiunto `server/src/postgres-customer-repository.ts`:
+- implementa una lettura paginata dei clienti e dei relativi eventi;
+- applica il filtro `organization_id` a conteggio, clienti ed eventi;
+- imposta il contesto locale con `withTenantTransaction`;
+- valida UUID, pagina, limite e offset sicuro;
+- serializza gli ID PostgreSQL `BIGINT` come stringhe per non perdere precisione JavaScript.
+
+Il repository è intenzionalmente **non collegato a Express**: l'organizzazione deve essere derivata da una sessione autenticata e da una membership attiva, che il runtime attuale non implementa. Non sono ancora presenti policy RLS nella baseline 001: questo componente applica quindi isolamento esplicito a livello query, non certifica una difesa RLS a livello database.
+
+Il test `server/test/postgres-customer-repository.integration.test.ts` crea tabelle temporanee PostgreSQL con due organizzazioni e verifica separazione di conteggi, paginazione ed eventi, oltre al ripristino del contesto locale. CI PostgreSQL 16 verde su Node 20 e 22: run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146).
 
 ## Decisioni non negoziabili
 
@@ -37,7 +50,7 @@ Quindi la presenza di `pg` e di `DATABASE_URL` non equivale a una migrazione com
 
 ### Fase B — repository PostgreSQL
 - Separare accesso ai dati da Express con un'interfaccia repository asincrona.
-- Implementare repository PostgreSQL per analytics, clienti, eventi, import e fasi funnel.
+- Estendere il repository PostgreSQL a analytics, CRUD, import e fasi funnel; il solo listing clienti è già presente ma non è ancora collegato alle route.
 - Aggiungere test di parità tra risultati SQLite e PostgreSQL sui dataset di test.
 - Evitare un semplice cambio di tipo da `Db` a `Pool`: le API sincrone e le transazioni SQLite non sono compatibili con `pg`.
 
