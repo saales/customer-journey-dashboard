@@ -464,9 +464,9 @@ export function createApp(db: Db) {
   const app = express();
 
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "12mb" }));
 
   // Header di sicurezza e policy conservative per le API.
+  // Questo middleware precede il parser: protegge anche le risposte 400/413.
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
@@ -494,6 +494,10 @@ export function createApp(db: Db) {
 
     next();
   });
+
+  // Il parser viene eseguito dopo gli header, così anche i suoi errori
+  // mantengono le policy di sicurezza e cache delle API.
+  app.use(express.json({ limit: "12mb" }));
 
   app.get("/api/health", (_req, res) => {
     // Liveness + readiness minima: non basta che Express risponda,
