@@ -35,7 +35,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
     name: "e2e-import.csv",
     mimeType: "text/csv",
     buffer: Buffer.from(
-      "externalId,channel,createdAt,stage,occurredAt\ne2e-crm-001,Organico,2025-04-01,lead,2025-04-02\n",
+      "externalId,channel,createdAt,stage,occurredAt\ne2e-crm-001,Organico,2025-04-01,visit,2025-04-01\ne2e-crm-001,Organico,2025-04-01,lead,2025-04-02\n",
     ),
   });
   await expect(page.getByRole("heading", { name: "Anteprima e correzione dati" })).toBeVisible();
