@@ -29,6 +29,7 @@ const MIGRATION_FILES = [
   "010_audit_log_read_grant.sql",
   "011_password_reset_tokens.sql",
   "012_organization_settings.sql",
+  "013_account_self_service.sql",
 ] as const;
 
 const MIGRATION_LOCK_ID = "731904221";
