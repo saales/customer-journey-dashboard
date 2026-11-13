@@ -67,7 +67,8 @@ describe("Validazione preventiva importazione", () => {
       "crm-1,Organico,2026-01-01,customer,2026-01-02",
     ].join("\n"));
 
-    fireEvent.change(screen.getByLabelText("externalId, riga 2"), {
+    const externalIdInput = await screen.findByRole("textbox", { name: "externalId, riga 2" });
+    fireEvent.change(externalIdInput, {
       target: { value: " crm-1 " },
     });
 
