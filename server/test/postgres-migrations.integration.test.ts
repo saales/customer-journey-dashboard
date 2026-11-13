@@ -228,7 +228,8 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       const runtimeRole = `rls_test_${schemaName}`;
       await client.query(`CREATE ROLE "${runtimeRole}" NOLOGIN`);
       await client.query(`GRANT USAGE ON SCHEMA "${schemaName}" TO "${runtimeRole}"`);
-      await client.query(`GRANT SELECT ON customers, invitations TO "${runtimeRole}"`);
+      await client.query(`GRANT SELECT ON customers, events, funnel_stages, import_batches, audit_logs, invitations TO "${runtimeRole}"`);
+      await client.query(`GRANT INSERT, UPDATE, DELETE ON customers, events, funnel_stages, import_batches, audit_logs TO "${runtimeRole}"`);
       const invitationActorId = randomUUID();
       await client.query(
         "INSERT INTO users (id,email,password_hash,full_name,status) VALUES ($1,'inviter@example.test','unused','Inviter','active')",
@@ -258,6 +259,32 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         "SELECT COUNT(*)::text AS count FROM customers",
       );
       expect(Number(unknownTenantCount.rows[0]?.count)).toBe(0);
+
+      // La RLS deve isolare ogni tabella tenant-scoped, non solo customers.
+      // Il ruolo runtime non proprietario vede solo le righe del contesto attivo.
+      for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
+        const isolated = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
+        expect(Number(isolated.rows[0]?.count), `RLS su ${table}`).toBe(0);
+      }
+
+      // WITH CHECK impedisce anche di scrivere una riga attribuendola a un altro tenant.
+      await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
+      await expect(client.query(
+        "INSERT INTO customers (id, organization_id, external_id, channel, created_at) VALUES (990001, $1, 'cross-tenant-probe', 'test', NOW())",
+        [secondOrganizationId],
+      )).rejects.toMatchObject({ code: "42501" });
+
+      // USING rende invisibili le righe altrui anche per UPDATE e DELETE.
+      const foreignUpdate = await client.query(
+        "UPDATE customers SET channel = 'tampered' WHERE organization_id = $1",
+        [secondOrganizationId],
+      );
+      const foreignDelete = await client.query(
+        "DELETE FROM customers WHERE organization_id = $1",
+        [secondOrganizationId],
+      );
+      expect(foreignUpdate.rowCount).toBe(0);
+      expect(foreignDelete.rowCount).toBe(0);
       await client.query("SELECT set_config('app.invitation_token_hash', $1, true)", ["known-invite-hash"]);
       const inviteLookup = await client.query<{ count: string }>(
         "SELECT COUNT(*)::text AS count FROM invitations",
