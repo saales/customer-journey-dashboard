@@ -129,3 +129,100 @@ export async function listPostgresCustomers(
     };
   });
 }
+
+
+export interface CreatePostgresCustomerInput {
+  externalId: string;
+  channel: string;
+  createdAt: string;
+  events: PostgresCustomerEvent[];
+}
+
+export interface CreatedPostgresCustomer {
+  id: string;
+  externalId: string;
+}
+
+/**
+ * Creates a customer and its ordered journey atomically.
+ * organizationId must come from a verified server-side session/membership.
+ */
+export async function createPostgresCustomer(
+  pool: Pick<Pool, "connect">,
+  organizationId: string,
+  input: CreatePostgresCustomerInput,
+): Promise<CreatedPostgresCustomer> {
+  if (!UUID_RE.test(organizationId)) {
+    throw new Error("Identificativo organizzazione non valido.");
+  }
+  const externalId = input.externalId.trim();
+  if (!externalId || externalId.length > 100) {
+    throw new Error("Identificativo cliente mancante o troppo lungo.");
+  }
+  if (!input.channel.trim() || input.channel.length > 100) {
+    throw new Error("Canale non valido.");
+  }
+  const datePattern = /^\\d{4}-\\d{2}-\\d{2}$/;
+  const isDate = (value: string) =>
+    datePattern.test(value) &&
+    !Number.isNaN(Date.parse(value)) &&
+    new Date(value).toISOString().slice(0, 10) === value;
+  if (!isDate(input.createdAt)) {
+    throw new Error("Data di ingresso non valida.");
+  }
+  if (!Array.isArray(input.events) || input.events.length > 50) {
+    throw new Error("Elenco eventi non valido.");
+  }
+
+  return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
+    const stagesResult = await client.query<{ id: string; position: number }>(
+      "SELECT id, position FROM funnel_stages WHERE organization_id = $1::uuid AND is_active = TRUE ORDER BY position ASC",
+      [organizationId],
+    );
+    const stagePositions = new Map(stagesResult.rows.map((stage) => [stage.id, stage.position]));
+    if (stagePositions.get("visit") !== 0) {
+      throw new Error("Configurazione delle fasi non valida.");
+    }
+
+    let previousPosition = -1;
+    let previousDate = input.createdAt;
+    const seen = new Set<string>();
+    if (input.events.length === 0 || input.events[0]?.stage !== "visit") {
+      throw new Error("Il percorso deve iniziare con la fase visit.");
+    }
+    for (const event of input.events) {
+      const position = stagePositions.get(event.stage);
+      if (position === undefined || position <= previousPosition || seen.has(event.stage)) {
+        throw new Error("Le fasi devono essere uniche e seguire l'ordine configurato.");
+      }
+      if (!isDate(event.occurredAt) || event.occurredAt < previousDate) {
+        throw new Error("Le date degli eventi non rispettano l'ordine cronologico.");
+      }
+      if (event.stage === "visit" && event.occurredAt !== input.createdAt) {
+        throw new Error("La fase visit deve coincidere con la data di ingresso.");
+      }
+      seen.add(event.stage);
+      previousPosition = position;
+      previousDate = event.occurredAt;
+    }
+
+    const inserted = await client.query<{ id: string }>(
+      `INSERT INTO customers (organization_id, external_id, channel, created_at)
+       VALUES ($1::uuid, $2, $3, $4::date)
+       RETURNING id::text AS id`,
+      [organizationId, externalId, input.channel, input.createdAt],
+    );
+    const customerId = inserted.rows[0]?.id;
+    if (!customerId) throw new Error("Creazione cliente non riuscita.");
+
+    for (const event of input.events) {
+      await client.query(
+        `INSERT INTO events (organization_id, customer_id, stage_id, occurred_at)
+         VALUES ($1::uuid, $2::bigint, $3, $4::date)`,
+        [organizationId, customerId, event.stage, event.occurredAt],
+      );
+    }
+
+    return { id: customerId, externalId };
+  });
+}
