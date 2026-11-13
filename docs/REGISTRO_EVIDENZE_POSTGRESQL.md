@@ -47,7 +47,7 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 |---|---|---|
 | Pulizia in batch dei record HMAC del rate limiter oltre retention | `cleanupPostgresLoginAttemptLimits` | Implementata; comando pianificabile giornalmente |
 | Configurazione esplicita dei proxy attendibili per risolvere l'IP client | `TRUSTED_PROXY_IPS`, `req.ip` e `validateTrustedProxyIps` | Implementata; richiede configurazione corretta del reverse proxy |
-| Test retention/batch e validazione IP/CIDR | test unitari e PostgreSQL integration | Aggiunti; CI da verificare sul commit successivo |
+| Test retention/batch e validazione IP/CIDR | test unitari e PostgreSQL integration | Aggiunti; CI verde sul commit `7570eb3` (run [43493813499](https://github.com/saales/customer-journey-dashboard/actions/runs/43493813499)) |
 
 ## Collaudo browser end-to-end — 13 novembre 2026
 
