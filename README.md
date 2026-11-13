@@ -88,7 +88,7 @@ npm test
 npm run build
 ```
 
-La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Questo non dimostra lo stato del database remoto.
+La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Sul runtime Node.js 22 esegue inoltre test browser end-to-end con Playwright/Chromium su un'organizzazione effimera: login amministratore, creazione cliente, configurazione funnel, import CSV, export CSV, invito e accettazione di un analista e rifiuto server-side di una scrittura non autorizzata. Il database usato da questi test viene creato nel servizio PostgreSQL temporaneo della CI e non è il database remoto. Questo non dimostra lo stato del database remoto.
 
 ## Sicurezza e rilascio
 
