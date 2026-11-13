@@ -45,7 +45,7 @@ describe("Validazione preventiva importazione", () => {
     ].join("\n"));
 
     expect(await screen.findByText(/Identificativo cliente troppo lungo: massimo 100 caratteri/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Importa dati" })).toBeDisabled();
+    expect((screen.getByRole("button", { name: "Importa dati" }) as HTMLButtonElement).disabled).toBe(true);
     expect(api.importCsv).not.toHaveBeenCalled();
   });
 
@@ -59,7 +59,7 @@ describe("Validazione preventiva importazione", () => {
     );
     selectCsv([header, ...rows].join("\n"));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect((await screen.findByRole("alert")).textContent).toContain(
       "il limite massimo è 10000",
     );
     expect(screen.queryByText("Anteprima e correzione dati")).toBeNull();
