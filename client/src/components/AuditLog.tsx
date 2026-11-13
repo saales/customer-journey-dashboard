@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, type AuditEntry, type AuditPage, type OrganizationMember } from "../api";
 
 const actions = [
@@ -46,7 +46,7 @@ export function AuditLog() {
 
   useEffect(() => { void load(1); }, []);
 
-  function applyFilters(event: React.FormEvent<HTMLFormElement>) {
+  function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void load(1);
   }
