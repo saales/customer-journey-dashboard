@@ -2,7 +2,7 @@
 
 Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–008 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
+> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–009 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
 
 ## Funzioni
 
@@ -15,7 +15,7 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 - Esportazione CSV clienti dal server, tenant-scoped e protetta da permesso.
 - Autenticazione, sessioni, ruoli e gestione dei membri.
 - Inviti monouso con scadenza, revoca e accettazione atomica; il collegamento viene condiviso manualmente, non inviato via email.
-- Audit log, rate limiting del login e controlli di sicurezza del runtime.
+- Audit log, rate limiting persistente e condiviso per login e API, e controlli di sicurezza del runtime.
 
 ## Tecnologie
 
@@ -100,9 +100,9 @@ La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvi
 - Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
 - Gli inviti sono monouso, con token hashato nel database e scadenza; l'email automatica non è configurata.
 
-La pulizia dei tentativi di login è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
+La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
 
-Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, collaudo browser end-to-end, test cross-tenant, monitoraggio, test di carico e staging con dati sintetici.
+Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, completamento della matrice browser per i ruoli e dei test cross-tenant, monitoraggio, test di carico e staging con dati sintetici. La CI copre già un percorso browser rappresentativo admin/analista, non l'intera matrice di autorizzazione.
 
 ## Documentazione
 
