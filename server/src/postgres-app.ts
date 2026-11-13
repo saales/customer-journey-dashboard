@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import { listPostgresAuditLogs } from "./postgres-audit-repository.js";
 import { sendPostgresTransactionalEmail } from "./postgres-email.js";
+import { getPostgresOrganizationSettings, updatePostgresOrganizationName, OrganizationSettingsError } from "./postgres-organization-settings.js";
 import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
@@ -452,6 +453,32 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       }
     });
 
+
+  app.get("/api/organization", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try {
+        res.json(await getPostgresOrganizationSettings(pool, req.authenticatedSession!.organizationId));
+      } catch (error) {
+        if (error instanceof OrganizationSettingsError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
+    });
+  app.patch("/api/organization", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try {
+        const body = req.body as Record<string, unknown> | null;
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+            Object.keys(body).some(key => key !== "name")) {
+          throw new ApiError(400, "Impostazioni organizzazione non valide.");
+        }
+        res.json(await updatePostgresOrganizationName(
+          pool, req.authenticatedSession!.organizationId, req.authenticatedSession!.userId, body.name,
+        ));
+      } catch (error) {
+        if (error instanceof OrganizationSettingsError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
+    });
 
   app.get("/api/members", authenticated, requireOrganizationPermission("members:manage"),
     async (req, res, next) => {
