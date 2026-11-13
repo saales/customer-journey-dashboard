@@ -2,8 +2,7 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit codice verificato:** `5070d3ab48b7a1fe8b6b0aef209d99bda77f49e9` (CI Node 20/22, run [43433194436](https://github.com/saales/customer-journey-dashboard/actions/runs/43433194436)).  
-**Branch HEAD al checkpoint codice:** `5070d3ab48b7a1fe8b6b0aef209d99bda77f49e9`.  
+**Ultimo HEAD del branch:** `f957e25d3f3035ac35f1da6a0b4eee8612df5156` (CI in esecuzione, run [43436719524](https://github.com/saales/customer-journey-dashboard/actions/runs/43436719524)); ultimo checkpoint con CI verde: `5070d3ab48b7a1fe8b6b0aef209d99bda77f49e9`, run [43433194436](https://github.com/saales/customer-journey-dashboard/actions/runs/43433194436).  
 **PR:** [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta in bozza, non merged.
 
 Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
@@ -54,9 +53,9 @@ Lo ZIP contiene inoltre `migrate-postgres.ts`, `auth.ts`, `queries-postgres.ts`,
 
 ## Rilievi tecnici da preservare
 
-1. La migrazione 001 non abilita RLS: la sicurezza tenant dipende quindi dalle query applicative esplicitamente filtrate, finché non verranno progettate e testate policy RLS.
-2. La migrazione 001 non persiste `external_id`, mentre l'import del checkpoint ZIP lo usa per raggruppare le righe; serve una decisione sulla deduplicazione e sull'identità esterna per organizzazione.
-3. La migrazione 002 lascia nullable `sessions.organization_id`: le sessioni legacy senza organizzazione non potranno autenticarsi tramite il join applicativo descritto nello ZIP.
+1. La migrazione storica 001 non abilita RLS; la migrazione additiva 003 abilita RLS sulle tabelle operative tenant-scoped. Il runtime Express SQLite non usa ancora PostgreSQL, e le policy non sostituiscono filtri espliciti e autorizzazione applicativa.
+2. La migrazione storica 001 non persiste `external_id`; la migrazione 003 lo aggiunge e assegna `legacy:<id>` ai record storici. Il contratto dei nuovi import deve usare l'ID sorgente e prevenire collisioni.
+3. Le migrazioni 002 e 003 lasciano nullable `sessions.organization_id` per non inventare l'organizzazione delle sessioni legacy. La FK membership `NOT VALID` protegge i nuovi riferimenti valorizzati; il resolver rifiuta sessioni senza organizzazione.
 4. Lo ZIP contiene solo test auth unitari e test frontend/CSV; non contiene test d'integrazione delle API PostgreSQL, query analytics, migrazioni o isolamento cross-tenant.
 
 ## Audit preliminare del codice recuperato nello ZIP
@@ -108,3 +107,13 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 - Il resolver non è collegato a Express: login/password hashing, cookie, CSRF, rate limiting, creazione/revoca sessioni e middleware restano da implementare.
 - Il runtime usa ancora SQLite; nessuna route API è passata a PostgreSQL.
 - Neon non è stato ispezionato né modificato; nessun DDL remoto eseguito.
+
+## Stato al checkpoint PostgreSQL-first `f957e25`
+
+- Aggiunta `server/migrations/003_saas_tenant_hardening.sql`, registrata nel runner: colonna `customers.external_id` obbligatoria con backfill tecnico `legacy:<id>`, indice univoco per organizzazione, FK `sessions(organization_id,user_id)` → `memberships(organization_id,user_id)` `NOT VALID`, RLS abilitata su customers, events, funnel_stages, import_batches e audit_logs.
+- Il backfill `legacy:<id>` è un identificativo tecnico di compatibilità, non recupera gli ID esterni originari. I nuovi flussi d'import devono scrivere l'ID sorgente e gestire possibili collisioni con il prefisso legacy.
+- `withTenantTransaction` imposta `app.current_organization_id`, lo stesso parametro letto dalle policy RLS. Le query devono comunque applicare filtri espliciti tenant-scoped; il ruolo runtime non deve essere proprietario né avere `BYPASSRLS`.
+- Il test d'integrazione migrazioni applica 001-003 su schema isolato, verifica il backfill, RLS, FK non validata e isolamento lettura tra due tenant con un ruolo non proprietario.
+- La CI del commit precedente `0e6e4d5`, run [43435560705](https://github.com/saales/customer-journey-dashboard/actions/runs/43435560705), è fallita su due asserzioni obsolete in `server/test/postgres.integration.test.ts` che leggevano `app.organization_id`. Il codice impostava correttamente `app.current_organization_id`; il test è stato corretto nel commit `f957e25`. La nuova CI run [43436719524](https://github.com/saales/customer-journey-dashboard/actions/runs/43436719524) è in esecuzione e non è ancora prova di successo.
+- La PR #1 resta aperta in bozza. `main` non è stata modificata. Neon non è stato ispezionato né modificato; nessun DDL remoto eseguito.
+- Il runtime Express resta SQLite e le API non sono ancora autenticate/tenant-scoped; la migrazione 003 da sola non rende il prodotto pronto per clienti reali.
