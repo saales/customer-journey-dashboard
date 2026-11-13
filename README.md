@@ -80,6 +80,20 @@ npm install
 npm run dev
 ```
 
+Questo comando avvia il runtime storico SQLite per sviluppo locale. Il database viene creato vuoto. L'accesso dimostrativo del browser non è automatico: per abilitarlo esplicitamente, creare `client/.env.local` con:
+
+```dotenv
+VITE_ENABLE_DEMO_MODE=true
+```
+
+Per avviare il client con il runtime PostgreSQL:
+
+```bash
+npm run dev:postgres
+```
+
+Il comando avvia il server PostgreSQL e il client Vite insieme. Richiede che le variabili `DATABASE_URL`, `APP_ORIGIN=http://localhost:5173` e `LOGIN_RATE_LIMIT_SECRET` (almeno 32 caratteri casuali) siano configurate nell'ambiente server, e che lo schema sia già stato migrato e il ruolo runtime abbia i privilegi minimi previsti. Il server esegue soltanto un controllo read-only all'avvio: non applica migrazioni automaticamente. Se la configurazione o il database non sono pronti, l'avvio fallisce in modo esplicito.
+
 L'interfaccia è disponibile all'indirizzo:
 
 [http://localhost:5173](http://localhost:5173)
@@ -88,7 +102,7 @@ Il server locale è disponibile all'indirizzo:
 
 [http://localhost:3001](http://localhost:3001)
 
-Al primo avvio viene creato il database SQLite locale, inizialmente vuoto. Per caricare dati dimostrativi occorre abilitarli esplicitamente in un ambiente non di produzione:
+Per caricare dati dimostrativi SQLite occorre abilitarli esplicitamente in un ambiente non di produzione:
 
 ```bash
 ALLOW_DEMO_SEED=true npm run seed
