@@ -110,3 +110,94 @@ export async function reorderPostgresFunnelStages(
     return result.rows;
   });
 }
+
+/**
+ * Updates a stage within one organization. The advisory lock serializes
+ * case-insensitive label checks so concurrent edits cannot create duplicates.
+ * Mandatory boundary stages (visit/customer) cannot be deactivated.
+ */
+export async function updatePostgresFunnelStage(
+  pool: Pick<Pool, "connect">,
+  organizationId: string,
+  stageId: string,
+  updates: { label?: unknown; isActive?: unknown },
+): Promise<PostgresFunnelStage> {
+  assertOrganizationId(organizationId);
+  if (typeof stageId !== "string" || !STAGE_ID_RE.test(stageId)) {
+    throw new Error("Identificativo fase non valido.");
+  }
+  if (!updates || typeof updates !== "object" || Array.isArray(updates)) {
+    throw new Error("Modifiche fase non valide.");
+  }
+
+  const keys = Object.keys(updates);
+  if (keys.length === 0 || keys.some((key) => key !== "label" && key !== "isActive")) {
+    throw new Error("Nessuna modifica valida da applicare.");
+  }
+
+  let label: string | undefined;
+  let isActive: boolean | undefined;
+  if (Object.prototype.hasOwnProperty.call(updates, "label")) {
+    if (typeof updates.label !== "string") {
+      throw new Error("Il nome della fase deve contenere da 1 a 50 caratteri.");
+    }
+    label = updates.label.trim();
+    if (!label || label.length > 50) {
+      throw new Error("Il nome della fase deve contenere da 1 a 50 caratteri.");
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, "isActive")) {
+    if (typeof updates.isActive !== "boolean") {
+      throw new Error("Il campo isActive deve essere booleano.");
+    }
+    isActive = updates.isActive;
+    if (!isActive && (stageId === "visit" || stageId === "customer")) {
+      throw new Error("Le fasi Visita e Cliente non possono essere disattivate.");
+    }
+  }
+
+  return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [organizationId]);
+    const existing = await client.query<{ id: string }>(
+      `SELECT id
+       FROM funnel_stages
+       WHERE organization_id = $1::uuid AND id = $2
+       FOR UPDATE`,
+      [organizationId, stageId],
+    );
+    if (existing.rowCount !== 1) {
+      throw new Error("Fase del percorso non trovata.");
+    }
+
+    if (label !== undefined) {
+      const duplicate = await client.query<{ id: string }>(
+        `SELECT id
+         FROM funnel_stages
+         WHERE organization_id = $1::uuid
+           AND LOWER(label) = LOWER($2)
+           AND id <> $3
+         LIMIT 1`,
+        [organizationId, label, stageId],
+      );
+      if (duplicate.rowCount) {
+        throw new Error("Esiste già una fase con questo nome.");
+      }
+    }
+
+    const result = await client.query<FunnelStageRow>(
+      `UPDATE funnel_stages
+       SET label = COALESCE($3, label),
+           is_active = COALESCE($4, is_active),
+           updated_at = NOW()
+       WHERE organization_id = $1::uuid AND id = $2
+       RETURNING id, label, position,
+                 is_active AS "isActive", is_system AS "isSystem"`,
+      [organizationId, stageId, label ?? null, isActive ?? null],
+    );
+    if (!result.rows[0]) {
+      throw new Error("Fase del percorso non trovata.");
+    }
+    return result.rows[0];
+  });
+}
+
