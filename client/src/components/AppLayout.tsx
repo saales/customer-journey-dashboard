@@ -151,6 +151,15 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
         </div>
       </aside>
 
+      {!collapsed && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Chiudi menu di navigazione"
+          onClick={() => setCollapsed(true)}
+        />
+      )}
+
       <div className="app-main">
         <header className="app-header">
           <div className="header-title">
