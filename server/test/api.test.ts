@@ -26,7 +26,10 @@ describe("API", () => {
   it("risponde allo health check", async () => {
     const res = await fetch(`${base}/api/health`);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ok" });
+    expect(await res.json()).toEqual({
+      status: "ok",
+      database: "connected",
+    });
   });
 
   it("gestisce una nuova organizzazione senza dati", async () => {
