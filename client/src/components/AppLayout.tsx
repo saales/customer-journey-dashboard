@@ -70,6 +70,17 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
     }
   }, [theme]);
 
+  useEffect(() => {
+    if (collapsed || typeof window === "undefined" || window.innerWidth > 760) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setCollapsed(true);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [collapsed]);
+
   const visibleNavigation = visibleSections
     ? navigation.filter((item) => visibleSections.includes(item.id))
     : navigation;
@@ -100,7 +111,11 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
   return (
     <div className={`app-shell theme-${theme}`}>
       <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
-      <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
+      <aside
+        id="primary-navigation"
+        className={`sidebar ${collapsed ? "collapsed" : ""}`}
+        aria-label="Navigazione principale"
+      >
         <div className="sidebar-brand">
           <div className="brand-icon">
             <BarChart3 size={22} />
@@ -127,7 +142,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
           {!collapsed && "AREA DI LAVORO"}
         </div>
 
-        <nav className="sidebar-nav" aria-label="Navigazione principale">
+        <nav className="sidebar-nav" aria-label="Sezioni applicazione">
           {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.id;
@@ -168,6 +183,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
               className="mobile-menu-button"
               aria-label={collapsed ? "Apri menu" : "Chiudi menu"}
               aria-expanded={!collapsed}
+              aria-controls="primary-navigation"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu size={20} />
