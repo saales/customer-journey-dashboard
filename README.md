@@ -19,6 +19,8 @@ Il progetto permette di monitorare le performance del percorso di conversione, i
 - **Esportazione CSV:** download dei dati relativi a funnel, andamento mensile e confronto tra canali, compatibile con Excel in italiano.
 - **Interfaccia moderna:** navigazione laterale, tema chiaro e scuro e layout adattabile alle diverse dimensioni dello schermo.
 - **Gestione degli stati:** feedback durante il caricamento, segnalazione degli errori e gestione dei periodi senza dati.
+- **Paginazione clienti:** caricamento progressivo dei record con pagina e dimensione configurabili, totale risultati e navigazione tra pagine.
+- **Organizzazioni vuote:** le viste analytics gestiscono correttamente l'assenza di dati, senza richiedere un seed dimostrativo.
 
 ## Stack tecnologico
 
@@ -83,12 +85,12 @@ Le API REST consentono di consultare i dati e gestire le anagrafiche dei clienti
 | `GET /api/summary?from&to&channel` | Recupera KPI e dati del funnel |
 | `GET /api/channels?from&to` | Recupera il confronto tra canali |
 | `GET /api/timeseries?from&to&channel` | Recupera l'andamento mensile |
-| `GET /api/customers` | Recupera l'elenco dei clienti |
+| `GET /api/customers?page=1&limit=50` | Recupera una pagina di clienti con metadati di paginazione (limite massimo 100) |
 | `POST /api/customers` | Inserisce un nuovo cliente |
 | `PUT /api/customers/:id` | Modifica i dati di un cliente |
 | `DELETE /api/customers/:id` | Elimina un cliente |
 
-I parametri `from` e `to` utilizzano il formato `YYYY-MM-DD`. I valori non validi restituiscono una risposta HTTP `400` con un messaggio descrittivo.
+I parametri `from` e `to` utilizzano il formato `YYYY-MM-DD`. I valori non validi restituiscono una risposta HTTP `400` con un messaggio descrittivo. L'endpoint clienti restituisce un oggetto con `data` e `pagination` (`page`, `limit`, `total`, `totalPages`); `page` parte da 1 e `limit` vale 50 per impostazione predefinita, con massimo 100.
 
 ## Come avviarlo
 
@@ -163,7 +165,7 @@ Il progetto rappresenta un'esperienza pratica di applicazione delle competenze i
 - **Integrazione dei dati aziendali:** possibilità di importare dataset tramite CSV.
 - **Analisi comparativa:** confronto tra periodi temporali e performance dei diversi canali.
 - **Approfondimento del funnel:** analisi dei tassi di abbandono e dei punti critici del percorso di conversione.
-- **Evoluzione dell'architettura:** introduzione di autenticazione e database PostgreSQL.
+- **Evoluzione dell'architettura:** migrazione effettiva a PostgreSQL, autenticazione, sessioni e isolamento multi-tenant (non ancora completati nel branch corrente).
 - **Estensione dei test:** test end-to-end per verificare i principali flussi di utilizzo.
 
 ## Licenza
