@@ -278,7 +278,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
       invitationsStatus: invitations.status,
       invitations: await invitations.json(),
     };
-  }, { tenantACustomerId, tenantAFunnelStageId });
+  }, { foreignCustomerId: tenantACustomerId, foreignStageId: tenantAFunnelStageId });
   expect(crossTenantChecks.customerStatus).toBe(200);
   expect(crossTenantChecks.customers).toHaveLength(1);
   expect(crossTenantChecks.customers[0]).toMatchObject({ channel: "Advertising", createdAt: "2025-02-01" });
