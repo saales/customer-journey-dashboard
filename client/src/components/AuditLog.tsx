@@ -8,6 +8,10 @@ const actions = [
   ["funnel.stage.created", "Fase creata"],
   ["funnel.stage.updated", "Fase modificata"],
   ["funnel.stages.reordered", "Fasi riordinate"],
+  ["membership.updated", "Membro modificato"],
+  ["membership.invited", "Invito creato"],
+  ["membership.invitation_revoked", "Invito revocato"],
+  ["membership.invitation_accepted", "Invito accettato"],
 ] as const;
 
 function actionLabel(action: string) {
