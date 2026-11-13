@@ -91,14 +91,14 @@ export async function inspectPostgresRuntimeRole(
   const privilegeResult = await pool.query<{ tableName: string; privilege: string }>(
     `SELECT required.table_name AS "tableName", required.privilege
      FROM unnest(
-       ARRAY['schema_migrations','users','organizations','memberships',
+       ARRAY['schema_migrations','users','organizations','memberships','memberships',
              'sessions','sessions','sessions',
              'login_attempt_limits','login_attempt_limits','login_attempt_limits','login_attempt_limits',
              'customers','customers','customers','customers',
              'events','events','events','events',
              'funnel_stages','funnel_stages','funnel_stages',
              'import_batches','import_batches','audit_logs']::text[],
-       ARRAY['SELECT','SELECT','SELECT','SELECT',
+       ARRAY['SELECT','SELECT','SELECT','SELECT','UPDATE',
              'SELECT','INSERT','DELETE',
              'SELECT','INSERT','UPDATE','DELETE',
              'SELECT','INSERT','UPDATE','DELETE',

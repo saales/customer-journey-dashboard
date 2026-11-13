@@ -23,6 +23,7 @@ const MIGRATION_FILES = [
   "004_login_attempt_limits.sql",
   "005_runtime_role_grants.sql",
   "006_session_idle_timeout.sql",
+  "007_membership_management.sql",
 ] as const;
 
 const MIGRATION_LOCK_ID = "731904221";

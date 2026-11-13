@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
+import { listOrganizationMembers, updateOrganizationMember, MemberManagementError } from "./postgres-members-repository.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
 import { getPostgresSegmentCustomers, getPostgresSegments, type SegmentDimension } from "./postgres-segmentation-repository.js";
 import { importPostgresCustomers, PostgresImportError, type PostgresImportRow } from "./postgres-import-repository.js";
@@ -349,6 +350,28 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       } catch (error) { next(error); }
     });
 
+
+  app.get("/api/members", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try { res.json(await listOrganizationMembers(pool, req.authenticatedSession!.organizationId)); }
+      catch (error) { next(error); }
+    });
+  app.patch("/api/members/:id", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try {
+        const body = req.body as Record<string, unknown> | undefined;
+        if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "Modifiche membro non valide.");
+        const updates: { role?: unknown; status?: unknown } = {};
+        if (Object.prototype.hasOwnProperty.call(body, "role")) updates.role = body.role;
+        if (Object.prototype.hasOwnProperty.call(body, "status")) updates.status = body.status;
+        res.json(await updateOrganizationMember(pool, req.authenticatedSession!.organizationId,
+          req.params.id, req.authenticatedSession!.userId, updates));
+      } catch (error) {
+        if (error instanceof MemberManagementError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
+    });
+
   app.use((_req, res) => res.status(404).json({ error: "Risorsa non trovata." }));
 
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -361,6 +384,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       res.status(400).json({ error: "Il corpo JSON non è valido." });
       return;
     }
+    if (error instanceof MemberManagementError) { res.status(error.status).json({ error: error.message }); return; }
     if (error instanceof ApiError) {
       res.status(error.status).json({ error: error.message });
       return;
