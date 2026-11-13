@@ -57,7 +57,6 @@ export async function inspectPostgresSchema(
         JOIN pg_catalog.pg_roles owner ON owner.oid = c.relowner
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
           AND n.nspname !~ '^pg_'
-          AND n.nspname !~ '^pg_'
           AND c.relkind IN ('r', 'p')
         ORDER BY n.nspname, c.relname
       `),
@@ -78,6 +77,7 @@ export async function inspectPostgresSchema(
         JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+          AND n.nspname !~ '^pg_'
         ORDER BY n.nspname, c.relname, con.conname
       `),
       client.query(`
@@ -94,6 +94,7 @@ export async function inspectPostgresSchema(
                cmd, qual, with_check
         FROM pg_catalog.pg_policies
         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+          AND schemaname !~ '^pg_'
         ORDER BY schemaname, tablename, policyname
       `),
       client.query(`
