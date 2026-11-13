@@ -35,6 +35,8 @@ export function hashSessionToken(token: string): string {
  * Resolves a bearer token to a trusted user/organization/role tuple.
  * The organization is selected only by the server-side session row and then
  * cross-checked against an active membership; it is never accepted as input.
+ * Each successful resolution refreshes last_used_at; sessions idle for 30 minutes
+ * or past their absolute expires_at are rejected server-side.
  *
  * This resolver is not yet wired to Express. Cookie transport, CSRF policy,
  * login/password verification, session creation/revocation routes and
@@ -50,24 +52,24 @@ export async function resolvePostgresSession(
   const client: PoolClient = await pool.connect();
   try {
     const result = await client.query<SessionRow>(
-      `SELECT s.user_id::text AS "userId",
-              s.organization_id::text AS "organizationId",
-              m.role
-       FROM sessions s
-       JOIN users u
-         ON u.id = s.user_id
-        AND u.status = 'active'
+      `UPDATE sessions s
+       SET last_used_at = NOW()
+       FROM users u
        JOIN organizations o
-         ON o.id = s.organization_id
-        AND o.status = 'active'
+         ON o.status = 'active'
        JOIN memberships m
-         ON m.user_id = s.user_id
-        AND m.organization_id = s.organization_id
+         ON m.organization_id = o.id
+        AND m.user_id = u.id
         AND m.status = 'active'
        WHERE s.token_hash = $1
-         AND s.organization_id IS NOT NULL
+         AND s.user_id = u.id
+         AND s.organization_id = o.id
+         AND u.status = 'active'
          AND s.expires_at > NOW()
-       LIMIT 1`,
+         AND s.last_used_at > NOW() - INTERVAL '30 minutes'
+       RETURNING s.user_id::text AS "userId",
+                 s.organization_id::text AS "organizationId",
+                 m.role`,
       [tokenHash],
     );
     return result.rows[0] ?? null;
