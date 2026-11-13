@@ -180,7 +180,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
       fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ externalId: "editor-e2e-customer", channel: "Organico", createdAt: "2025-07-01", events: [{ stage: "visit", occurredAt: "2025-07-01" }] }),
+        body: JSON.stringify({ externalId: "editor-e2e-customer", channel: "Organico", createdAt: "2025-07-01", events: [] }),
       }),
       fetch("/api/funnel-stages", {
         method: "POST",
