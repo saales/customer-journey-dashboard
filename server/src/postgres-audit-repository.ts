@@ -43,8 +43,8 @@ export async function listPostgresAuditLogs(
     values.push(value);
     conditions.push(sql.replace("?", `$${values.length}`));
   };
-  if (filters.from) add("a.created_at >= ?::date", filters.from);
-  if (filters.to) add("a.created_at < (?::date + INTERVAL '1 day')", filters.to);
+  if (filters.from) add("a.created_at >= (?::date AT TIME ZONE 'UTC')", filters.from);
+  if (filters.to) add("a.created_at < ((?::date + INTERVAL '1 day') AT TIME ZONE 'UTC')", filters.to);
   if (filters.actorUserId) add("a.actor_user_id = ?::uuid", filters.actorUserId);
   if (filters.action) add("a.action = ?", filters.action);
   const where = conditions.join(" AND ");
