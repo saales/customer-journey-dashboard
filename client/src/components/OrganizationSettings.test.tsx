@@ -33,29 +33,29 @@ describe("Impostazioni organizzazione", () => {
     render(<OrganizationSettings />);
 
     const name = await screen.findByLabelText("Nome organizzazione");
-    expect(name).toHaveValue("Azienda Demo");
-    expect(screen.getByLabelText("Codice organizzazione")).toHaveValue("azienda-demo");
+    expect((name as HTMLInputElement).value).toBe("Azienda Demo");
+    expect((screen.getByLabelText("Codice organizzazione") as HTMLInputElement).value).toBe("azienda-demo");
     expect(screen.getByLabelText("Creata il")).toBeTruthy();
 
     fireEvent.change(name, { target: { value: "Azienda Demo S.p.A." } });
     fireEvent.click(screen.getByRole("button", { name: "Salva modifiche" }));
 
     await waitFor(() => expect(api.updateOrganization).toHaveBeenCalledWith("Azienda Demo S.p.A."));
-    expect(await screen.findByRole("status")).toHaveTextContent("Nome organizzazione aggiornato.");
-    expect(name).toHaveValue("Azienda Demo S.p.A.");
+    expect((await screen.findByRole("status")).textContent).toContain("Nome organizzazione aggiornato.");
+    expect((name as HTMLInputElement).value).toBe("Azienda Demo S.p.A.");
   });
 
   it("mostra un errore leggibile se il caricamento fallisce", async () => {
     vi.mocked(api.organization).mockRejectedValue(new Error("Servizio non disponibile"));
     render(<OrganizationSettings />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Servizio non disponibile");
+    expect((await screen.findByRole("alert")).textContent).toContain("Servizio non disponibile");
   });
 
   it("non invia modifiche quando il nome non è cambiato", async () => {
     vi.mocked(api.organization).mockResolvedValue(initialSettings);
     render(<OrganizationSettings />);
     await screen.findByLabelText("Nome organizzazione");
-    expect(screen.getByRole("button", { name: "Salva modifiche" })).toBeDisabled();
+    expect((screen.getByRole("button", { name: "Salva modifiche" }) as HTMLButtonElement).disabled).toBe(true);
     expect(api.updateOrganization).not.toHaveBeenCalled();
   });
 });
