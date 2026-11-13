@@ -69,6 +69,26 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
     );
   });
 
+
+  it("verifica anche i privilegi del rate limiter API persistente", async () => {
+    const pool = {
+      query: async (sql: string) => ({
+        rows: sql.includes("pg_roles") ? [goodRole]
+          : sql.includes("pg_auth_members") ? [{ hasRoleMembership: false }]
+          : sql.includes("has_schema_privilege") ? [{ canCreateSchema: false }]
+          : sql.includes("has_table_privilege")
+            ? [{ tableName: "api_request_limits", privilege: "INSERT" }]
+            : goodTables,
+        rowCount: 1,
+      }),
+    };
+    const result = await inspectPostgresRuntimeRole(pool as never);
+    expect(result.missingPrivileges).toEqual(["api_request_limits:INSERT"]);
+    await expect(assertSafePostgresRuntimeRole(pool as never)).rejects.toThrow(
+      "Ruolo PostgreSQL non sicuro",
+    );
+  });
+
   it("rifiuta ruoli che ereditano privilegi o appartengono ad altri ruoli", async () => {
     const unsafe = {
       query: async (sql: string) => ({
