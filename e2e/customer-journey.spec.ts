@@ -109,4 +109,43 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await expect(page.getByRole("heading", { name: "Accedi al tuo spazio di lavoro" })).toBeVisible();
   const revokedSessionStatus = await page.evaluate(async () => (await fetch("/api/auth/session")).status);
   expect(revokedSessionStatus).toBe(401);
+
+  // Seconda verifica browser con un ruolo viewer, privo anche dell'export.
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByLabel("Codice organizzazione").fill(admin.organization);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
+  await page.getByRole("button", { name: "Impostazioni" }).click();
+  await page.getByLabel("Email", { exact: true }).fill("viewer@e2e.example");
+  await page.locator("form.customer-form select").selectOption("viewer");
+  await page.getByRole("button", { name: "Crea invito (7 giorni)" }).click();
+  const viewerInviteInput = page.getByLabel("Collegamento da condividere");
+  await expect(viewerInviteInput).toHaveValue(/token=/);
+  await page.goto(await viewerInviteInput.inputValue());
+  await page.getByLabel("Nome e cognome").fill("E2E Viewer");
+  await page.getByLabel("Password", { exact: true }).fill("E2E-viewer-password-2026!");
+  await page.getByLabel("Conferma password").fill("E2E-viewer-password-2026!");
+  const viewerAcceptance = page.waitForResponse((response) =>
+    response.url().endsWith("/api/invitations/accept") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Accetta invito" }).click();
+  expect((await viewerAcceptance).status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
+  await page.getByRole("button", { name: "Gestione clienti" }).click();
+  await expect(page.getByRole("button", { name: "Nuovo cliente" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Esporta tutti i clienti CSV" })).toHaveCount(0);
+  const viewerPermissions = await page.evaluate(async () => {
+    const [audit, customerWrite, exportCsv] = await Promise.all([
+      fetch("/api/audit"),
+      fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "Organico", createdAt: "2025-06-01", events: [] }),
+      }),
+      fetch("/api/export/customers.csv"),
+    ]);
+    return { audit: audit.status, customerWrite: customerWrite.status, exportCsv: exportCsv.status };
+  });
+  expect(viewerPermissions).toEqual({ audit: 403, customerWrite: 403, exportCsv: 403 });
 });
