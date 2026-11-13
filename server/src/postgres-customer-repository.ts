@@ -162,7 +162,7 @@ export async function createPostgresCustomer(
   if (!input.channel.trim() || input.channel.length > 100) {
     throw new Error("Canale non valido.");
   }
-  const datePattern = /^\\d{4}-\\d{2}-\\d{2}$/;
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   const isDate = (value: string) =>
     datePattern.test(value) &&
     !Number.isNaN(Date.parse(value)) &&
