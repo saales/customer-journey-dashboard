@@ -39,6 +39,8 @@ Questo strumento è un inventario, non un audit completo né una prova di isolam
 - non confronta lo schema con il contratto dati o con una baseline storica;
 - non verifica i filtri tenant nelle query applicative, autenticazione, autorizzazioni API o flussi di sessione;
 - le policy riportate sono quelle visibili attraverso `pg_catalog.pg_policies` al ruolo utilizzato;
+- le colonne sono lette da `information_schema.columns`, che restituisce solo quelle visibili al ruolo corrente in base ai privilegi; un report eseguito con un ruolo meno privilegiato può quindi essere incompleto;
+- la visibilità dei metadati e delle policy dipende dal ruolo e dai privilegi effettivi: per confronti ripetibili, annotare il ruolo usato e verificare che disponga delle autorizzazioni previste;
 - i flag RLS descrivono la configurazione delle tabelle, ma non dimostrano da soli che ogni percorso applicativo sia isolato correttamente.
 
 L'assenza di policy, RLS disabilitata, RLS non forzata o un ruolo superuser/BYPASSRLS richiedono analisi specifica. Anche con RLS attiva, proprietari di tabelle e ruoli privilegiati possono avere comportamenti che non corrispondono al normale ruolo applicativo.
