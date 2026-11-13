@@ -179,12 +179,12 @@ export function FunnelSettings({ onDataChange }: Props) {
   }
 
   if (loading) {
-    return <p className="loading">Caricamento delle fasi del funnel…</p>;
+    return <p className="loading">Caricamento delle fasi del percorso…</p>;
   }
 
   return (
     <div className="card funnel-settings">
-      <h2>Configurazione del funnel</h2>
+      <h2>Configurazione del percorso</h2>
 
       <p className="subtitle">
         Personalizza le fasi del percorso cliente. Le modifiche non eliminano
