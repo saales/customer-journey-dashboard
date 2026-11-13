@@ -24,6 +24,27 @@ const [qualifiedDate, setQualifiedDate] = useState("");
 const [opportunityDate, setOpportunityDate] = useState("");
 const [customerDate, setCustomerDate] = useState("");
 
+  async function exportCustomers() {
+    try {
+      const response = await fetch("/api/export/customers.csv", { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? `Esportazione non riuscita (${response.status}).`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "percorso-clienti.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Esportazione non riuscita.");
+    }
+  }
+
   async function loadCustomers(requestedPage = page) {
     try {
       setLoading(true);
@@ -169,6 +190,7 @@ async function handleDelete(customerId: string) {
           <h2>Gestione clienti</h2>
           <p className="hint">Gestione dei clienti e delle relative fasi del percorso.</p>
         </div>
+<button className="button-secondary" type="button" onClick={() => void exportCustomers()}>Esporta tutti i clienti CSV</button>
 <button className="export" onClick={() => setShowForm(!showForm)}>
   {showForm ? "Annulla" : "Nuovo cliente"}
 </button>

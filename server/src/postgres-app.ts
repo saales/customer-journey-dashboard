@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
+import { exportPostgresCustomersCsv, PostgresExportError } from "./postgres-export-repository.js";
 import { listOrganizationMembers, updateOrganizationMember, MemberManagementError } from "./postgres-members-repository.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
 import { getPostgresSegmentCustomers, getPostgresSegments, type SegmentDimension } from "./postgres-segmentation-repository.js";
@@ -253,6 +254,20 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         const filters = await parseAnalyticsFilters(req, org);
         res.json(await getPostgresSegmentCustomers(pool, org, filters, dimension as SegmentDimension, id));
       } catch (error) { next(error); }
+    });
+
+  app.get("/api/export/customers.csv", authenticated, requireOrganizationPermission("data:export"),
+    async (req, res, next) => {
+      try {
+        const result = await exportPostgresCustomersCsv(pool, req.authenticatedSession!.organizationId);
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", 'attachment; filename="percorso-clienti.csv"');
+        res.setHeader("X-Export-Row-Count", String(result.rowCount));
+        res.send(result.csv);
+      } catch (error) {
+        if (error instanceof PostgresExportError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
     });
 
   app.get("/api/customers", authenticated,
