@@ -56,6 +56,21 @@ Lo ZIP contiene inoltre `migrate-postgres.ts`, `auth.ts`, `queries-postgres.ts`,
 3. La migrazione 002 lascia nullable `sessions.organization_id`: le sessioni legacy senza organizzazione non potranno autenticarsi tramite il join applicativo descritto nello ZIP.
 4. Lo ZIP contiene solo test auth unitari e test frontend/CSV; non contiene test d'integrazione delle API PostgreSQL, query analytics, migrazioni o isolamento cross-tenant.
 
+## Audit preliminare del codice recuperato nello ZIP
+
+Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e non è stato possibile completare un'installazione locale pulita delle dipendenze.
+
+- Il backend ZIP contiene auth, query analytics PostgreSQL, CRUD clienti/fasi, import, bootstrap admin, seed Demo e runner migrazioni.
+- Il client del branch corrente usa il contratto paginazione `{ data, pagination: { page, limit, total, totalPages } }`; il server nello ZIP restituisce `{ items, total, page, pageSize, totalPages }`. L'integrazione deve preservare/adattare il contratto del branch, non ripristinare alla cieca il client ZIP.
+- Le query PostgreSQL esaminate applicano esplicitamente `organization_id`, ma la migrazione 001 non abilita RLS e non esistono test d'integrazione cross-tenant per le route/query ZIP.
+- `seed-postgres.ts` richiede `ALLOW_DEMO_SEED=true`, ma non contiene un blocco esplicito per `NODE_ENV=production`: va corretto prima di usare il comando in ambienti reali.
+- La creazione di una fase aggiorna `position = position + 1` sotto un vincolo UNIQUE immediato; il possibile conflitto tra posizioni va coperto da un test PostgreSQL e corretto con uno spostamento a due fasi.
+- Alcuni catch del backend ZIP eseguono rollback ma rilasciano comunque il client senza distruggerlo se il rollback fallisce; usare il pattern già presente nel branch in `tenant-transaction.ts`.
+- Il runner ZIP in modalità `--check` esegue il DDL mancante dentro una transazione e poi fa rollback: non è una semplice ispezione read-only dei cataloghi e non va eseguito su Neon come sostituto dell'ispezione.
+- Il seed Demo e il bootstrap non hanno test d'integrazione; login, query analytics, CRUD, import, migrazioni e isolamento tenant non hanno una suite PostgreSQL completa.
+- `README.md` e `docs/ARCHITETTURA.md` nello ZIP descrivono ancora SQLite e auto-seed, quindi non rappresentano il comportamento del backend PostgreSQL incluso nello stesso archivio.
+- La revisione locale del ZIP non ha completato `npm ci`: l'ambiente ha interrotto il processo e le dipendenze risultavano parziali. I conseguenti errori locali di `vitest`/TypeScript non sono attribuibili con certezza al sorgente. La CI del branch, invece, ha superato test e build.
+
 ## Prossimi passi sicuri
 
 1. Confrontare gli SQL recuperati con la struttura e il registro migrazioni reali tramite ispezione autorizzata in sola lettura; nessuna modifica a Neon.
