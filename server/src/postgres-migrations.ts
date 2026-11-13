@@ -173,6 +173,21 @@ export async function applyPostgresMigrations(
       ORDER BY version
     `);
     const recorded = new Map(result.rows.map((row) => [row.version, row]));
+    const knownVersions = new Set(migrations.map((migration) => migration.version));
+    for (const version of recorded.keys()) {
+      if (!knownVersions.has(version)) {
+        throw new Error(`Versione già registrata ma assente dai file di migrazione: ${version}. Verificare lo storico prima di procedere.`);
+      }
+    }
+
+    let encounteredPending = false;
+    for (const migration of migrations) {
+      const wasRecorded = recorded.has(migration.version);
+      if (!wasRecorded) encounteredPending = true;
+      else if (encounteredPending) {
+        throw new Error(`Storico migrazioni non contiguo alla versione ${migration.version}; eseguire il preflight e correggere lo storico prima di procedere.`);
+      }
+    }
 
     for (const migration of migrations) {
       const digest = checksum(migration.sql);
