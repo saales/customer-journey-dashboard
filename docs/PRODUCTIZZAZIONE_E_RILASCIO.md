@@ -29,7 +29,7 @@ Ogni risorsa appartenente a un'organizzazione deve essere filtrata lato server t
 - Gestione clienti ed eventi con paginazione e filtri.
 - Importazione CSV con anteprima, validazione, deduplicazione e report degli errori.
 - Esportazioni controllate e tracciate.
-- Audit log per modifiche a clienti e funnel, importazioni, membership e inviti; completare la copertura di tutte le operazioni amministrative e di lettura sensibili.
+- Audit log per modifiche a clienti e funnel, importazioni, esportazioni CSV, membership e inviti; resta da valutare la copertura delle ulteriori operazioni amministrative e letture sensibili.
 - Gestione organizzazione, utenti e preferenze.
 - Nessun accesso dimostrativo o seed automatico nel runtime standard.
 - Backup, ripristino, logging, monitoraggio e procedura di incident response.
