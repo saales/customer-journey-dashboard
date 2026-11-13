@@ -2,7 +2,7 @@
 
 Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–012 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
+> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–013 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
 
 ## Funzioni
 
@@ -16,6 +16,7 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 - Autenticazione, sessioni, ruoli e gestione dei membri.
 - Inviti monouso con scadenza, revoca e accettazione atomica, con invio automatico tramite Resend quando configurato.
 - Recupero password con token monouso hashati, scadenza di 30 minuti, invio email e revoca di tutte le sessioni esistenti.
+- Impostazioni account: modifica del nome, cambio password con verifica della password attuale e revoca di tutte le sessioni.
 - Impostazioni organizzazione: visualizzazione e modifica del nome da parte degli amministratori, con audit log.
 - Audit log, rate limiting persistente e condiviso per login e API, e controlli di sicurezza del runtime.
 
@@ -46,8 +47,8 @@ Copiare `.env.example` in `.env.local` e configurare i valori reali solo nel fil
 DATABASE_URL=postgresql://utente_app:password@host:5432/database?sslmode=require
 APP_ORIGIN=http://localhost:5173
 LOGIN_RATE_LIMIT_SECRET=una-stringa-casuale-di-almeno-32-caratteri
-RESEND_API_KEY=re_xxxxxxxxx
-EMAIL_FROM=Percorso Cliente <noreply@example.com>
+RESEND_API_KEY= # opzionale
+EMAIL_FROM= # opzionale; configurare insieme a RESEND_API_KEY
 PORT=3001
 ```
 
@@ -92,7 +93,7 @@ npm test
 npm run build
 ```
 
-La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Su Node.js 22 esegue test browser Playwright/Chromium per admin, analyst, viewer ed editor, inclusi creazione cliente, configurazione funnel, import/export CSV, inviti, accettazione e verifica permessi. Il test crea anche un secondo tenant e controlla l'isolamento API per clienti, export e audit: update/delete di un cliente estraneo devono restituire 404. La modifica cross-tenant di fasi funnel e la copertura cross-tenant di tutte le altre API non sono ancora verificate via browser. Il database dei test è PostgreSQL temporaneo CI, non il database remoto.
+La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Su Node.js 22 esegue test browser Playwright/Chromium per admin, analyst, viewer ed editor, inclusi creazione cliente, configurazione funnel, import/export CSV, inviti, accettazione e verifica permessi. Il test crea anche un secondo tenant e controlla l'isolamento API per clienti, fasi funnel, export e audit: un tenant non può leggere le fasi altrui né modificare clienti o fasi con ID estranei. La copertura cross-tenant completa di tutte le API non è ancora dimostrata. Il database dei test è PostgreSQL temporaneo CI, non il database remoto.
 
 ## Sicurezza e rilascio
 
@@ -103,6 +104,7 @@ La CI applica le migrazioni a un PostgreSQL temporaneo, verifica checksum e avvi
 - Lo startup controlla lo storico migrazioni e i privilegi; non modifica lo schema.
 - Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
 - Gli inviti e i reset password usano token monouso, memorizzati solo come hash e con scadenza.
+- Il cambio password richiede la password attuale, aggiorna le credenziali in transazione e revoca tutte le sessioni.
 - Le email transazionali usano Resend; configurare `RESEND_API_KEY` e `EMAIL_FROM`. Senza configurazione, gli inviti restano condivisibili manualmente e il recupero password non può inviare istruzioni.
 
 La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
