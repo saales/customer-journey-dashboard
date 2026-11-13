@@ -85,27 +85,33 @@ describe("PostgreSQL authentication middleware", () => {
 });
 
 describe("organization role and permission policy", () => {
-  it.each([
-    ["admin", [
+  const expectedPermissions = {
+    admin: [
       "analytics:read", "customers:read", "customers:write",
       "funnel:read", "funnel:write", "data:import", "data:export",
       "members:manage", "audit:read",
-    ]],
-    ["editor", [
+    ],
+    editor: [
       "analytics:read", "customers:read", "customers:write",
       "funnel:read", "funnel:write", "data:import", "data:export",
-    ]],
-    ["analyst", [
+    ],
+    analyst: [
       "analytics:read", "customers:read", "funnel:read", "data:export",
-    ]],
-    ["viewer", [
+    ],
+    viewer: [
       "analytics:read", "customers:read", "funnel:read",
-    ]],
-  ] as const)("enforces the complete least-privilege permission matrix for %s", (role, expected) => {
-    expect([...getRolePermissions(role)].sort()).toEqual([...expected].sort());
-  });
+    ],
+  } as const;
 
-  it("allows an analyst to read analytics and denies customer mutation", () => {
+  it.each(Object.entries(expectedPermissions))(
+    "applica esattamente le autorizzazioni previste per il ruolo %s",
+    (role, expected) => {
+      expect([...getRolePermissions(role as keyof typeof expectedPermissions)].sort())
+        .toEqual([...expected].sort());
+    },
+  );
+
+  it("consente a un analista le letture previste e nega le scritture e l'audit", () => {
     const req = { authenticatedSession: SESSION } as Request;
     const response = {
       statusCode: 200,
@@ -117,24 +123,15 @@ describe("organization role and permission policy", () => {
     requireOrganizationPermission("analytics:read")(req, response, next);
     expect(next).toHaveBeenCalledOnce();
 
-    const deniedNext = vi.fn() as unknown as NextFunction;
-    requireOrganizationPermission("customers:write")(req, response, deniedNext);
-    expect(response.statusCode).toBe(403);
-    expect(deniedNext).not.toHaveBeenCalled();
+    for (const permission of ["customers:write", "data:import", "funnel:write", "audit:read"] as const) {
+      const deniedNext = vi.fn() as unknown as NextFunction;
+      requireOrganizationPermission(permission)(req, response, deniedNext);
+      expect(response.statusCode).toBe(403);
+      expect(deniedNext).not.toHaveBeenCalled();
+    }
   });
 
-  it("allows member management and audit history only to administrators", () => {
-    expect(getRolePermissions("admin").has("members:manage")).toBe(true);
-    expect(getRolePermissions("admin").has("audit:read")).toBe(true);
-    expect(getRolePermissions("editor").has("members:manage")).toBe(false);
-    expect(getRolePermissions("editor").has("audit:read")).toBe(false);
-    expect(getRolePermissions("analyst").has("audit:read")).toBe(false);
-    expect(getRolePermissions("analyst").has("data:import")).toBe(false);
-    expect(getRolePermissions("viewer").has("audit:read")).toBe(false);
-    expect(getRolePermissions("viewer").has("data:export")).toBe(false);
-  });
-
-  it("does not allow a request without authenticated context", () => {
+  it("non consente richieste prive di contesto autenticato", () => {
     const req = {} as Request;
     const response = {
       statusCode: 200,
