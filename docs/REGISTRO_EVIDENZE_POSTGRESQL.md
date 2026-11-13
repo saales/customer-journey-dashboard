@@ -25,8 +25,8 @@ Stato database remoto: non verificato in questa attività.
 
 ## CI
 
-- Il commit `7570eb3bcfd64787aa7c8ab19a8a2ee68c504d53` ha superato test, build, audit dipendenze, migrazioni 001–010, verifica checksum e avvio runtime con ruolo limitato su Node.js 20 e 22: run [43493813499](https://github.com/saales/customer-journey-dashboard/actions/runs/43493813499).
-- Sul runtime Node.js 22 la stessa CI ha completato Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
+- Il commit `d9f2c296aac62cbdcddb002f318c2a3bab024547` ha superato test, build, audit dipendenze, migrazioni 001–010, verifica checksum e avvio runtime con ruolo limitato su Node.js 20 e 22: run [43495637026](https://github.com/saales/customer-journey-dashboard/actions/runs/43495637026).
+- Sul runtime Node.js 22 la stessa CI ha completato Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico, verificando anche la registrazione e consultazione amministrativa dell'export CSV.
 - La CI usa PostgreSQL temporaneo e non accede a Neon.
 
 ## Verifiche remote non eseguite
@@ -51,7 +51,7 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 
 ## Collaudo browser end-to-end — 13 novembre 2026
 
-- Run CI [43493813499](https://github.com/saales/customer-journey-dashboard/actions/runs/43493813499), commit `7570eb3bcfd64787aa7c8ab19a8a2ee68c504d53`: concluso con successo su Node.js 20 e 22.
+- Run CI [43495637026](https://github.com/saales/customer-journey-dashboard/actions/runs/43495637026), commit `d9f2c296aac62cbdcddb002f318c2a3bab024547`: concluso con successo su Node.js 20 e 22.
 - Il job Node.js 22 ha eseguito Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
 - Flusso verificato: login admin, creazione cliente, aggiunta fase funnel, importazione CSV, export admin, invito e accettazione analista, export analista, rifiuto HTTP 403 della lettura audit e della creazione cliente invocata direttamente dall'analista, logout e revoca sessione verificata con HTTP 401.
 - Non è un test completo di tutti i ruoli o dell'isolamento cross-tenant; non sono stati eseguiti test di carico.
