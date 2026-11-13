@@ -71,7 +71,7 @@ function validateRows(
   const validationRows: ValidationRow[] = rows.map((data, index) => {
     const errors: string[] = [];
 
-    const externalId = data.externalId ?? "";
+    const externalId = (data.externalId ?? "").trim();
     const channel = data.channel ?? "";
     const createdAt = data.createdAt ?? "";
     const stage = data.stage ?? "";
@@ -127,7 +127,7 @@ function validateRows(
   const customers = new Map<string, ValidationRow[]>();
 
   for (const row of validationRows) {
-    const externalId = row.data.externalId ?? "";
+    const externalId = (row.data.externalId ?? "").trim();
 
     if (!externalId) continue;
 
@@ -492,7 +492,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
   const customerGroups = new Map<string, ValidationRow[]>();
 
   for (const row of validationRows) {
-    const externalId = row.data.externalId ?? "";
+    const externalId = (row.data.externalId ?? "").trim();
 
     if (!externalId) continue;
 
@@ -523,7 +523,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
   const validCount = individuallyValidRows.length;
 
   const customersToImport = new Set(
-    importableRows.map((row) => row.data.externalId)
+    importableRows.map((row) => (row.data.externalId ?? "").trim())
   ).size;
 
   const eventsToImport = importableRows.length;
@@ -606,7 +606,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
 
     try {
       const rows = result.rows.map((row) => ({
-        externalId: row.externalId ?? "",
+        externalId: (row.externalId ?? "").trim(),
         channel: row.channel ?? "",
         createdAt: row.createdAt ?? "",
         stage: row.stage ?? "",
