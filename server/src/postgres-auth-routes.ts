@@ -2,6 +2,8 @@ import { createHmac } from "node:crypto";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import type { Pool, PoolClient } from "pg";
 import { authenticatePostgresCredentials } from "./postgres-authentication.js";
+import { createPostgresPasswordReset, consumePostgresPasswordReset } from "./postgres-password-reset.js";
+import { sendPostgresTransactionalEmail } from "./postgres-email.js";
 import { revokePostgresSession } from "./postgres-session-repository.js";
 import {
   getPostgresSessionCookieName,
@@ -208,6 +210,62 @@ export function createPostgresAuthRouter(
     } catch (error) {
       next(error);
     }
+  });
+
+  router.post("/password-reset/request", async (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isAllowedPostgresAuthOrigin(req.get("Origin"), origins)) {
+      res.status(403).json({ error: "Origine della richiesta non autorizzata." });
+      return;
+    }
+    const body = req.body as Record<string, unknown> | null;
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        typeof body.email !== "string" || typeof body.organizationSlug !== "string" ||
+        body.email.length > 254 || !/^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/.test(body.organizationSlug)) {
+      res.status(400).json({ error: "Inserire un indirizzo email e un codice organizzazione validi." });
+      return;
+    }
+    try {
+      // Identical response for unknown accounts and disabled email delivery.
+      if (options.emailApiKey && options.emailFrom) {
+        const reset = await createPostgresPasswordReset(pool, body.email, body.organizationSlug);
+        if (reset) {
+          const link = new URL("/", req.get("Origin")!);
+          link.searchParams.set("reset", reset.token);
+          const safeName = reset.fullName.replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));
+          await sendPostgresTransactionalEmail({
+            to: reset.email,
+            subject: "Reimposta la password — Percorso Cliente",
+            text: `Ciao ${reset.fullName}, usa questo collegamento entro 30 minuti per reimpostare la password: ${link.toString()}. Se non hai richiesto tu il recupero, ignora questa email.`,
+            html: `<p>Ciao ${safeName},</p><p>Hai richiesto di reimpostare la password di Percorso Cliente.</p><p><a href="${link.toString()}">Reimposta la password</a></p><p>Il collegamento scade tra 30 minuti. Se non hai richiesto tu il recupero, ignora questa email.</p>`,
+          }, { apiKey: options.emailApiKey, from: options.emailFrom });
+        }
+      }
+      res.status(202).json({ message: "Se l'account esiste e l'invio email è configurato, riceverai le istruzioni." });
+    } catch (error) { next(error); }
+  });
+
+  router.post("/password-reset/complete", async (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isAllowedPostgresAuthOrigin(req.get("Origin"), origins)) {
+      res.status(403).json({ error: "Origine della richiesta non autorizzata." });
+      return;
+    }
+    const body = req.body as Record<string, unknown> | null;
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        typeof body.token !== "string" || typeof body.password !== "string" ||
+        body.password.length < 12 || body.password.length > 1024) {
+      res.status(400).json({ error: "Inserire un collegamento valido e una password di almeno 12 caratteri." });
+      return;
+    }
+    try {
+      if (!await consumePostgresPasswordReset(pool, body.token, body.password)) {
+        res.status(400).json({ error: "Il collegamento non è valido o è scaduto. Richiedi un nuovo recupero." });
+        return;
+      }
+      appendCookie(res, clearSessionCookie(production));
+      res.status(200).json({ message: "Password aggiornata. Accedi nuovamente." });
+    } catch (error) { next(error); }
   });
 
   router.get("/session", requirePostgresSession(pool, cookieName), (req, res) => {
