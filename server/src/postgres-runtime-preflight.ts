@@ -110,6 +110,14 @@ export async function inspectPostgresRuntimeRole(
        current_user,
        format('%I.%I', current_schema(), required.table_name),
        required.privilege
+     )
+     UNION ALL
+     SELECT 'sessions.last_used_at' AS "tableName", 'UPDATE' AS privilege
+     WHERE NOT has_column_privilege(
+       current_user,
+       format('%I.%I', current_schema(), 'sessions'),
+       'last_used_at',
+       'UPDATE'
      )`,
   );
   const missingPrivileges = privilegeResult.rows.map(
