@@ -66,7 +66,9 @@ describe("rate limiting persistente delle API", () => {
       socket: { remoteAddress: "203.0.113.19" },
     } as unknown as Request;
 
-    await middleware(request, response, next);
+    await (middleware as unknown as (
+      req: Request, res: Response, callback: NextFunction,
+    ) => Promise<void>)(request, response, next);
 
     expect(response.setHeader).toHaveBeenCalledWith("Retry-After", String(API_RATE_LIMIT_WINDOW_MS / 1000));
     expect(response.status).toHaveBeenCalledWith(429);
