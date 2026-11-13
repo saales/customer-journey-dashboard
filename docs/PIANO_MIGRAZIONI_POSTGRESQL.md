@@ -9,6 +9,7 @@ Assicurare che il database effettivamente usato dal prodotto sia PostgreSQL, che
 - Runtime standard PostgreSQL.
 - Migrazioni versionate 001–010.
 - Runner con checksum, ordine e advisory lock.
+- Migrazione 010: concede SELECT su `audit_logs` al ruolo runtime, mantenendo RLS tenant-scoped; necessaria per consultare l'audit e verificare le esportazioni registrate.
 - Startup read-only che si interrompe in caso di migrazioni pendenti o drift.
 - CI con PostgreSQL temporaneo, applicazione migrazioni e avvio con ruolo limitato; test browser Playwright rappresentativo su Node.js 22.
 
