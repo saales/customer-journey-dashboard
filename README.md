@@ -12,7 +12,7 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 - Importazione CSV/Excel con validazione server-side.
 - Segmentazione e confronto dei gruppi.
 - Esportazione report CSV, Excel e PDF dal browser.
-- Esportazione CSV clienti dal server, tenant-scoped e protetta da permesso.
+- Esportazione CSV clienti dal server, tenant-scoped, protetta da permesso e registrata nell'audit log.
 - Autenticazione, sessioni, ruoli e gestione dei membri.
 - Inviti monouso con scadenza, revoca e accettazione atomica; il collegamento viene condiviso manualmente, non inviato via email.
 - Audit log, rate limiting persistente e condiviso per login e API, e controlli di sicurezza del runtime.
