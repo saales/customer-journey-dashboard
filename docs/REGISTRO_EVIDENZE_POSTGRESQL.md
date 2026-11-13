@@ -173,3 +173,14 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Uscita con revoca server-side e cancellazione cookie | `POST /api/auth/logout`, `AuthGate.tsx` | Implementato nel codice |
 | Modalità demo SQLite limitata all'ambiente di sviluppo quando la route auth non esiste | `AuthGate.tsx` | Implementata; non attiva in produzione |
 | Test browser di login, controllo sessione e logout | `client/src/components/AuthGate.test.tsx` | Aggiunti; CI del commit finale da verificare |
+
+
+## Segmentazione PostgreSQL — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Segmentazione per canale, fase raggiunta, mese e combinazione canale/fase | `getPostgresSegments` | Implementata |
+| Classificazione distinta delle fasi disattivate | `postgres-segmentation-repository.ts` | Implementata |
+| Dettaglio clienti per segmento con ID BIGINT serializzato come stringa | `getPostgresSegmentCustomers`, contratto client | Implementato |
+| Filtro tenant e date in ogni query; contesto RLS nella transazione | repository + test con due organizzazioni | Test d'integrazione aggiunti |
+| API di lettura protette dal permesso analytics:read | `GET /api/segments`, `GET /api/segments/customers` | Implementate |

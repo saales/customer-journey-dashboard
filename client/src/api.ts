@@ -119,7 +119,7 @@ export interface SegmentAnalysis {
 }
 
 export interface SegmentCustomer {
-  id: number;
+  id: string;
   channel: string;
   createdAt: string;
   stage: string;

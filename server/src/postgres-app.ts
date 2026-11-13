@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
+import { getPostgresSegmentCustomers, getPostgresSegments, type SegmentDimension } from "./postgres-segmentation-repository.js";
 import {
   requirePostgresSession,
   requireOrganizationPermission,
@@ -186,6 +187,25 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       try {
         const org = req.authenticatedSession!.organizationId;
         res.json(await getPostgresTimeseries(pool, org, await parseAnalyticsFilters(req, org)));
+      } catch (error) { next(error); }
+    });
+
+  app.get("/api/segments", authenticated, requireOrganizationPermission("analytics:read"),
+    async (req, res, next) => {
+      try {
+        const org = req.authenticatedSession!.organizationId;
+        res.json(await getPostgresSegments(pool, org, await parseAnalyticsFilters(req, org)));
+      } catch (error) { next(error); }
+    });
+
+  app.get("/api/segments/customers", authenticated, requireOrganizationPermission("analytics:read"),
+    async (req, res, next) => {
+      try {
+        const org = req.authenticatedSession!.organizationId;
+        const dimension = typeof req.query.dimension === "string" ? req.query.dimension : "";
+        const id = typeof req.query.id === "string" ? req.query.id : "";
+        const filters = await parseAnalyticsFilters(req, org);
+        res.json(await getPostgresSegmentCustomers(pool, org, filters, dimension as SegmentDimension, id));
       } catch (error) { next(error); }
     });
 
