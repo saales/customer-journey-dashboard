@@ -45,6 +45,41 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
+
+      # Keep dependency findings visible in PR CI without masking the test/build result.
+      - name: Audit npm dependencies
+        continue-on-error: true
+        run: |
+          npm audit --json > "$RUNNER_TEMP/npm-audit.json" || true
+          node --input-type=commonjs <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const reportPath = path.join(process.env.RUNNER_TEMP, "npm-audit.json");
+          let report;
+          try {
+            report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          } catch (error) {
+            console.error("Unable to parse npm audit output:", error.message);
+            process.exitCode = 1;
+            process.exit();
+          }
+          if (report.error) {
+            console.error("npm audit failed:", report.error.summary || report.error.message);
+            process.exitCode = 1;
+            process.exit();
+          }
+          const metadata = report.metadata?.vulnerabilities || {};
+          console.log("npm audit summary:", JSON.stringify(metadata));
+          for (const [name, finding] of Object.entries(report.vulnerabilities || {})) {
+            const advisories = (finding via = finding.via || [])
+              .filter((item) => typeof item === "object")
+              .map((item) => item.url || item.title || item.name);
+            console.log(
+              `- ${name}: ${finding.severity}; direct=${finding.isDirect}; range=${finding.range}; fixAvailable=${JSON.stringify(finding.fixAvailable)}`
+            );
+            for (const advisory of advisories) console.log(`  advisory: ${advisory}`);
+          }
+          NODE
       - run: npm test
       - run: npm run build
 
