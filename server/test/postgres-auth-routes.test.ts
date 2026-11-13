@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { Pool, PoolClient } from "pg";
 import {
   isAllowedPostgresAuthOrigin,
   createPostgresAuthRouter,
+  consumePostgresLoginAttempt,
 } from "../src/postgres-auth-routes.js";
 
 describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => {
@@ -39,5 +41,31 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
       allowedOrigins: ["https://app.example.it/path"],
       rateLimitSecret: "x".repeat(40), production: false,
     })).toThrow("Le origini web devono essere URL di origine esatti.");
+  });
+  it("applica limiti distinti per indirizzo IP e coppia IP/email", async () => {
+    const insertValues: unknown[][] = [];
+    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      if (sql.includes("RETURNING attempts <= $2")) { insertValues.push(values ?? []); return { rows: [{ allowed: true }], rowCount: 1 }; }
+      return { rows: [], rowCount: 0 };
+    });
+    const client = { query, release: vi.fn() } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    await expect(consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.10", "user@example.test")).resolves.toBe(true);
+    expect(insertValues).toHaveLength(2);
+    expect(insertValues.map(values => values[1])).toEqual([60, 10]);
+    expect(insertValues[0]?.[0]).not.toBe(insertValues[1]?.[0]);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("updated_at < NOW() - INTERVAL '30 days'"));
+  });
+
+  it("blocca tutte le email quando il bucket IP supera il limite", async () => {
+    let bucket = 0;
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes("RETURNING attempts <= $2")) { bucket += 1; return { rows: [{ allowed: bucket !== 1 }], rowCount: 1 }; }
+      return { rows: [], rowCount: 0 };
+    });
+    const client = { query, release: vi.fn() } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    await expect(consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.10", "other@example.test")).resolves.toBe(false);
+    expect(bucket).toBe(2);
   });
 });

@@ -10,6 +10,7 @@ import {
 
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 10;
+const MAX_IP_LOGIN_ATTEMPTS = 60;
 
 export interface PostgresAuthRouterOptions {
   /** Elenco esplicito delle origini web ammesse, senza percorsi. */
@@ -74,40 +75,49 @@ function clearSessionCookie(production: boolean): string {
   return `${name}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${production ? "; Secure" : ""}`;
 }
 
-async function consumeLoginAttempt(
-  pool: Pick<Pool, "connect">,
-  secret: string,
-  address: string,
-  email: string,
+function loginRateLimitKey(secret: string, scope: "ip" | "identity", address: string, email?: string): string {
+  const hmac = createHmac("sha256", secret).update(scope).update("\0").update(address);
+  if (scope === "identity") hmac.update("\0").update((email ?? "").trim().toLowerCase());
+  return hmac.digest("hex");
+}
+
+async function consumeLoginBucket(client: PoolClient, keyHash: string, limit: number): Promise<boolean> {
+  const result = await client.query<{ allowed: boolean }>(
+    `INSERT INTO login_attempt_limits (key_hash, window_started_at, attempts)
+     VALUES ($1, NOW(), 1)
+     ON CONFLICT (key_hash) DO UPDATE
+     SET attempts = CASE
+           WHEN login_attempt_limits.window_started_at <= NOW() - INTERVAL '15 minutes' THEN 1
+           ELSE login_attempt_limits.attempts + 1
+         END,
+         window_started_at = CASE
+           WHEN login_attempt_limits.window_started_at <= NOW() - INTERVAL '15 minutes' THEN NOW()
+           ELSE login_attempt_limits.window_started_at
+         END,
+         updated_at = NOW()
+     RETURNING attempts <= $2 AS allowed`,
+    [keyHash, limit],
+  );
+  return result.rows[0]?.allowed === true;
+}
+
+export async function consumePostgresLoginAttempt(
+  pool: Pick<Pool, "connect">, secret: string, address: string, email: string,
 ): Promise<boolean> {
-  const keyHash = createHmac("sha256", secret)
-    .update(address).update("\0").update(email.trim().toLowerCase())
-    .digest("hex");
+  const ipHash = loginRateLimitKey(secret, "ip", address);
+  const identityHash = loginRateLimitKey(secret, "identity", address, email);
   const client: PoolClient = await pool.connect();
   let transaction = false;
   let destroy = false;
   try {
     await client.query("BEGIN");
     transaction = true;
-    const result = await client.query<{ allowed: boolean }>(
-      `INSERT INTO login_attempt_limits (key_hash, window_started_at, attempts)
-       VALUES ($1, NOW(), 1)
-       ON CONFLICT (key_hash) DO UPDATE
-       SET attempts = CASE
-             WHEN login_attempt_limits.window_started_at <= NOW() - INTERVAL '15 minutes' THEN 1
-             ELSE login_attempt_limits.attempts + 1
-           END,
-           window_started_at = CASE
-             WHEN login_attempt_limits.window_started_at <= NOW() - INTERVAL '15 minutes' THEN NOW()
-             ELSE login_attempt_limits.window_started_at
-           END,
-           updated_at = NOW()
-       RETURNING attempts <= $2 AS allowed`,
-      [keyHash, MAX_LOGIN_ATTEMPTS],
-    );
+    await client.query("DELETE FROM login_attempt_limits WHERE updated_at < NOW() - INTERVAL '30 days'");
+    const ipAllowed = await consumeLoginBucket(client, ipHash, MAX_IP_LOGIN_ATTEMPTS);
+    const identityAllowed = await consumeLoginBucket(client, identityHash, MAX_LOGIN_ATTEMPTS);
     await client.query("COMMIT");
     transaction = false;
-    return result.rows[0]?.allowed === true;
+    return ipAllowed && identityAllowed;
   } catch (error) {
     if (transaction) {
       try { await client.query("ROLLBACK"); } catch { destroy = true; }
@@ -117,16 +127,13 @@ async function consumeLoginAttempt(
     client.release(destroy);
   }
 }
-
 async function resetLoginAttempts(
   pool: Pick<Pool, "connect">,
   secret: string,
   address: string,
   email: string,
 ): Promise<void> {
-  const keyHash = createHmac("sha256", secret)
-    .update(address).update("\0").update(email.trim().toLowerCase())
-    .digest("hex");
+  const keyHash = loginRateLimitKey(secret, "identity", address, email);
   const client = await pool.connect();
   try {
     await client.query("DELETE FROM login_attempt_limits WHERE key_hash = $1", [keyHash]);
