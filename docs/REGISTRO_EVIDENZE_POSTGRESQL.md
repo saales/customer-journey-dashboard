@@ -32,14 +32,14 @@ Stato database remoto: non verificato in questa attività.
 ## Verifiche remote non eseguite
 
 - Nessuna query è stata eseguita sul database Neon in questa attività.
-- Non è stato dimostrato che le migrazioni 001–008 siano già applicate sul database remoto.
+- Non è stato dimostrato che le migrazioni 001–009 siano già applicate sul database remoto.
 - Non sono stati verificati checksum, ruoli, policy RLS e privilegi effettivi remoti.
 - Non è stato effettuato alcun trasferimento di dati preesistenti.
 - Non sono state eseguite scritture, DDL o bootstrap remoti.
 
 ## Limiti prima del rilascio
 
-Restano necessari test browser end-to-end completi, test di carico, prova backup/restore, verifica database remoto, staging, osservabilità e invio email automatico/recupero account. Fino ad allora il prodotto non va presentato come pronto per dati aziendali reali o vendita.
+Restano necessari il completamento della matrice browser per tutti i ruoli e dei casi cross-tenant, test di carico, prova backup/restore, verifica database remoto, staging, osservabilità e invio email automatico/recupero account. Il percorso browser admin/analista rappresentativo è stato superato nella CI descritta sotto. Fino ad allora il prodotto non va presentato come pronto per dati aziendali reali o vendita.
 
 ## Manutenzione sicurezza — aggiornamento
 
