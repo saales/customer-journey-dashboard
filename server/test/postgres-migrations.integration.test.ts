@@ -64,6 +64,16 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
         [organizationId],
       );
 
+      const secondOrganizationId = randomUUID();
+      await client.query(
+        "INSERT INTO organizations (id, name, slug) VALUES ($1, 'Second Tenant', $2)",
+        [secondOrganizationId, `second-${schemaName}`],
+      );
+      await client.query(
+        "INSERT INTO customers (organization_id, channel, created_at) VALUES ($1, 'paid', NOW())",
+        [secondOrganizationId],
+      );
+
       const tables = await client.query<{ table_name: string }>(
         `SELECT table_name
          FROM information_schema.tables
@@ -138,6 +148,30 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
         "SELECT COUNT(*)::text AS count FROM pg_policies WHERE schemaname = current_schema()",
       );
       expect(Number(policyCount.rows[0]?.count)).toBe(5);
+
+      // Verifica RLS con un ruolo non proprietario: ciascun contesto vede
+      // esclusivamente i clienti del tenant selezionato.
+      const runtimeRole = `rls_test_${schemaName}`;
+      await client.query(`CREATE ROLE "${runtimeRole}" NOLOGIN`);
+      await client.query(`GRANT USAGE ON SCHEMA "${schemaName}" TO "${runtimeRole}"`);
+      await client.query(`GRANT SELECT ON customers TO "${runtimeRole}"`);
+      await client.query(`SET LOCAL ROLE "${runtimeRole}"`);
+      await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
+      const tenantACount = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM customers",
+      );
+      expect(Number(tenantACount.rows[0]?.count)).toBe(1);
+      await client.query("SELECT set_config('app.current_organization_id', $1, true)", [secondOrganizationId]);
+      const tenantBCount = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM customers",
+      );
+      expect(Number(tenantBCount.rows[0]?.count)).toBe(1);
+      await client.query("SELECT set_config('app.current_organization_id', $1, true)", ["00000000-0000-0000-0000-000000000000"]);
+      const unknownTenantCount = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM customers",
+      );
+      expect(Number(unknownTenantCount.rows[0]?.count)).toBe(0);
+      await client.query("RESET ROLE");
 
       const membershipFk = await client.query<{ count: string }>(
         "SELECT COUNT(*)::text AS count FROM pg_constraint WHERE conrelid = 'sessions'::regclass AND conname = 'sessions_org_user_membership_fk' AND NOT convalidated",
