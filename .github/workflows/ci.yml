@@ -132,6 +132,30 @@ jobs:
           BOOTSTRAP_ADMIN_NAME: E2E Administrator
           BOOTSTRAP_ADMIN_PASSWORD: E2E-admin-password-2026!
         run: npm run db:bootstrap -w server -- --confirm-empty-database
+      - name: Seed isolated second tenant for API isolation E2E
+        if: matrix.node-version == 22
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d journey_test -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO organizations (name, slug)
+          VALUES ('E2E Second Workspace', 'e2e-second-workspace')
+          RETURNING id AS organization_id \\gset
+          INSERT INTO memberships (organization_id, user_id, role, status)
+          SELECT :'organization_id', id, 'admin', 'active'
+          FROM users WHERE LOWER(email) = 'admin@e2e.example';
+          INSERT INTO funnel_stages (organization_id, id, label, position, is_active, is_system)
+          VALUES
+            (:'organization_id', 'visit', 'Visita', 0, TRUE, TRUE),
+            (:'organization_id', 'lead', 'Lead', 1, TRUE, TRUE),
+            (:'organization_id', 'customer', 'Cliente', 2, TRUE, TRUE);
+          WITH seeded_customer AS (
+            INSERT INTO customers (organization_id, external_id, channel, created_at)
+            VALUES (:'organization_id', 'tenant-b-sentinel', 'Advertising', '2025-02-01T00:00:00Z')
+            RETURNING id
+          )
+          INSERT INTO events (organization_id, customer_id, stage_id, occurred_at)
+          SELECT :'organization_id', id, 'visit', '2025-02-01T00:00:00Z' FROM seeded_customer;
+          SQL
+
       - name: Run browser end-to-end tests
         if: matrix.node-version == 22
         env:
