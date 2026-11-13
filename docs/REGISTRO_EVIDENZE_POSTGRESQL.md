@@ -152,3 +152,12 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Eliminazione cliente con filtro esplicito organizzazione e cancellazione eventi tramite vincolo FK | `deletePostgresCustomer`, migrazione 005 | Implementata |
 | ID BIGINT trattato come stringa nel client per evitare perdita di precisione JavaScript | `client/src/api.ts`, `CustomerManagement.tsx` | Adeguato |
 | Privilegi DB per aggiornare/eliminare clienti ed eventi | migrazione `005_runtime_role_grants.sql`, preflight runtime | Inclusi; non applicati al database remoto |
+
+
+## Gestione funnel PostgreSQL — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Creazione fasi personalizzate con ID stabile, ordine finale e unicità del nome nel tenant | `createPostgresFunnelStage` e test d'integrazione | Implementata |
+| Riordino completo con blocco delle fasi Visita e Cliente agli estremi | `reorderPostgresFunnelStages` e test di regressione | Implementato |
+| Il client può creare, rinominare, attivare/disattivare e riordinare le fasi | `FunnelSettings.tsx`, API PostgreSQL | Copertura server presente; collegamento browser ancora da collaudare con sessione reale |

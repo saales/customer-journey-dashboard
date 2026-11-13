@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { withTenantTransaction } from "./tenant-transaction.js";
 
@@ -62,6 +63,10 @@ export async function reorderPostgresFunnelStages(
   if (orderedStageIds.some((id) => typeof id !== "string" || !STAGE_ID_RE.test(id)) ||
       new Set(orderedStageIds).size !== orderedStageIds.length) {
     throw new Error("Identificativi fase non validi o duplicati.");
+  }
+
+  if (orderedStageIds[0] !== "visit" || orderedStageIds[orderedStageIds.length - 1] !== "customer") {
+    throw new Error("Visita deve essere la prima fase e Cliente l'ultima.");
   }
 
   return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
@@ -201,3 +206,40 @@ export async function updatePostgresFunnelStage(
   });
 }
 
+
+
+/** Crea una fase personalizzata con ID stabile e posizione finale nel tenant. */
+export async function createPostgresFunnelStage(
+  pool: Pick<Pool, "connect">,
+  organizationId: string,
+  rawLabel: string,
+): Promise<PostgresFunnelStage> {
+  assertOrganizationId(organizationId);
+  if (typeof rawLabel !== "string" || !rawLabel.trim() || rawLabel.trim().length > 50) {
+    throw new Error("Il nome della fase deve contenere da 1 a 50 caratteri.");
+  }
+  const label = rawLabel.trim();
+  return withTenantTransaction(pool, organizationId, async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [organizationId]);
+    const duplicate = await client.query<{ id: string }>(
+      "SELECT id FROM funnel_stages WHERE organization_id=$1::uuid AND LOWER(label)=LOWER($2) LIMIT 1",
+      [organizationId, label],
+    );
+    if (duplicate.rowCount) throw new Error("Esiste già una fase con questo nome.");
+    const stats = await client.query<{ count: number; maxPosition: number }>(
+      'SELECT COUNT(*)::int AS count, COALESCE(MAX(position),-1)::int AS "maxPosition" FROM funnel_stages WHERE organization_id=$1::uuid',
+      [organizationId],
+    );
+    if ((stats.rows[0]?.count ?? 0) >= 100) throw new Error("Il percorso non può contenere più di 100 fasi.");
+    const position = (stats.rows[0]?.maxPosition ?? -1) + 1;
+    const id = `custom_${randomUUID().replace(/-/g, "")}`;
+    const inserted = await client.query<FunnelStageRow>(
+      `INSERT INTO funnel_stages (organization_id,id,label,position,is_active,is_system)
+       VALUES ($1::uuid,$2,$3,$4,TRUE,FALSE)
+       RETURNING id,label,position,is_active AS "isActive",is_system AS "isSystem"`,
+      [organizationId,id,label,position],
+    );
+    if (!inserted.rows[0]) throw new Error("Creazione fase non riuscita.");
+    return inserted.rows[0];
+  });
+}

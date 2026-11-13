@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import {
+  createPostgresFunnelStage,
   listPostgresFunnelStages,
   reorderPostgresFunnelStages,
   updatePostgresFunnelStage,
@@ -42,7 +43,8 @@ describe("PostgreSQL funnel repository", () => {
          VALUES
            ($1, 'visit', 'Visita', 0, TRUE),
            ($1, 'lead', 'Lead', 1, TRUE),
-           ($1, 'customer', 'Cliente', 2, FALSE),
+           ($1, 'qualified', 'Qualificato', 2, TRUE),
+           ($1, 'customer', 'Cliente', 3, FALSE),
            ($2, 'visit', 'Visita B', 0, TRUE)`,
         [organizationA, organizationB],
       );
@@ -51,18 +53,18 @@ describe("PostgreSQL funnel repository", () => {
     }
 
     const initial = await listPostgresFunnelStages(pool!, organizationA);
-    expect(initial.map((stage) => stage.id)).toEqual(["visit", "lead", "customer"]);
-    expect(initial[2]?.isActive).toBe(false);
+    expect(initial.map((stage) => stage.id)).toEqual(["visit", "lead", "qualified", "customer"]);
+    expect(initial[3]?.isActive).toBe(false);
+
+    await expect(reorderPostgresFunnelStages(pool!, organizationA, [
+      "lead", "visit", "qualified", "customer",
+    ])).rejects.toThrow("Visita deve essere la prima fase e Cliente l'ultima.");
 
     const reordered = await reorderPostgresFunnelStages(pool!, organizationA, [
-      "lead",
-      "visit",
-      "customer",
+      "visit", "qualified", "lead", "customer",
     ]);
     expect(reordered.map((stage) => [stage.id, stage.position])).toEqual([
-      ["lead", 0],
-      ["visit", 1],
-      ["customer", 2],
+      ["visit", 0], ["qualified", 1], ["lead", 2], ["customer", 3],
     ]);
 
     const tenantB = await listPostgresFunnelStages(pool!, organizationB);
@@ -172,6 +174,29 @@ describe("PostgreSQL funnel repository", () => {
     await expect(
       updatePostgresFunnelStage(invalidPool, organizationId, "visit", { isActive: false }),
     ).rejects.toThrow("Le fasi Visita e Cliente non possono essere disattivate.");
+  });
+
+
+  it.skipIf(!pool)("crea una fase personalizzata con posizione successiva e unicità tenant", async () => {
+    const org = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const client = await pool!.connect();
+    try {
+      await client.query("DROP TABLE IF EXISTS pg_temp.funnel_stages");
+      await client.query(`CREATE TEMP TABLE funnel_stages (
+        organization_id UUID NOT NULL,id VARCHAR(80) NOT NULL,label VARCHAR(50) NOT NULL,
+        position INTEGER NOT NULL,is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        is_system BOOLEAN NOT NULL DEFAULT FALSE,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(organization_id,id),
+        UNIQUE(organization_id,position)) ON COMMIT PRESERVE ROWS`);
+      await client.query(
+        "INSERT INTO funnel_stages(organization_id,id,label,position) VALUES($1,'visit','Visita',0),($1,'customer','Cliente',1)",
+        [org],
+      );
+    } finally { client.release(); }
+    const created = await createPostgresFunnelStage(pool!, org, "Demo");
+    expect(created).toMatchObject({ label: "Demo", position: 2, isActive: true, isSystem: false });
+    expect(created.id).toMatch(/^custom_[0-9a-f]{32}$/);
+    await expect(createPostgresFunnelStage(pool!, org, "demo")).rejects.toThrow("Esiste già una fase");
   });
 
 });

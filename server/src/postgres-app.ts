@@ -15,6 +15,7 @@ import {
   listPostgresCustomers,
 } from "./postgres-customer-repository.js";
 import {
+  createPostgresFunnelStage,
   listPostgresFunnelStages,
   reorderPostgresFunnelStages,
   updatePostgresFunnelStage,
@@ -225,6 +226,19 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       try {
         await deletePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id);
         res.status(204).send();
+      } catch (error) { next(error); }
+    });
+
+  app.post("/api/funnel-stages", authenticated,
+    requireOrganizationPermission("funnel:write"),
+    async (req, res, next) => {
+      try {
+        const label = (req.body as { label?: unknown } | undefined)?.label;
+        if (typeof label !== "string" || !label.trim() || label.trim().length > 50) {
+          throw new ApiError(400, "Il nome della fase deve contenere da 1 a 50 caratteri.");
+        }
+        const created = await createPostgresFunnelStage(pool, req.authenticatedSession!.organizationId, label);
+        res.status(201).json(created);
       } catch (error) { next(error); }
     });
 

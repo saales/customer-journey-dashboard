@@ -76,7 +76,8 @@ Il modulo `server/src/postgres-server.ts` avvia `createPostgresApp` senza sostit
 | PUT /api/customers/:id | Modifica dati e percorso cliente atomica | customers:write | Implementata |
 | DELETE /api/customers/:id | Eliminazione cliente tenant-scoped | customers:write | Implementata |
 | GET /api/funnel-stages | Elenco fasi tenant-scoped | funnel:read | Implementata |
-| PUT /api/funnel-stages/reorder | Riordino fasi tenant-scoped | funnel:write | Implementata |
+| POST /api/funnel-stages | Creazione fase personalizzata con posizione finale | funnel:write | Implementata |
+| PUT /api/funnel-stages/reorder | Riordino fasi tenant-scoped con visita e cliente come estremi | funnel:write | Implementata |
 | PUT /api/funnel-stages/:id | Modifica etichetta/attivazione fase | funnel:write | Implementata |
 
 Il contesto organizzazione viene sempre letto dalla sessione PostgreSQL verificata, non da parametri forniti dal client. Le scritture sono protette da controllo Origin esatto. I cookie di produzione usano il prefisso `__Host-`, `Secure`, `HttpOnly`, `Path=/` e `SameSite=Strict`.
