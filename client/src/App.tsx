@@ -16,6 +16,7 @@ import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
 import { MemberManagement } from "./components/MemberManagement";
 import { AuditLog } from "./components/AuditLog";
+import { OrganizationSettings } from "./components/OrganizationSettings";
 
 interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
@@ -243,7 +244,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
   const settingsSection = (
     <div>
       <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite} />
-      {organizationRole === "admin" && <MemberManagement />}
+      {organizationRole === "admin" && <><OrganizationSettings /><MemberManagement /></>}
 
       <div className="card">
         <h2>Preferenze dell'interfaccia</h2>
