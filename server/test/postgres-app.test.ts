@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createPostgresApp } from "../src/postgres-app.js";
+import { createPostgresApp, isValidPostgresDate } from "../src/postgres-app.js";
 
 const servers: Array<{ close: (callback: (error?: Error) => void) => void }> = [];
 const pool = {
@@ -25,6 +25,16 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) =>
     new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())),
   ));
+});
+
+describe("Validazione date PostgreSQL", () => {
+  it("accetta solo date ISO reali nel formato YYYY-MM-DD", () => {
+    expect(isValidPostgresDate("2026-11-13")).toBe(true);
+    expect(isValidPostgresDate("2024-02-29")).toBe(true);
+    expect(isValidPostgresDate("2025-02-29")).toBe(false);
+    expect(isValidPostgresDate("2026-13-01")).toBe(false);
+    expect(isValidPostgresDate("13-11-2026")).toBe(false);
+  });
 });
 
 describe("Runtime HTTP PostgreSQL", () => {
@@ -62,6 +72,41 @@ describe("Runtime HTTP PostgreSQL", () => {
       body: JSON.stringify({ stages: [] }),
     });
     expect(response.status).toBe(403);
+  });
+
+  it("rifiuta JSON malformato con una risposta 400", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: '{"broken":',
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Il corpo JSON non è valido." });
+  });
+
+  it("limita a 1 MiB le richieste JSON ordinarie", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: "x".repeat(1024 * 1024 + 10) }),
+    });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: "La richiesta supera il limite consentito." });
+  });
+
+  it("consente il limite dedicato alle importazioni prima del controllo CSRF", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: "large.csv", rows: [], note: "x".repeat(1024 * 1024 + 10) }),
+    });
+    // Il body viene analizzato entro il limite import; la richiesta è poi respinta
+    // perché manca l'Origin ammesso, prima di raggiungere l'endpoint autenticato.
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "Origine della richiesta non autorizzata." });
   });
 
   it("rifiuta configurazioni HTTP in produzione", () => {
