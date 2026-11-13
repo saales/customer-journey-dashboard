@@ -119,7 +119,7 @@ describe("applyPostgresMigrations", () => {
 describe("planPostgresMigrations", () => {
   it("elenca le migrazioni pendenti senza scritture", async () => {
     const query = vi.fn(async (sql: string) => {
-      if (sql.includes("to_regclass")) return { rows: [{ exists: false }] };
+      if (sql.includes("to_regclass")) return { rows: [{ migration_table_exists: false }] };
       return { rows: [] };
     });
     const release = vi.fn();
@@ -131,13 +131,13 @@ describe("planPostgresMigrations", () => {
     expect(plan).toEqual({ applied: [], pending: ["001", "002"], drift: [] });
     expect(query.mock.calls[0][0]).toBe("BEGIN READ ONLY");
     expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
-    expect(query.mock.calls.some(([sql]) => /\\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\\b/i.test(sql))).toBe(false);
+    expect(query.mock.calls.some(([sql]) => /\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(sql))).toBe(false);
     expect(release).toHaveBeenCalledWith(false);
   });
 
   it("rileva checksum alterati e versioni sconosciute nello storico", async () => {
     const query = vi.fn(async (sql: string) => {
-      if (sql.includes("to_regclass")) return { rows: [{ exists: true }] };
+      if (sql.includes("to_regclass")) return { rows: [{ migration_table_exists: true }] };
       if (sql.includes("FROM public.schema_migrations")) {
         return { rows: [
           { version: "001", name: "001_initial.sql", checksum: "0".repeat(64) },
@@ -161,7 +161,7 @@ describe("planPostgresMigrations", () => {
 
   it("rileva uno storico non contiguo", async () => {
     const query = vi.fn(async (sql: string) => {
-      if (sql.includes("to_regclass")) return { rows: [{ exists: true }] };
+      if (sql.includes("to_regclass")) return { rows: [{ migration_table_exists: true }] };
       if (sql.includes("FROM public.schema_migrations")) {
         const { createHash } = await import("node:crypto");
         return { rows: [{
