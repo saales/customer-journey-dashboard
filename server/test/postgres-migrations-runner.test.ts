@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { PoolClient } from "pg";
 import {
   applyPostgresMigrations,
+  planPostgresMigrations,
   type PostgresMigration,
 } from "../src/postgres-migrations.js";
 
@@ -92,5 +93,72 @@ describe("applyPostgresMigrations", () => {
 
     await expect(applyPostgresMigrations(mock.pool, [migrations[1], migrations[0]])).rejects.toThrow(/ordinate/);
     expect(mock.pool.connect).not.toHaveBeenCalled();
+  });
+});
+
+describe("planPostgresMigrations", () => {
+  it("elenca le migrazioni pendenti senza scritture", async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes("to_regclass")) return { rows: [{ exists: false }] };
+      return { rows: [] };
+    });
+    const release = vi.fn();
+    const client = { query, release } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) };
+
+    const plan = await planPostgresMigrations(pool, migrations);
+
+    expect(plan).toEqual({ applied: [], pending: ["001", "002"], drift: [] });
+    expect(query.mock.calls[0][0]).toBe("BEGIN READ ONLY");
+    expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
+    expect(query.mock.calls.some(([sql]) => /\\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\\b/i.test(sql))).toBe(false);
+    expect(release).toHaveBeenCalledWith(false);
+  });
+
+  it("rileva checksum alterati e versioni sconosciute nello storico", async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes("to_regclass")) return { rows: [{ exists: true }] };
+      if (sql.includes("FROM public.schema_migrations")) {
+        return { rows: [
+          { version: "001", name: "001_initial.sql", checksum: "0".repeat(64) },
+          { version: "999", name: "999_removed.sql", checksum: "1".repeat(64) },
+        ] };
+      }
+      return { rows: [] };
+    });
+    const release = vi.fn();
+    const client = { query, release } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) };
+
+    const plan = await planPostgresMigrations(pool, migrations);
+
+    expect(plan.applied).toEqual([]);
+    expect(plan.pending).toEqual(["002"]);
+    expect(plan.drift).toHaveLength(2);
+    expect(plan.drift.join(" ")).toContain("001");
+    expect(plan.drift.join(" ")).toContain("999");
+  });
+
+  it("rileva uno storico non contiguo", async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes("to_regclass")) return { rows: [{ exists: true }] };
+      if (sql.includes("FROM public.schema_migrations")) {
+        const { createHash } = await import("node:crypto");
+        return { rows: [{
+          version: "002",
+          name: migrations[1].name,
+          checksum: createHash("sha256").update(migrations[1].sql, "utf8").digest("hex"),
+        }] };
+      }
+      return { rows: [] };
+    });
+    const release = vi.fn();
+    const client = { query, release } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) };
+
+    const plan = await planPostgresMigrations(pool, migrations);
+
+    expect(plan.pending).toEqual(["001"]);
+    expect(plan.drift.join(" ")).toContain("Storico non contiguo");
   });
 });
