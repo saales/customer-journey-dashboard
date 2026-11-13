@@ -2,7 +2,7 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit di riferimento:** `2ad539f234f629bfd2dae5f489e5c768d82dcedb`
+**Commit di riferimento:** `311bdf261b9f94d0580f2467a291063bab2d87d2`
 
 Questo registro separa ciò che è stato verificato nel repository e nella CI da ciò che proviene da riepiloghi storici o resta da verificare. Non certifica lo stato del database Neon.
 
@@ -19,6 +19,7 @@ Questo registro separa ciò che è stato verificato nel repository e nella CI da
 | I test controllano alias SQL, filtri schema e comportamento read-only con mock | `server/test/postgres-schema-inspection.test.ts` | Verificato nel branch |
 | La CI dispone di PostgreSQL 16 effimero | `.github/workflows/ci.yml` | Verificato nella configurazione |
 | Il test d'integrazione crea uno schema/tabella temporanei, attiva RLS e verifica proprietario, colonne, PK, indice e policy | `server/test/postgres.integration.test.ts` | Verificato nel branch |
+| Il test esegue l'ispezione anche come ruolo `NOLOGIN` non superuser e senza `BYPASSRLS`, con soli privilegi sulla tabella di prova | `server/test/postgres.integration.test.ts` | Implementato nel branch; CI sul commit corrente ancora da verificare |
 | Test e build sono passati su Node 20 e Node 22 con il commit di riferimento | CI run [43415968347](https://github.com/saales/customer-journey-dashboard/actions/runs/43415968347), entrambi i job conclusi `success` | Verificato su CI |
 | La PR resta aperta in bozza e `main` non è stata modificata | PR #1, branch e base verificati dopo il commit | Verificato al momento dell'aggiornamento |
 
@@ -44,9 +45,8 @@ Queste informazioni non sono state ricostruite da file SQL originali né verific
 
 ## Prossimi passi sicuri
 
-1. Aggiungere test del comportamento di visibilità dei cataloghi con un ruolo non superuser e senza `BYPASSRLS`, su PostgreSQL effimero.
-2. Rendere esplicito nel test che lo schema temporaneo è isolato e sempre eliminato.
-3. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
-4. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
+1. Ottenere un'esecuzione CI verde sul commit che contiene anche il test con ruolo non privilegiato.
+2. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
+3. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
 
 **Regola:** nessuna migrazione eseguibile e nessuna modifica a Neon finché la provenienza della baseline non è verificata.
