@@ -282,7 +282,7 @@ async function handleDelete(customerId: number) {
           <th>ID</th>
           <th>Canale</th>
           <th>Prima visita</th>
-          <th>Fasi raggiunte</th>
+          <th>Fasi del percorso raggiunte</th>
           <th>Azioni</th>
         </tr>
       </thead>
