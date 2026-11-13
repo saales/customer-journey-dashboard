@@ -78,15 +78,17 @@ describe("withTenantTransaction", () => {
   it("esegue rollback se non riesce a impostare il contesto tenant", async () => {
     const mock = createPoolMock();
     const failure = new Error("tenant context setup failed");
+    const work = vi.fn().mockResolvedValue("must not run");
     mock.query.mockImplementation(async (sql: string) => {
       if (sql.startsWith("SELECT set_config")) throw failure;
       return { rows: [] };
     });
 
     await expect(
-      withTenantTransaction(mock.pool, "org-a", async () => "unreachable"),
+      withTenantTransaction(mock.pool, "org-a", work),
     ).rejects.toBe(failure);
 
+    expect(work).not.toHaveBeenCalled();
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
       "SELECT set_config('app.organization_id', $1, true)",
