@@ -2,6 +2,13 @@
 
 ## Stato verificato
 
+Checkpoint aggiornato al commit `c4c927a`:
+- CI PostgreSQL 16 superata su Node 20 e Node 22: installazione, test e build verdi (run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401)).
+- È presente un runner di migrazioni versionate con checksum, advisory lock e transazione per file; il comando `db:migrate -- --check` esegue il confronto read-only tra file e storico registrato.
+- Il planner e il runner hanno test unitari; gli SQL storici 001/002 sono verificati su PostgreSQL effimero.
+- Non è stata eseguita alcuna ispezione su Neon e non è stato eseguito alcun DDL sul database remoto.
+
+
 Il backend attualmente avviato da `server/src/index.ts` usa ancora SQLite:
 - `openDb()` inizializza il database locale tramite `server/src/db.ts`;
 - `createApp(db)` riceve un'istanza `better-sqlite3`;
