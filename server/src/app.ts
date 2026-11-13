@@ -1009,39 +1009,53 @@ export function createApp(db: Db) {
     });
   });
 
-  app.get("/api/customers", (_req, res) => {
+  app.get("/api/customers", (req, res) => {
+    const parsedPage = Number(req.query.page ?? 1);
+    const parsedLimit = Number(req.query.limit ?? 50);
+
+    if (!Number.isInteger(parsedPage) || parsedPage < 1) {
+      throw new HttpError(400, "Parametro page non valido.");
+    }
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+      throw new HttpError(400, "Parametro limit non valido (valori ammessi: 1-100).");
+    }
+
+    const totalRow = db.prepare("SELECT COUNT(*) AS total FROM customers").get() as { total: number };
+    const total = totalRow.total;
+    const offset = (parsedPage - 1) * parsedLimit;
+
     const customers = db.prepare(`
-      SELECT
-        id,
-        channel,
-        created_at AS createdAt
+      SELECT id, channel, created_at AS createdAt
       FROM customers
       ORDER BY id DESC
-    `).all() as {
+      LIMIT @limit OFFSET @offset
+    `).all({ limit: parsedLimit, offset }) as {
       id: number;
       channel: string;
       createdAt: string;
     }[];
 
     const getEvents = db.prepare(`
-      SELECT
-        stage,
-        occurred_at AS occurredAt
+      SELECT stage, occurred_at AS occurredAt
       FROM events
       WHERE customer_id = ?
       ORDER BY occurred_at ASC, id ASC
     `);
 
-    const result = customers.map((customer) => {
-      const events = getEvents.all(customer.id);
+    const result = customers.map((customer) => ({
+      ...customer,
+      events: getEvents.all(customer.id),
+    }));
 
-      return {
-        ...customer,
-        events,
-      };
+    res.json({
+      data: result,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        total,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
     });
-
-    res.json(result);
   });
 
   app.put("/api/customers/:id", (req, res) => {
