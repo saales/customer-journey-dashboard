@@ -1,5 +1,6 @@
 
 import { Pool } from "pg";
+import { verifyPostgresPool } from "./postgres-health.js";
 import dotenv from "dotenv";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -54,12 +55,6 @@ postgresPool.on("error", (error) => {
  * Non modifica alcun dato.
  */
 export async function verifyPostgresConnection(): Promise<void> {
-  const client = await postgresPool.connect();
-
-  try {
-    await client.query("SELECT 1");
-    console.log("Connessione a Neon PostgreSQL verificata.");
-  } finally {
-    client.release();
-  }
+  await verifyPostgresPool(postgresPool);
+  console.log("Connessione a Neon PostgreSQL verificata.");
 }
