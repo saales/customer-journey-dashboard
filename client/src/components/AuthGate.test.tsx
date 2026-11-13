@@ -105,7 +105,7 @@ describe("Accesso PostgreSQL dal browser", () => {
     fireEvent.change(organizations[1]!, { target: { value: "azienda-demo" } });
     fireEvent.click(screen.getByRole("button", { name: "Invia istruzioni" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
+    expect((await screen.findByRole("status")).textContent).toContain(
       "Se l'account esiste e l'invio email è configurato, riceverai le istruzioni.",
     );
     expect(requests).toEqual([{
