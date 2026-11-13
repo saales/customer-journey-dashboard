@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from "express";
+import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
@@ -9,6 +10,8 @@ import {
 import { createPostgresAuthRouter, isAllowedPostgresAuthOrigin } from "./postgres-auth-routes.js";
 import {
   createPostgresCustomer,
+  updatePostgresCustomer,
+  deletePostgresCustomer,
   listPostgresCustomers,
 } from "./postgres-customer-repository.js";
 import {
@@ -61,39 +64,32 @@ function validateCustomerBody(body: unknown): {
   externalId: string; channel: string; createdAt: string;
   events: { stage: string; occurredAt: string }[];
 } {
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new ApiError(400, "Il corpo della richiesta non è valido.");
-  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "Il corpo della richiesta non è valido.");
   const data = body as Record<string, unknown>;
-  if (typeof data.externalId !== "string" || !data.externalId.trim() ||
-      data.externalId.length > 100 || typeof data.channel !== "string" ||
-      !data.channel.trim() || !(CHANNELS as readonly string[]).includes(data.channel) ||
+  if ((data.externalId !== undefined && (typeof data.externalId !== "string" || !data.externalId.trim() || data.externalId.length > 100)) ||
+      typeof data.channel !== "string" || !(CHANNELS as readonly string[]).includes(data.channel) ||
       typeof data.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.createdAt) ||
-      Number.isNaN(Date.parse(data.createdAt)) ||
-      new Date(data.createdAt).toISOString().slice(0, 10) !== data.createdAt) {
+      Number.isNaN(Date.parse(data.createdAt)) || new Date(data.createdAt).toISOString().slice(0,10) !== data.createdAt) {
     throw new ApiError(400, "Dati cliente non validi.");
   }
-  if (!Array.isArray(data.events) || data.events.length === 0 || data.events.length > 50) {
-    throw new ApiError(400, "Il percorso deve contenere da 1 a 50 eventi.");
-  }
-  const events = data.events.map((event) => {
-    if (!event || typeof event !== "object" || Array.isArray(event)) {
-      throw new ApiError(400, "Evento non valido.");
-    }
+  const supplied = data.events === undefined ? [] : data.events;
+  if (!Array.isArray(supplied) || supplied.length > 49) throw new ApiError(400, "Il percorso può contenere al massimo 49 fasi successive alla visita.");
+  const events = supplied.map((event) => {
+    if (!event || typeof event !== "object" || Array.isArray(event)) throw new ApiError(400, "Evento non valido.");
     const item = event as Record<string, unknown>;
-    if (typeof item.stage !== "string" || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(item.stage) ||
+    if (typeof item.stage !== "string" || item.stage === "visit" ||
+        !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(item.stage) ||
         typeof item.occurredAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.occurredAt) ||
-        Number.isNaN(Date.parse(item.occurredAt)) ||
-        new Date(item.occurredAt).toISOString().slice(0, 10) !== item.occurredAt) {
+        Number.isNaN(Date.parse(item.occurredAt)) || new Date(item.occurredAt).toISOString().slice(0,10) !== item.occurredAt) {
       throw new ApiError(400, "Evento non valido.");
     }
     return { stage: item.stage, occurredAt: item.occurredAt };
   });
   return {
-    externalId: data.externalId.trim(),
-    channel: data.channel.trim(),
+    externalId: typeof data.externalId === "string" ? data.externalId.trim() : `manual:${randomUUID()}`,
+    channel: data.channel,
     createdAt: data.createdAt,
-    events,
+    events: [{ stage: "visit", occurredAt: data.createdAt }, ...events],
   };
 }
 
@@ -211,6 +207,24 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         const session = req.authenticatedSession!;
         const created = await createPostgresCustomer(pool, session.organizationId, input);
         res.status(201).json(created);
+      } catch (error) { next(error); }
+    });
+
+  app.put("/api/customers/:id", authenticated,
+    requireOrganizationPermission("customers:write"),
+    async (req, res, next) => {
+      try {
+        const input = validateCustomerBody(req.body);
+        res.json(await updatePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id, input));
+      } catch (error) { next(error); }
+    });
+
+  app.delete("/api/customers/:id", authenticated,
+    requireOrganizationPermission("customers:write"),
+    async (req, res, next) => {
+      try {
+        await deletePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id);
+        res.status(204).send();
       } catch (error) { next(error); }
     });
 

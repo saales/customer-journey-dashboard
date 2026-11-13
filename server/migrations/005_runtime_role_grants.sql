@@ -17,7 +17,7 @@ BEGIN
   EXECUTE format('GRANT SELECT ON TABLE %I.users, %I.organizations, %I.memberships TO %I', schema_name, schema_name, schema_name, app_role_name);
   EXECUTE format('GRANT SELECT, INSERT, DELETE ON TABLE %I.sessions TO %I', schema_name, app_role_name);
   EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE %I.login_attempt_limits TO %I', schema_name, app_role_name);
-  EXECUTE format('GRANT SELECT, INSERT ON TABLE %I.customers, %I.events TO %I', schema_name, schema_name, app_role_name);
+  EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE %I.customers, %I.events TO %I', schema_name, schema_name, app_role_name);
   EXECUTE format('GRANT SELECT, INSERT, UPDATE ON TABLE %I.funnel_stages TO %I', schema_name, app_role_name);
   EXECUTE format('GRANT SELECT, INSERT ON TABLE %I.import_batches TO %I', schema_name, app_role_name);
   EXECUTE format('GRANT INSERT ON TABLE %I.audit_logs TO %I', schema_name, app_role_name);

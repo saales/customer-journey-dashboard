@@ -141,3 +141,14 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Il runtime PostgreSQL non applica migrazioni automaticamente | `server/src/postgres-server.ts` | Verificato nel codice |
 | Il runtime SQLite resta l'entrypoint predefinito e il client non è ancora migrato | `server/src/index.ts`, `client/src/api.ts` | Verificato |
 | Neon non è stato ispezionato né modificato | Nessuna operazione remota eseguita | Confermato |
+
+
+## Gestione clienti PostgreSQL — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Creazione cliente compatibile con il modulo web: la visita iniziale viene generata lato server e l'identificativo esterno manuale è assegnato se assente | `server/src/postgres-app.ts`, `postgres-customer-repository.ts` | Implementata |
+| Modifica cliente e sostituzione atomica degli eventi del percorso | `updatePostgresCustomer` e test d'integrazione | Implementata |
+| Eliminazione cliente con filtro esplicito organizzazione e cancellazione eventi tramite vincolo FK | `deletePostgresCustomer`, migrazione 005 | Implementata |
+| ID BIGINT trattato come stringa nel client per evitare perdita di precisione JavaScript | `client/src/api.ts`, `CustomerManagement.tsx` | Adeguato |
+| Privilegi DB per aggiornare/eliminare clienti ed eventi | migrazione `005_runtime_role_grants.sql`, preflight runtime | Inclusi; non applicati al database remoto |

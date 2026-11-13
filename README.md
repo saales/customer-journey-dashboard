@@ -4,7 +4,7 @@ Applicazione web per osservare e comprendere il percorso che conduce una persona
 
 L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
 
-> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Nel ramo di sviluppo è ora presente un server HTTP PostgreSQL separato con accesso, sessioni, API iniziali clienti/funnel e controlli di sicurezza all'avvio. Il client web e le API di analisi, importazione ed esportazione non sono ancora migrati; il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
+> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Nel ramo di sviluppo è ora presente un server HTTP PostgreSQL separato con accesso, sessioni, API tenant-scoped per clienti (creazione, modifica, eliminazione), funnel e prime analisi, oltre a controlli di sicurezza all'avvio. Il client web e le API di analisi, importazione ed esportazione non sono ancora migrati; il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
 
 [![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 

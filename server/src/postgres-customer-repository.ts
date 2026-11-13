@@ -226,3 +226,85 @@ export async function createPostgresCustomer(
     return { id: customerId, externalId };
   });
 }
+
+
+export interface UpdatedPostgresCustomer {
+  id: string;
+  channel: string;
+  createdAt: string;
+  events: PostgresCustomerEvent[];
+}
+const CUSTOMER_ID_RE = /^[1-9]\d{0,18}$/;
+
+/** Aggiorna dati e percorso del cliente in un'unica transazione tenant-scoped. */
+export async function updatePostgresCustomer(
+  pool: Pick<Pool, "connect">,
+  organizationId: string,
+  customerId: string,
+  input: CreatePostgresCustomerInput,
+): Promise<UpdatedPostgresCustomer> {
+  if (!UUID_RE.test(organizationId)) throw new Error("Identificativo organizzazione non valido.");
+  if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new Error("Identificativo cliente non valido.");
+  if (!input.channel.trim() || input.channel.length > 100) throw new Error("Canale non valido.");
+  const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+  if (!validDate(input.createdAt)) throw new Error("Data di ingresso non valida.");
+  if (!Array.isArray(input.events) || input.events.length === 0 || input.events.length > 50 ||
+      input.events[0]?.stage !== "visit" || input.events[0]?.occurredAt !== input.createdAt) {
+    throw new Error("Il percorso deve iniziare con la fase visit.");
+  }
+
+  return withTenantTransaction(pool, organizationId, async (client) => {
+    const current = await client.query(
+      "SELECT id FROM customers WHERE organization_id=$1::uuid AND id=$2::bigint FOR UPDATE",
+      [organizationId, customerId],
+    );
+    if (current.rowCount !== 1) throw new Error("Cliente non trovato.");
+    const stageRows = await client.query<{id:string;position:number}>(
+      "SELECT id,position FROM funnel_stages WHERE organization_id=$1::uuid AND is_active=TRUE ORDER BY position",
+      [organizationId],
+    );
+    const positions = new Map(stageRows.rows.map(row=>[row.id,row.position]));
+    if (positions.get("visit") !== 0) throw new Error("Configurazione delle fasi non valida.");
+    const seen = new Set<string>();
+    let previousPosition = -1, previousDate = input.createdAt;
+    for (const event of input.events) {
+      const position = positions.get(event.stage);
+      if (position === undefined || position <= previousPosition || seen.has(event.stage) ||
+          !validDate(event.occurredAt) || event.occurredAt < previousDate) {
+        throw new Error("Le fasi e le date del percorso non sono valide.");
+      }
+      seen.add(event.stage); previousPosition = position; previousDate = event.occurredAt;
+    }
+    await client.query(
+      "UPDATE customers SET channel=$3,created_at=$4::date::timestamp AT TIME ZONE 'UTC' WHERE organization_id=$1::uuid AND id=$2::bigint",
+      [organizationId,customerId,input.channel,input.createdAt],
+    );
+    await client.query("DELETE FROM events WHERE organization_id=$1::uuid AND customer_id=$2::bigint",[organizationId,customerId]);
+    for (const event of input.events) {
+      await client.query(
+        `INSERT INTO events(organization_id,customer_id,stage_id,occurred_at)
+         VALUES($1::uuid,$2::bigint,$3,$4::date::timestamp AT TIME ZONE 'UTC')`,
+        [organizationId,customerId,event.stage,event.occurredAt],
+      );
+    }
+    return {id:customerId,channel:input.channel,createdAt:input.createdAt,events:input.events};
+  });
+}
+
+/** Elimina un cliente solo all'interno dell'organizzazione autenticata. */
+export async function deletePostgresCustomer(
+  pool: Pick<Pool, "connect">,
+  organizationId: string,
+  customerId: string,
+): Promise<void> {
+  if (!UUID_RE.test(organizationId)) throw new Error("Identificativo organizzazione non valido.");
+  if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new Error("Identificativo cliente non valido.");
+  await withTenantTransaction(pool,organizationId,async client=>{
+    const result=await client.query(
+      "DELETE FROM customers WHERE organization_id=$1::uuid AND id=$2::bigint RETURNING id",
+      [organizationId,customerId],
+    );
+    if(result.rowCount!==1) throw new Error("Cliente non trovato.");
+  });
+}

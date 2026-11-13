@@ -72,7 +72,9 @@ Il modulo `server/src/postgres-server.ts` avvia `createPostgresApp` senza sostit
 | GET /api/auth/session | Identità e ruolo correnti | Sessione valida | Implementata |
 | POST /api/auth/logout | Revoca sessione e cancellazione cookie | Sessione valida e origine consentita | Implementata |
 | GET /api/customers | Elenco paginato tenant-scoped | customers:read | Implementata |
-| POST /api/customers | Creazione cliente e percorso atomico | customers:write | Implementata |
+| POST /api/customers | Creazione cliente e percorso atomico | customers:write | Implementata; la fase Visita viene generata dal server |
+| PUT /api/customers/:id | Modifica dati e percorso cliente atomica | customers:write | Implementata |
+| DELETE /api/customers/:id | Eliminazione cliente tenant-scoped | customers:write | Implementata |
 | GET /api/funnel-stages | Elenco fasi tenant-scoped | funnel:read | Implementata |
 | PUT /api/funnel-stages/reorder | Riordino fasi tenant-scoped | funnel:write | Implementata |
 | PUT /api/funnel-stages/:id | Modifica etichetta/attivazione fase | funnel:write | Implementata |
@@ -84,7 +86,7 @@ La migrazione `005_runtime_role_grants.sql` assegna privilegi minimi al ruolo `p
 ### Funzioni ancora mancanti nel runtime PostgreSQL
 
 - API analytics: riepilogo, serie temporali, canali, segmenti e confronti.
-- API di modifica/eliminazione clienti e importazione CSV/Excel.
+- API di importazione CSV/Excel.
 - API di esportazione e audit consultabile.
 - Gestione membri, inviti, recupero account e bootstrap amministratore.
 - Collegamento del client React e test end-to-end dell'intero percorso utente.

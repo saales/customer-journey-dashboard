@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
-import { createPostgresCustomer, listPostgresCustomers } from "../src/postgres-customer-repository.js";
+import { createPostgresCustomer, deletePostgresCustomer, listPostgresCustomers, updatePostgresCustomer } from "../src/postgres-customer-repository.js";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = connectionString
@@ -148,6 +148,22 @@ describe("PostgreSQL customer repository", () => {
       [organizationId],
     );
     expect(Number(count.rows[0]?.count)).toBe(1);
+
+    const updated = await updatePostgresCustomer(pool!, organizationId, created.id, {
+      externalId: "crm-100", channel: "Social", createdAt: "2026-04-01",
+      events: [{ stage: "visit", occurredAt: "2026-04-01" }, { stage: "lead", occurredAt: "2026-04-03" }],
+    });
+    expect(updated).toMatchObject({ id: created.id, channel: "Social" });
+    expect((await listPostgresCustomers(pool!, organizationId)).data[0]?.events).toEqual([
+      { stage: "visit", occurredAt: "2026-04-01" }, { stage: "lead", occurredAt: "2026-04-03" },
+    ]);
+    await expect(updatePostgresCustomer(pool!, organizationId, "999999", {
+      externalId: "crm-999", channel: "Social", createdAt: "2026-04-01",
+      events: [{ stage: "visit", occurredAt: "2026-04-01" }],
+    })).rejects.toThrow("Cliente non trovato.");
+    await deletePostgresCustomer(pool!, organizationId, created.id);
+    expect((await listPostgresCustomers(pool!, organizationId)).pagination.total).toBe(0);
+
   });
 
   it("rejects invalid tenant identifiers and pagination before connecting", async () => {

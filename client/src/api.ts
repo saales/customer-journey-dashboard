@@ -54,7 +54,7 @@ export interface CustomerEvent {
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   channel: string;
   createdAt: string;
   events: CustomerEvent[];
@@ -243,10 +243,10 @@ export const api = {
   createCustomer: (data: CustomerInput) =>
     send<Customer>("customers", "POST", data),
 
-  updateCustomer: (id: number, data: CustomerInput) =>
+  updateCustomer: (id: string, data: CustomerInput) =>
     send<Customer>(`customers/${id}`, "PUT", data),
 
-  deleteCustomer: (id: number) =>
+  deleteCustomer: (id: string) =>
     send<void>(`customers/${id}`, "DELETE"),
 
   importCsv: (fileName: string, rows: ImportRow[]) =>

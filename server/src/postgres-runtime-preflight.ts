@@ -94,13 +94,15 @@ export async function inspectPostgresRuntimeRole(
        ARRAY['schema_migrations','users','organizations','memberships',
              'sessions','sessions','sessions',
              'login_attempt_limits','login_attempt_limits','login_attempt_limits','login_attempt_limits',
-             'customers','customers','events','events',
+             'customers','customers','customers','customers',
+             'events','events','events','events',
              'funnel_stages','funnel_stages','funnel_stages',
              'import_batches','import_batches','audit_logs']::text[],
        ARRAY['SELECT','SELECT','SELECT','SELECT',
              'SELECT','INSERT','DELETE',
              'SELECT','INSERT','UPDATE','DELETE',
-             'SELECT','INSERT','SELECT','INSERT',
+             'SELECT','INSERT','UPDATE','DELETE',
+             'SELECT','INSERT','UPDATE','DELETE',
              'SELECT','INSERT','UPDATE',
              'SELECT','INSERT','INSERT']::text[]
      ) AS required(table_name, privilege)

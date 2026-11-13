@@ -15,7 +15,7 @@ export function CustomerManagement({ onDataChange }: CustomerManagementProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [channel, setChannel] = useState("Organico");
 const [createdAt, setCreatedAt] = useState("");
 const [formError, setFormError] = useState<string | null>(null);
@@ -139,7 +139,7 @@ async function handleUpdate() {
   }
 }
 
-async function handleDelete(customerId: number) {
+async function handleDelete(customerId: string) {
   const confirmed = window.confirm(
     "Sei sicuro di voler eliminare questo cliente?"
   );
