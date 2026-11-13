@@ -50,6 +50,25 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
       "Ruolo PostgreSQL non sicuro",
     );
   });
+  it("rifiuta un ruolo privo di SELECT sull'audit log", async () => {
+    const pool = {
+      query: async (sql: string) => ({
+        rows: sql.includes("pg_roles") ? [goodRole]
+          : sql.includes("pg_auth_members") ? [{ hasRoleMembership: false }]
+          : sql.includes("has_schema_privilege") ? [{ canCreateSchema: false }]
+          : sql.includes("has_table_privilege")
+            ? [{ tableName: "audit_logs", privilege: "SELECT" }]
+            : goodTables,
+        rowCount: 1,
+      }),
+    };
+    const result = await inspectPostgresRuntimeRole(pool as never);
+    expect(result.missingPrivileges).toEqual(["audit_logs:SELECT"]);
+    await expect(assertSafePostgresRuntimeRole(pool as never)).rejects.toThrow(
+      "Ruolo PostgreSQL non sicuro",
+    );
+  });
+
   it("rifiuta un ruolo privo dei privilegi applicativi richiesti", async () => {
     const pool = {
       query: async (sql: string) => ({
