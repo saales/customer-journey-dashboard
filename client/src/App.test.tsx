@@ -12,7 +12,7 @@ const meta = {
 const summary = {
   funnel: [
     { stage: "visit", label: "Visita", count: 1000, conversionFromPrevious: 100, conversionFromVisit: 100 },
-    { stage: "lead", label: "Lead", count: 200, conversionFromPrevious: 20, conversionFromVisit: 20 },
+    { stage: "lead", label: "Contatto", count: 200, conversionFromPrevious: 20, conversionFromVisit: 20 },
     { stage: "qualified", label: "Qualificato", count: 100, conversionFromPrevious: 50, conversionFromVisit: 10 },
     { stage: "opportunity", label: "Opportunità", count: 50, conversionFromPrevious: 50, conversionFromVisit: 5 },
     { stage: "customer", label: "Cliente", count: 20, conversionFromPrevious: 40, conversionFromVisit: 2 },
