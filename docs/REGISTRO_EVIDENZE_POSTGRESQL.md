@@ -2,8 +2,8 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit codice verificato:** `c4c927aab71bb48d1e091b933a807b608c745eba` (CI Node 20/22, run [43424404401](https://github.com/saales/customer-journey-dashboard/actions/runs/43424404401)).  
-**Branch HEAD al checkpoint:** `c4c927aab71bb48d1e091b933a807b608c745eba`.  
+**Commit codice verificato:** `d35d395d5e63bdab8c7a2fcf361cae0d806c67ad` (CI Node 20/22, run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146)).  
+**Branch HEAD al checkpoint:** `d35d395d5e63bdab8c7a2fcf361cae0d806c67ad`.  
 **PR:** [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta in bozza, non merged.
 
 Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
@@ -79,11 +79,20 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 3. Risolvere le decisioni su `external_id`, RLS, sessioni legacy, ruoli e inviti.
 4. Solo dopo, integrare progressivamente auth, repository e API PostgreSQL nel branch e mantenere CI verde.
 
-## Stato al checkpoint `c4c927a`
+## Stato al checkpoint `d35d395`
 
 - La CI PostgreSQL 16 è verde su Node 20 e Node 22: `npm ci`, `npm test` e `npm run build` sono tutti riusciti.
-- La suite include test unitari del planner/runner migrazioni e test d'integrazione su PostgreSQL effimero per gli SQL storici, i vincoli e le transazioni tenant.
+- La suite include test unitari del planner/runner migrazioni e test d'integrazione su PostgreSQL effimero per gli SQL storici, i vincoli, le transazioni tenant e il repository clienti con due organizzazioni isolate.
 - Il planner read-only non è ancora stato eseguito contro il database Neon; lo schema remoto e lo storico effettivo restano non verificati.
-- Il runtime applicativo resta SQLite: non esistono ancora repository PostgreSQL collegati alle route, autenticazione runtime o isolamento tenant end-to-end.
+- Il runtime applicativo resta SQLite. Esiste un solo repository PostgreSQL read-only per il listing clienti, non collegato alle route; autenticazione runtime, autorizzazione membership, policy RLS e isolamento tenant end-to-end non sono ancora implementati.
 
 **Regola operativa:** gli SQL storici recuperati non vanno riscritti o rinominati. Nessuna migrazione e nessuna modifica a Neon senza autorizzazione esplicita e confronto read-only della baseline.
+
+
+## Stato al checkpoint `d35d395`
+
+- Aggiunto `server/src/postgres-customer-repository.ts`: listing read-only paginato, conteggio e caricamento eventi con predicati espliciti su `organization_id`; ID BIGINT restituiti come stringhe.
+- Aggiunto `server/test/postgres-customer-repository.integration.test.ts`: fixture temporanee PostgreSQL con due tenant; verifica che pagine, conteggi ed eventi non attraversino i confini tenant e che il contesto `SET LOCAL` non sopravviva alla transazione.
+- CI PostgreSQL 16 verde su Node 20 e 22, run [43432840146](https://github.com/saales/customer-journey-dashboard/actions/runs/43432840146): `npm ci`, `npm test`, `npm run build) riusciti su entrambi.
+- Il repository non è collegato all'API perché manca ancora un contesto utente/membership autenticato. Le route continuano a usare SQLite.
+- Neon non è stato ispezionato né modificato; nessun DDL remoto eseguito.
