@@ -282,6 +282,9 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   expect(crossTenantChecks.customerStatus).toBe(200);
   expect(crossTenantChecks.customers).toHaveLength(1);
   expect(crossTenantChecks.customers[0]).toMatchObject({ channel: "Advertising", createdAt: "2025-02-01" });
+  expect(crossTenantChecks.customers[0].events).toEqual([
+    { stage: "visit", occurredAt: "2025-02-01" },
+  ]);
   expect(crossTenantChecks.updateStatus).toBe(404);
   expect(crossTenantChecks.deleteStatus).toBe(404);
   expect(crossTenantChecks.exportStatus).toBe(200);
