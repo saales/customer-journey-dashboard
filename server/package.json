@@ -4,17 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "dev:postgres": "tsx watch src/postgres-server.ts",
+    "dev": "tsx watch src/postgres-server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "seed": "tsx src/seed-cli.ts",
+    "start": "node dist/postgres-server.js",
     "test": "vitest run",
     "db:check": "tsx src/check-postgres.ts",
     "db:inspect": "tsx src/inspect-postgres-schema.ts",
     "db:migrate": "tsx src/migrate-postgres.ts",
-    "start:postgres": "node dist/postgres-server.js",
-    "db:bootstrap": "tsx src/bootstrap-postgres.ts"
+    "db:bootstrap": "tsx src/bootstrap-postgres.ts",
+    "dev:sqlite": "tsx watch src/index.ts",
+    "start:sqlite": "node dist/index.js",
+    "seed:sqlite": "tsx src/seed-cli.ts"
   },
   "dependencies": {
     "better-sqlite3": "12.9.0",

@@ -47,3 +47,33 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+      - name: Create non-privileged runtime role
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d journey_test -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE percorso_app LOGIN PASSWORD 'ci-runtime-password' NOINHERIT;"
+      - name: Apply all PostgreSQL migrations
+        run: npm run db:migrate
+      - name: Verify migration history and checksums
+        run: npm run db:migrate -- --check
+      - name: Start PostgreSQL runtime with restricted role
+        env:
+          DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
+          APP_ORIGIN: http://localhost:5173
+          LOGIN_RATE_LIMIT_SECRET: ci-only-secret-with-more-than-32-random-characters
+          PORT: "3001"
+        run: |
+          set -euo pipefail
+          npm start > /tmp/percorso-api.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          health_status="000"
+          for attempt in $(seq 1 30); do
+            health_status="$(curl -sS -o /tmp/percorso-health.json -w '%{http_code}' http://127.0.0.1:3001/api/health || true)"
+            if [ "$health_status" = "200" ]; then break; fi
+            sleep 1
+          done
+          if [ "$health_status" != "200" ]; then cat /tmp/percorso-api.log; exit 1; fi
+          grep -q '"database":"connected"' /tmp/percorso-health.json
+          session_status="$(curl -sS -o /tmp/percorso-session.json -w '%{http_code}' http://127.0.0.1:3001/api/auth/session)"
+          test "$session_status" = "401"
