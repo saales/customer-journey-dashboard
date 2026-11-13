@@ -23,6 +23,14 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   const createdCustomerRow = page.getByRole("row").filter({ hasText: "2025-03-10" });
   await expect(createdCustomerRow).toContainText("Email");
 
+  // Conserva l'ID del cliente nel tenant A per provare successivamente gli accessi IDOR dal tenant B.
+  const tenantACustomerId = await page.evaluate(async () => {
+    const response = await fetch("/api/customers?limit=100");
+    const body = await response.json() as { data: Array<{ id: string; createdAt: string }> };
+    return body.data.find((customer) => customer.createdAt === "2025-03-10")?.id ?? null;
+  });
+  expect(tenantACustomerId).toBeTruthy();
+
   // Aggiunta di una fase funnel persistente.
   await page.getByRole("button", { name: "Impostazioni" }).click();
   await page.getByLabel("Aggiungi una fase").fill("Demo completata");
@@ -217,4 +225,48 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
     audit: 403,
     members: 403,
   });
+
+  // Isolamento API tra due organizzazioni reali: stesso utente, sessione nel tenant B.
+  await page.getByRole("button", { name: "Esci" }).click();
+  await page.getByLabel("Email").fill(admin.email);
+  await page.getByLabel("Password").fill(admin.password);
+  await page.getByLabel("Codice organizzazione").fill("e2e-second-workspace");
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
+  const crossTenantChecks = await page.evaluate(async (foreignCustomerId) => {
+    const [customers, update, remove, exportResponse, audit] = await Promise.all([
+      fetch("/api/customers?limit=100"),
+      fetch(`/api/customers/${encodeURIComponent(foreignCustomerId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "Social", createdAt: "2025-03-10", events: [] }),
+      }),
+      fetch(`/api/customers/${encodeURIComponent(foreignCustomerId)}`, { method: "DELETE" }),
+      fetch("/api/export/customers.csv"),
+      fetch("/api/audit"),
+    ]);
+    return {
+      customerStatus: customers.status,
+      customers: (await customers.json()).data,
+      updateStatus: update.status,
+      deleteStatus: remove.status,
+      exportStatus: exportResponse.status,
+      exportCsv: await exportResponse.text(),
+      auditStatus: audit.status,
+      audit: (await audit.json()).data,
+    };
+  }, tenantACustomerId);
+  expect(crossTenantChecks.customerStatus).toBe(200);
+  expect(crossTenantChecks.customers).toHaveLength(1);
+  expect(crossTenantChecks.customers[0]).toMatchObject({ channel: "Advertising", createdAt: "2025-02-01" });
+  expect(crossTenantChecks.updateStatus).toBe(404);
+  expect(crossTenantChecks.deleteStatus).toBe(404);
+  expect(crossTenantChecks.exportStatus).toBe(200);
+  expect(crossTenantChecks.exportCsv).toContain("tenant-b-sentinel");
+  expect(crossTenantChecks.exportCsv).not.toContain("e2e-crm-001");
+  expect(crossTenantChecks.exportCsv).not.toContain("editor-e2e-001");
+  expect(crossTenantChecks.auditStatus).toBe(200);
+  expect(crossTenantChecks.audit.every((entry: { action: string }) =>
+    !["membership.invited", "data.imported", "customer.created"].includes(entry.action),
+  )).toBe(true);
 });
