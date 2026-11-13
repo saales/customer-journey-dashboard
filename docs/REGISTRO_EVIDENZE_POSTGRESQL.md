@@ -221,3 +221,16 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 | Pulsante UI per esportare l'intero elenco clienti autorizzato dal server | `client/src/components/CustomerManagement.tsx` | Implementazione presente; test browser end-to-end ancora da eseguire |
 
 La gestione membri non include ancora inviti o consegna email. Il CSV lato server riguarda i dati cliente e gli eventi; i report aggregati continuano a essere generati nel browser.
+
+
+## Gestione membri PostgreSQL — aggiornamento
+
+| Funzione | Evidenza | Stato |
+|---|---|---|
+| Elenco membri filtrato per organizzazione | `listOrganizationMembers` | Implementato |
+| Modifica ruolo e stato membership con audit | `updateOrganizationMember` | Implementata |
+| Blocco auto-modifica e tutela dell'ultimo amministratore attivo | lock transazionale e controlli repository | Implementati |
+| Privilegio minimo SELECT/UPDATE sul ruolo HTTP | migrazione `007_membership_management.sql` | Implementato |
+| Schermata web per gestione membri | `MemberManagement.tsx` | Implementata per ruolo admin |
+| Verifica migrazione 007 su PostgreSQL temporaneo | `postgres-migrations.integration.test.ts` | Aggiunta |
+| Inviti e accettazione collaboratori | API/UI non presenti | Da realizzare |

@@ -1,6 +1,6 @@
 # Inventario API e matrice di migrazione SaaS
 
-> **Stato verificato sul branch recovery/checkpoint-12-postgres.** Le tabelle seguenti descrivono il runtime storico Express/SQLite. Un runtime PostgreSQL separato è stato aggiunto nel ramo e offre già un sottoinsieme di route con autenticazione, autorizzazione e contesto tenant. Non è ancora stata raggiunta la parità funzionale e il client web non è stato collegato. L'avvio in produzione resta bloccato.
+> **Stato verificato sul branch recovery/checkpoint-12-postgres.** Le tabelle seguenti descrivono il runtime storico Express/SQLite. Un runtime PostgreSQL separato è stato aggiunto nel ramo con autenticazione, autorizzazione e contesto tenant. Il client React è collegato alle API principali (analisi, clienti, funnel, importazione ed esportazione CSV), ma non è ancora stata raggiunta la parità funzionale e mancano test end-to-end completi. L'avvio in produzione resta bloccato.
 
 ## Route attualmente presenti
 
@@ -84,14 +84,34 @@ Il contesto organizzazione viene sempre letto dalla sessione PostgreSQL verifica
 
 La migrazione `005_runtime_role_grants.sql` assegna privilegi minimi al ruolo `percorso_app`. La configurazione dei ruoli è documentata in `docs/CONFIGURAZIONE_RUOLI_POSTGRESQL.md`.
 
-### Funzioni ancora mancanti nel runtime PostgreSQL
+### API aggiuntive già presenti nel runtime PostgreSQL
 
-- API di confronto avanzato tra periodi e segmenti combinati oltre al confronto canali.
-- Gestione storico importazioni e annullamento controllato dei batch.
-- API di esportazione e audit consultabile.
-- Gestione membri, inviti, recupero account e bootstrap amministratore.
-- Collegamento del client React e test end-to-end dell'intero percorso utente.
+| Metodo e percorso | Funzione | Permesso | Stato |
+|---|---|---|---|
+| GET /api/meta | Date e canali disponibili | analytics:read | Implementata e collegata al client |
+| GET /api/summary | KPI e funnel | analytics:read | Implementata e collegata al client |
+| GET /api/channels | Confronto canali | analytics:read | Implementata e collegata al client |
+| GET /api/timeseries | Andamento mensile | analytics:read | Implementata e collegata al client |
+| GET /api/segments | Segmenti per canale, fase, mese e combinazione | analytics:read | Implementata e collegata al client |
+| GET /api/segments/customers | Dettaglio clienti del segmento | analytics:read | Implementata e collegata al client |
+| POST /api/import | Importazione atomica con deduplica e audit | data:import | Implementata e collegata al client |
+| GET /api/export/customers.csv | Esportazione tenant-scoped con protezione da CSV formula injection | data:export | Implementata e collegata al client |
+| GET /api/members | Elenco membri dell'organizzazione | members:manage | API e schermata admin implementate |
+| PATCH /api/members/:id | Modifica ruolo/stato membro e audit | members:manage | API e schermata admin implementate |
+
+Il comando amministrativo `npm run db:bootstrap -w server -- --confirm-empty-database` crea il primo tenant e l'amministratore solo su un database vuoto, usando `BOOTSTRAP_DATABASE_URL` separata. La procedura è documentata in `docs/BOOTSTRAP_POSTGRESQL.md`.
+
+La migrazione `007_membership_management.sql` assegna al ruolo HTTP solo SELECT e UPDATE su `memberships`, necessari alle API di amministrazione dei membri.
+
+### Funzioni ancora mancanti o da collaudare
+
+- Inviti monouso e flusso di accettazione per nuovi collaboratori; non esiste ancora un provider email collegato.
+- Recupero account e reset password.
+- Consultazione amministrativa del registro audit e gestione storico/annullamento importazioni.
+- Test end-to-end completi su login, ruoli, importazione ed esportazione; test cross-tenant a livello HTTP.
 - Verifica su un ambiente di staging isolato e collaudo di backup/ripristino.
+
+Le esportazioni CSV, Excel e PDF non sono ancora equivalenti: è disponibile l'esportazione CSV completa tenant-scoped dal server; le esportazioni Excel/PDF restano lato browser.
 
 Le route del runtime SQLite nella prima tabella non sono automaticamente protette dalle nuove middleware: il server PostgreSQL è un processo distinto e il runtime SQLite continua a non essere adatto a dati aziendali reali.
 

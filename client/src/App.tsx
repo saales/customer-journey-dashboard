@@ -23,6 +23,11 @@ export default function App({ onLogout, demoMode = false, organizationRole = nul
   const [channel, setChannel] = useState("");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const canWrite = demoMode || organizationRole === "admin" || organizationRole === "editor";
+  const canExport = demoMode || organizationRole === "admin" || organizationRole === "editor" || organizationRole === "analyst";
+  const visibleSections = canWrite
+    ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings"] as const
+    : ["dashboard", "customers", "analytics", "segmentation", "comparisons", "settings"] as const;
 
   const meta = useAsync((s) => api.meta(s), []);
   const fallbackDate = new Date().toISOString().slice(0, 10);
@@ -208,7 +213,7 @@ export default function App({ onLogout, demoMode = false, organizationRole = nul
   );
 
   const customersSection = (
-    <CustomerManagement onDataChange={refreshDashboard} serverExportEnabled={!demoMode} />
+    <CustomerManagement onDataChange={refreshDashboard} serverExportEnabled={!demoMode && canExport} readOnly={!canWrite && !demoMode} />
   );
 
   const importSection = (
@@ -236,7 +241,7 @@ export default function App({ onLogout, demoMode = false, organizationRole = nul
 
   const settingsSection = (
     <div>
-      <FunnelSettings onDataChange={refreshDashboard} />
+      <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite && !demoMode} />
       {!demoMode && organizationRole === "admin" && <MemberManagement />}
 
       <div className="card">
@@ -252,6 +257,7 @@ export default function App({ onLogout, demoMode = false, organizationRole = nul
   return (
     <AppLayout
       onLogout={onLogout}
+      visibleSections={[...visibleSections]}
       sections={{
         dashboard: dashboardSection,
         customers: customersSection,

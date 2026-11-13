@@ -30,6 +30,7 @@ interface AppLayoutProps {
   children: ReactNode;
   sections?: Partial<Record<Section, ReactNode>>;
   onLogout?: () => Promise<void>;
+  visibleSections?: Section[];
 }
 
 const navigation = [
@@ -42,14 +43,15 @@ const navigation = [
   { id: "settings", label: "Impostazioni", icon: Settings },
 ] as const;
 
-export function AppLayout({ children, sections, onLogout }: AppLayoutProps) {
+export function AppLayout({ children, sections, onLogout, visibleSections }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<Theme>("light");
   const [activeSection, setActiveSection] =
     useState<Section>("dashboard");
 
+  const visibleNavigation = visibleSections ? navigation.filter((item) => visibleSections.includes(item.id)) : navigation;
   const pageTitle =
-    navigation.find((item) => item.id === activeSection)?.label ??
+    visibleNavigation.find((item) => item.id === activeSection)?.label ??
     "Panoramica";
 
   const sectionContent = sections?.[activeSection] ?? (
@@ -98,7 +100,7 @@ export function AppLayout({ children, sections, onLogout }: AppLayoutProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.id;
 

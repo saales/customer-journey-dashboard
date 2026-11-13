@@ -54,6 +54,10 @@ function openAnalytics() {
 beforeEach(() => {
   fetchMock = vi.fn((url: string) => {
     if (url.startsWith("/api/members")) return json([]);
+    if (url.startsWith("/api/funnel-stages")) return json([
+      { id: "visit", label: "Visita", position: 0, isActive: true, isSystem: true },
+      { id: "customer", label: "Cliente", position: 1, isActive: true, isSystem: true },
+    ]);
     if (url.startsWith("/api/meta")) return json(meta);
     if (url.startsWith("/api/summary")) return json(summary);
     if (url.startsWith("/api/channels")) return json(channels);
@@ -171,6 +175,30 @@ describe("startOfPeriod", () => {
     expect(startOfPeriod("2026-09-27", 3)).toBe("2026-07-01");
     expect(startOfPeriod("2026-01-15", 3)).toBe("2025-11-01");
   });
+
+  it("applica i permessi di sola lettura per viewer e nasconde l'importazione", async () => {
+    render(<App organizationRole="viewer" />);
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Importazione dati" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Gestione clienti" }));
+    expect(screen.queryByRole("button", { name: "Nuovo cliente" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Impostazioni" }));
+    expect(await screen.findByText("Configurazione del percorso")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Rinomina" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Aggiungi fase" })).toBeNull();
+    expect(screen.queryByText("Utenti e permessi")).toBeNull();
+  });
+
+  it("consente a editor e amministratori le sezioni di scrittura", async () => {
+    render(<App organizationRole="editor" />);
+    expect(await screen.findByText("Conversione")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Importazione dati" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Gestione clienti" }));
+    expect(screen.getByRole("button", { name: "Nuovo cliente" })).toBeTruthy();
+  });
+
 });
 
 describe("App - filtri e stati", () => {

@@ -14,6 +14,7 @@ const migration003Url = new URL("../migrations/003_saas_tenant_hardening.sql", i
 const migration004Url = new URL("../migrations/004_login_attempt_limits.sql", import.meta.url);
 const migration005Url = new URL("../migrations/005_runtime_role_grants.sql", import.meta.url);
 const migration006Url = new URL("../migrations/006_session_idle_timeout.sql", import.meta.url);
+const migration007Url = new URL("../migrations/007_membership_management.sql", import.meta.url);
 
 const expectedChecksums = {
   "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
@@ -49,13 +50,14 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query(`CREATE SCHEMA "${schemaName}"`);
       await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
 
-      const [sql001, sql002, sql003, sql004, sql005, sql006] = await Promise.all([
+      const [sql001, sql002, sql003, sql004, sql005, sql006, sql007] = await Promise.all([
         readFile(migration001Url, "utf8"),
         readFile(migration002Url, "utf8"),
         readFile(migration003Url, "utf8"),
         readFile(migration004Url, "utf8"),
         readFile(migration005Url, "utf8"),
         readFile(migration006Url, "utf8"),
+        readFile(migration007Url, "utf8"),
       ]);
 
       await client.query(sql001);
@@ -143,6 +145,12 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query("CREATE ROLE percorso_app NOLOGIN");
       await client.query(sql005);
       await client.query(sql006);
+      await client.query(sql007);
+      const memberManagementGrant = await client.query<{ allowed: boolean }>(
+        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
+        ["percorso_app", "memberships", "UPDATE"],
+      );
+      expect(memberManagementGrant.rows[0]?.allowed).toBe(true);
       const idleTimeoutGrant = await client.query<{ allowed: boolean }>(
         "SELECT has_column_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text, $4::text) AS allowed",
         ["percorso_app", "sessions", "last_used_at", "UPDATE"],

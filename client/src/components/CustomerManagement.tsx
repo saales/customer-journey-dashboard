@@ -6,9 +6,10 @@ const PAGE_SIZE = 50;
 interface CustomerManagementProps {
   onDataChange: () => void;
   serverExportEnabled?: boolean;
+  readOnly?: boolean;
 }
 
-export function CustomerManagement({ onDataChange, serverExportEnabled = false }: CustomerManagementProps) {
+export function CustomerManagement({ onDataChange, serverExportEnabled = false, readOnly = false }: CustomerManagementProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -192,14 +193,14 @@ async function handleDelete(customerId: string) {
           <p className="hint">Gestione dei clienti e delle relative fasi del percorso.</p>
         </div>
 {serverExportEnabled && <button className="button-secondary" type="button" onClick={() => void exportCustomers()}>Esporta tutti i clienti CSV</button>}
-<button className="export" onClick={() => setShowForm(!showForm)}>
+{!readOnly && <button className="export" onClick={() => setShowForm(!showForm)}>
   {showForm ? "Annulla" : "Nuovo cliente"}
-</button>
+</button>}
 
       </div>
 
 
-      {showForm && (
+      {showForm && !readOnly && (
   <form
     onSubmit={(e) => {
   e.preventDefault();
@@ -306,7 +307,7 @@ async function handleDelete(customerId: string) {
           <th>Canale</th>
           <th>Prima visita</th>
           <th>Fasi del percorso raggiunte</th>
-          <th>Azioni</th>
+          {!readOnly && <th>Azioni</th>}
         </tr>
       </thead>
 
@@ -331,7 +332,7 @@ async function handleDelete(customerId: string) {
     ))}
   </div>
 </td>
-            <td>
+            {!readOnly && <td>
   <button
     className="export export-edit"
     onClick={() => handleEdit(customer)}
@@ -344,7 +345,7 @@ async function handleDelete(customerId: string) {
 >
   Elimina
 </button>
-</td>
+</td>}
           </tr>
         ))}
       </tbody>
