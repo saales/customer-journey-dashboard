@@ -41,6 +41,8 @@ describe("AuditLog", () => {
     expect(screen.getByRole("cell", { name: "Admin Uno" })).toBeTruthy();
     expect(screen.getByText("customer 42")).toBeTruthy();
     expect(screen.getByText("channel: Organico")).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Membro modificato" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Invito accettato" })).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Dal"), { target: { value: "2026-11-01" } });
     fireEvent.change(screen.getByLabelText("Al"), { target: { value: "2026-11-13" } });
