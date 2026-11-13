@@ -38,7 +38,7 @@ describe("AuditLog", () => {
 
     render(<AuditLog />);
     expect(await screen.findByText("Cliente creato")).toBeTruthy();
-    expect(screen.getByText("Admin Uno")).toBeTruthy();
+    expect(screen.getByRole("cell", { name: "Admin Uno" })).toBeTruthy();
     expect(screen.getByText("customer 42")).toBeTruthy();
     expect(screen.getByText("channel: Organico")).toBeTruthy();
 
