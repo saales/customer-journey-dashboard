@@ -69,7 +69,7 @@ Queste misure vanno comunque sottoposte a revisione indipendente e test in ambie
 
 ## 6. Qualità del software
 
-La pipeline automatizzata comprende test frontend e backend, build TypeScript, migrazioni 001–009 su PostgreSQL temporaneo, controllo dello storico/checksum e avvio del server con un ruolo non privilegiato. Su Node.js 22 include un percorso browser Playwright/Chromium con login admin, creazione cliente, funnel, import/export CSV, invito e accettazione analista e verifica di un diniego HTTP 403 lato server.
+La pipeline automatizzata comprende test frontend e backend, build TypeScript, migrazioni 001–010 su PostgreSQL temporaneo, controllo dello storico/checksum e avvio del server con un ruolo non privilegiato. Su Node.js 22 include un percorso browser Playwright/Chromium con login admin, creazione cliente, funnel, import/export CSV, invito e accettazione analista e verifica di un diniego HTTP 403 lato server.
 
 Per completare il capitolo sperimentale della tesi occorre raccogliere evidenze su:
 
