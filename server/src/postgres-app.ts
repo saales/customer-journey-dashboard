@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from "express";
+import { listPostgresAuditLogs } from "./postgres-audit-repository.js";
 import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
@@ -312,6 +313,27 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         if (error instanceof PostgresExportError) { res.status(error.status).json({ error: error.message }); return; }
         next(error);
       }
+    });
+
+  app.get("/api/audit", authenticated, requireOrganizationPermission("audit:read"),
+    async (req, res, next) => {
+      try {
+        const page = parsePage(req.query.page, 1, 1_000_000);
+        const limit = parsePage(req.query.limit, 50, 100);
+        const from = typeof req.query.from === "string" ? req.query.from : undefined;
+        const to = typeof req.query.to === "string" ? req.query.to : undefined;
+        const actorUserId = typeof req.query.actorUserId === "string" ? req.query.actorUserId : undefined;
+        const action = typeof req.query.action === "string" ? req.query.action : undefined;
+        if ((from && !isValidPostgresDate(from)) || (to && !isValidPostgresDate(to)) || (from && to && from > to)) {
+          throw new ApiError(400, "Intervallo date audit non valido.");
+        }
+        if (actorUserId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actorUserId)) {
+          throw new ApiError(400, "Utente audit non valido.");
+        }
+        if (action && !/^[a-z][a-z0-9._-]{1,99}$/.test(action)) throw new ApiError(400, "Operazione audit non valida.");
+        res.json(await listPostgresAuditLogs(pool, req.authenticatedSession!.organizationId,
+          { page, limit, from, to, actorUserId, action }));
+      } catch (error) { next(error); }
     });
 
   app.get("/api/customers", authenticated,
