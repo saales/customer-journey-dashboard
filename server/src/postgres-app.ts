@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
+import { createPostgresApiRateLimitMiddleware } from "./postgres-api-rate-limit.js";
 import { exportPostgresCustomersCsv, PostgresExportError } from "./postgres-export-repository.js";
 import { listOrganizationMembers, updateOrganizationMember, MemberManagementError } from "./postgres-members-repository.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
@@ -158,6 +159,10 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     }
     next();
   });
+
+  // Limite persistente e condiviso prima del parsing dei body e di ogni route API.
+  app.use("/api", createPostgresApiRateLimitMiddleware(pool, options.rateLimitSecret));
+
   // Importazioni: limite dedicato; tutte le altre API hanno un limite più restrittivo.
   app.use("/api/import", express.json({ limit: "12mb" }));
   app.use(express.json({ limit: "1mb" }));
