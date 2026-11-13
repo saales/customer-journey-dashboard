@@ -7,7 +7,7 @@ describe("password hashing", () => {
     const second = await hashPassword("Correct-Horse-Battery-42!");
 
     expect(first).not.toBe(second);
-    expect(first).toMatch(/^scrypt\\$32768\\$8\\$1\\$/);
+    expect(first).toMatch(/^scrypt\$32768\$8\$1\$/);
     await expect(verifyPassword("Correct-Horse-Battery-42!", first)).resolves.toBe(true);
     await expect(verifyPassword("another-password-123", first)).resolves.toBe(false);
   });
