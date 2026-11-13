@@ -13,7 +13,8 @@
     "db:check": "tsx src/check-postgres.ts",
     "db:inspect": "tsx src/inspect-postgres-schema.ts",
     "db:migrate": "tsx src/migrate-postgres.ts",
-    "start:postgres": "node dist/postgres-server.js"
+    "start:postgres": "node dist/postgres-server.js",
+    "db:bootstrap": "tsx src/bootstrap-postgres.ts"
   },
   "dependencies": {
     "better-sqlite3": "12.9.0",

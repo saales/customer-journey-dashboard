@@ -4,7 +4,7 @@ Applicazione web per osservare e comprendere il percorso che conduce una persona
 
 L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
 
-> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Nel ramo di sviluppo è ora presente un server HTTP PostgreSQL separato con accesso, sessioni, API tenant-scoped per clienti (creazione, modifica, eliminazione), funnel e prime analisi, oltre a controlli di sicurezza all'avvio. Il client web e le API di analisi, importazione ed esportazione non sono ancora migrati; il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
+> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Il ramo contiene un server HTTP PostgreSQL separato con autenticazione, sessioni, ruoli, API tenant-scoped per analisi, segmentazione, clienti, funnel e importazione, oltre a controlli di sicurezza all'avvio. Il client può essere avviato in sviluppo contro queste API; le esportazioni restano lato browser. È in preparazione il bootstrap amministrativo iniziale e sono ancora necessari test end-to-end completi, confronto funzionale, verifiche operative e collaudo in staging. Il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
 
 [![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
@@ -86,6 +86,8 @@ Questo comando avvia il runtime storico SQLite per sviluppo locale. Il database 
 VITE_ENABLE_DEMO_MODE=true
 ```
 
+Per creare il primo tenant e il relativo amministratore su un database PostgreSQL appena migrato, seguire la procedura documentata in [docs/BOOTSTRAP_POSTGRESQL.md](docs/BOOTSTRAP_POSTGRESQL.md). Il bootstrap richiede una connessione amministrativa dedicata, un nome database confermato e il flag esplicito; rifiuta database già popolati.
+
 Per avviare il client con il runtime PostgreSQL:
 
 ```bash
@@ -132,11 +134,11 @@ Il percorso di evoluzione prevede PostgreSQL come unico database di destinazione
 
 Nel ramo di sviluppo sono presenti migrazioni versionate, autenticazione PostgreSQL, cookie di sessione, scadenza per inattività dopo 30 minuti e scadenza assoluta, middleware per i ruoli, API tenant-scoped iniziali, limiti persistenti ai tentativi di accesso e un preflight che rifiuta ruoli PostgreSQL non sicuri. Il server PostgreSQL si avvia solo se lo storico migrazioni è completo e coerente e se il ruolo runtime è separato dal proprietario, non privilegiato e dotato dei permessi minimi.
 
-Il runtime predefinito continua a utilizzare SQLite e il client non è ancora collegato alle nuove API PostgreSQL. L'avvio in produzione rimane quindi bloccato fino al completamento e alla verifica di:
-- migrazione completa del client e delle API di analisi, importazione ed esportazione;
+Il runtime predefinito continua a utilizzare SQLite. Il client può essere avviato in sviluppo contro il runtime PostgreSQL, ma l'avvio in produzione rimane bloccato fino al completamento e alla verifica di:
+- test end-to-end completi del client con il runtime PostgreSQL e verifica della parità funzionale;
 - test end-to-end di login, logout, permessi e isolamento tra organizzazioni;
 - verifiche operative di backup, ripristino e osservabilità;
-- migrazione di tutte le funzioni applicative a PostgreSQL;
+- migrazione definitiva del runtime predefinito a PostgreSQL e rimozione controllata del percorso SQLite;
 - prove di aggiornamento, backup e ripristino;
 - collaudo in un ambiente separato.
 
