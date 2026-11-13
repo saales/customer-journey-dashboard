@@ -1,36 +1,38 @@
-# Customer Journey Dashboard
+# Analisi del percorso cliente
 
-Dashboard web per analizzare il **funnel di conversione** e il **customer journey**: dal primo contatto (visita) all'acquisto, passando per contatto, qualificazione e opportunità.
+Applicazione web per osservare e comprendere il percorso che conduce una persona dal primo contatto alla conversione. Riunisce indicatori, andamento nel tempo, confronto dei canali, segmentazione e gestione delle anagrafiche in un'unica interfaccia.
 
-Il progetto permette di monitorare le performance del percorso di conversione, individuare i punti di abbandono e confrontare l'efficacia dei diversi canali di acquisizione. **Nota sullo stato:** il backend attualmente esegue ancora su SQLite; PostgreSQL, autenticazione e isolamento multi-tenant non sono ancora completati e verificati per la produzione.
+L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
 
-[![CI](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
+> **Stato del progetto:** è in corso l'evoluzione verso un servizio multi-organizzazione basato su PostgreSQL. Il server applicativo utilizza ancora SQLite e le nuove funzioni PostgreSQL non sono ancora collegate alle API operative. L'avvio in produzione è intenzionalmente bloccato. Questa versione non è ancora idonea a trattare dati aziendali reali né a essere venduta come servizio pronto all'uso.
 
-> **Dati dimostrativi:** il generatore crea dati sintetici esclusivamente quando viene abilitato esplicitamente con `ALLOW_DEMO_SEED=true` in un ambiente non di produzione. Il server non inserisce dati dimostrativi automaticamente e rifiuta l'opzione in `NODE_ENV=production`. Non usare dati sintetici come dati aziendali reali.
+[![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
-## Funzionalità
+## Funzionalità disponibili nell'applicazione attuale
 
-- **Panoramica KPI:** visite iniziali, contatti acquisiti, clienti, tasso di conversione e giorni medi all'acquisto.
-- **Funnel di conversione:** analisi delle cinque fasi del percorso (Visita → Contatto → Qualificato → Opportunità → Cliente), con percentuali di conversione tra le fasi.
-- **Andamento mensile:** visualizzazione dell'evoluzione delle visite e del tasso di conversione.
-- **Confronto tra canali:** analisi delle performance di Organico, Social, Email, Pubblicità e Passaparola.
-- **Filtri interattivi:** selezione del periodo e del canale, con intervalli temporali predefiniti o personalizzati.
-- **Gestione clienti:** inserimento, modifica ed eliminazione dei clienti, con registrazione delle date associate alle diverse fasi del percorso.
-- **Esportazione CSV:** download dei dati relativi a funnel, andamento mensile e confronto tra canali, compatibile con Excel in italiano.
-- **Interfaccia moderna:** navigazione laterale, tema chiaro e scuro e layout adattabile alle diverse dimensioni dello schermo.
-- **Gestione degli stati:** feedback durante il caricamento, segnalazione degli errori e gestione dei periodi senza dati.
-- **Paginazione clienti:** caricamento progressivo dei record con pagina e dimensione configurabili, totale risultati e navigazione tra pagine.
-- **Organizzazioni vuote:** le viste analytics gestiscono correttamente l'assenza di dati, senza richiedere un seed dimostrativo.
+- **Indicatori principali:** visite iniziali, contatti, clienti, tasso di conversione e tempo medio alla conversione.
+- **Percorso di conversione:** analisi delle fasi Visita, Contatto, Qualificazione, Opportunità e Cliente.
+- **Andamento nel tempo:** evoluzione delle visite e del tasso di conversione.
+- **Confronto dei canali:** analisi delle prestazioni dei diversi canali di acquisizione.
+- **Filtri temporali:** selezione di intervalli predefiniti o personalizzati e dei canali.
+- **Gestione clienti:** inserimento, modifica, eliminazione e consultazione paginata.
+- **Importazione:** caricamento e verifica preliminare di file CSV o Excel.
+- **Segmentazione e confronti:** lettura dei risultati per gruppi, periodi e canali.
+- **Esportazione:** produzione di file CSV, Excel e PDF.
+- **Preferenze di visualizzazione:** tema chiaro o scuro e interfaccia adattabile alle dimensioni dello schermo.
 
-## Stack tecnologico
+Le funzioni sono in fase di consolidamento e non devono essere interpretate come prova del completamento dell'architettura multi-organizzazione.
 
-| Livello | Tecnologie |
+## Tecnologie
+
+| Ambito | Tecnologie |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Recharts, Lucide React |
-| Backend | Node.js, Express, TypeScript |
-| Database attuale | SQLite con better-sqlite3 e query SQL di aggregazione |
-| Test | Vitest, Testing Library |
-| CI | GitHub Actions, test e build su Node.js 20 e 22 |
+| Interfaccia web | React, TypeScript, Vite, Recharts |
+| Server applicativo | Node.js, Express, TypeScript |
+| Database attuale | SQLite |
+| Database di destinazione | PostgreSQL |
+| Verifiche | Vitest, Testing Library, PostgreSQL temporaneo |
+| Automazione delle verifiche | GitHub Actions, Node.js 20 e 22 |
 
 ## Struttura del progetto
 
@@ -38,140 +40,104 @@ Il progetto permette di monitorare le performance del percorso di conversione, i
 .
 ├── client/
 │   └── src/
-│       ├── components/
-│       │   ├── AppLayout.tsx
-│       │   ├── KpiCards.tsx
-│       │   ├── FunnelChart.tsx
-│       │   ├── TrendChart.tsx
-│       │   ├── ChannelTable.tsx
-│       │   ├── Filters.tsx
-│       │   └── CustomerManagement.tsx
-│       ├── api.ts
-│       ├── useAsync.ts
-│       ├── csv.ts
-│       └── styles.css
+│       ├── components/       # Componenti dell'interfaccia
+│       ├── api.ts            # Comunicazione con il server
+│       ├── format.ts         # Formattazione e periodi
+│       └── styles.css        # Stili dell'interfaccia
 ├── server/
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── app.ts
-│   │   ├── db.ts
-│   │   ├── seed.ts
-│   │   ├── seed-cli.ts
-│   │   └── queries.ts
-│   └── test/
-├── docs/
-│   └── ARCHITETTURA.md
+│   ├── migrations/           # Migrazioni PostgreSQL versionate
+│   ├── src/                  # Server e moduli applicativi
+│   └── test/                 # Verifiche automatiche
+├── docs/                     # Architettura, decisioni e piani
 ├── package.json
 ├── README.md
 └── LICENSE
 ```
 
-Le scelte progettuali, l'analisi per coorte, le query SQL, la validazione e i limiti dell'applicazione sono approfonditi nel documento [Architettura e scelte progettuali](docs/ARCHITETTURA.md). Per l'inventario tecnico del database PostgreSQL è disponibile la [guida all'ispezione read-only](docs/ISPEZIONE_POSTGRESQL_READ_ONLY.md).
+## Criteri di analisi
 
-## Come funziona l'analisi
+Le analisi sono organizzate per coorte: si considerano i clienti la cui prima visita ricade nell'intervallo selezionato e si osservano gli eventi successivi lungo il percorso di conversione.
 
-Le analisi lavorano per **coorte**: vengono considerati i clienti la cui prima visita ricade nel periodo selezionato e vengono seguiti i relativi eventi lungo il funnel.
+Questo criterio consente di confrontare periodi e canali mantenendo costante la base di osservazione. Le definizioni degli indicatori e le relative query sono documentate nei materiali tecnici del progetto.
 
-Questo approccio permette di confrontare le percentuali di conversione tra periodi e canali, mantenendo coerente il criterio di analisi.
+## Interfacce applicative
 
-## API
+Le API attualmente operative espongono funzioni di consultazione e gestione dei dati. Il loro contratto è documentato nel codice del server e nei documenti tecnici. Le nuove funzioni PostgreSQL sono ancora moduli isolati: non sostituiscono il server SQLite attualmente in esecuzione.
 
-Le API REST consentono di consultare i dati e gestire le anagrafiche dei clienti.
-
-| Metodo e percorso | Descrizione |
-|---|---|
-| `GET /api/health` | Verifica che il server sia attivo |
-| `GET /api/meta` | Recupera l'intervallo di date disponibile e la lista dei canali |
-| `GET /api/summary?from&to&channel` | Recupera KPI e dati del funnel |
-| `GET /api/channels?from&to` | Recupera il confronto tra canali |
-| `GET /api/timeseries?from&to&channel` | Recupera l'andamento mensile |
-| `GET /api/customers?page=1&limit=50` | Recupera una pagina di clienti con metadati di paginazione (limite massimo 100) |
-| `POST /api/customers` | Inserisce un nuovo cliente |
-| `PUT /api/customers/:id` | Modifica i dati di un cliente |
-| `DELETE /api/customers/:id` | Elimina un cliente |
-
-I parametri `from` e `to` utilizzano il formato `YYYY-MM-DD`. I valori non validi restituiscono una risposta HTTP `400` con un messaggio descrittivo. L'endpoint clienti restituisce un oggetto con `data` e `pagination` (`page`, `limit`, `total`, `totalPages`); `page` parte da 1 e `limit` vale 50 per impostazione predefinita, con massimo 100.
-
-## Come avviarlo
+## Avvio in ambiente locale
 
 ### Requisiti
 
-- Node.js 20 o superiore
+- Node.js 20 o versione successiva
 - npm
 
-### Avvio in modalità sviluppo
+### Installazione e avvio
 
-Dalla cartella principale del progetto:
+Dalla cartella principale:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Il comando avvia contemporaneamente il server API e l'interfaccia web.
-
-Aprire nel browser:
+L'interfaccia è disponibile all'indirizzo:
 
 [http://localhost:5173](http://localhost:5173)
 
-Al primo avvio viene creato lo schema SQLite (`journey.db`), ma il database resta vuoto. Per caricare dati dimostrativi occorre abilitarli esplicitamente: `ALLOW_DEMO_SEED=true npm run seed`. Il comando rifiuta sempre l'esecuzione in `NODE_ENV=production`.
-
-### Build e avvio in produzione
-
-Per compilare frontend e backend:
-
-```bash
-npm run build
-```
-
-Per avviare il server:
-
-```bash
-NODE_ENV=production npm start -w server
-```
-
-**Nota:** l'avvio con `NODE_ENV=production` è intenzionalmente bloccato finché il backend non sarà migrato a PostgreSQL e non saranno implementati e verificati autenticazione e isolamento multi-tenant. Il prototipo corrente è utilizzabile solo in sviluppo/demo.
-
-L'applicazione completa è disponibile all'indirizzo:
+Il server locale è disponibile all'indirizzo:
 
 [http://localhost:3001](http://localhost:3001)
 
-### Test automatici
-
-Per eseguire i test di entrambi i workspace:
-
-```bash
-npm test
-```
-
-### Generazione manuale dei dati sintetici
+Al primo avvio viene creato il database SQLite locale, inizialmente vuoto. Per caricare dati dimostrativi occorre abilitarli esplicitamente in un ambiente non di produzione:
 
 ```bash
 ALLOW_DEMO_SEED=true npm run seed
 ```
 
-Il consenso esplicito è obbligatorio e il comando è bloccato in produzione. Usare esclusivamente un database locale/demo: non eseguire il seed su database aziendali o contenenti dati reali.
+Il caricamento dimostrativo è bloccato in produzione. Utilizzare esclusivamente dati sintetici e un ambiente locale separato da qualsiasi archivio aziendale.
 
-## Sviluppo del progetto
+## Verifiche automatiche
 
-Ho realizzato questo progetto attraverso un percorso progressivo di analisi, progettazione, sviluppo e verifica.
+Per eseguire le verifiche dei moduli:
 
-Durante il lavoro mi sono concentrato sulla comprensione delle logiche del customer journey, sulla modellazione dei dati e sulla realizzazione di un'applicazione capace di rappresentare in modo chiaro le diverse fasi del percorso di conversione.
+```bash
+npm test
+```
 
-Ho lavorato sull'integrazione tra frontend e backend, sulla gestione dei dati tramite database SQLite, sulla progettazione delle API e sulla realizzazione di funzionalità di analisi e gestione dei clienti.
+Per compilare l'applicazione:
 
-Una parte importante del lavoro ha riguardato anche il miglioramento dell'esperienza utente, la leggibilità delle informazioni, la gestione degli errori e la verifica del funzionamento attraverso test automatici.
+```bash
+npm run build
+```
 
-Il progetto rappresenta un'esperienza pratica di applicazione delle competenze informatiche a un caso d'uso orientato all'analisi dei processi aziendali.
+Le verifiche automatiche del ramo di sviluppo vengono eseguite su Node.js 20 e 22. I test PostgreSQL utilizzano un servizio temporaneo predisposto per la durata dell'esecuzione: non operano sul database Neon.
 
-## Possibili sviluppi
+## Architettura e sicurezza
 
-- **Integrazione dei dati aziendali:** possibilità di importare dataset tramite CSV.
-- **Analisi comparativa:** confronto tra periodi temporali e performance dei diversi canali.
-- **Approfondimento del funnel:** analisi dei tassi di abbandono e dei punti critici del percorso di conversione.
-- **Evoluzione dell'architettura:** migrazione effettiva a PostgreSQL, autenticazione, sessioni e isolamento multi-tenant (non ancora completati nel branch corrente).
-- **Estensione dei test:** test end-to-end per verificare i principali flussi di utilizzo.
+Il percorso di evoluzione prevede PostgreSQL come unico database di destinazione, con separazione dei dati per organizzazione, ruoli, sessioni, registri di controllo e verifiche d'integrità.
+
+Nel ramo di sviluppo sono presenti migrazioni versionate, funzioni di accesso ai dati PostgreSQL, protezioni a livello di riga e componenti iniziali per password e sessioni. Questi moduli non sono ancora integrati nel server HTTP operativo.
+
+Il server attuale continua a utilizzare SQLite. L'avvio in produzione rimane quindi bloccato fino al completamento e alla verifica di:
+- autenticazione e gestione completa delle sessioni;
+- protezione delle richieste e limitazione dei tentativi;
+- autorizzazioni per ruolo e isolamento tra organizzazioni;
+- migrazione di tutte le funzioni applicative a PostgreSQL;
+- prove di aggiornamento, backup e ripristino;
+- collaudo in un ambiente separato.
+
+Nessuna migrazione di questo ramo è stata applicata al database Neon. Prima di qualsiasi trasferimento occorre verificarne lo storico e accertare la presenza di eventuali dati reali.
+
+## Documentazione
+
+La cartella `docs/` contiene:
+- descrizione dell'architettura e delle scelte progettuali;
+- inventario delle API e piano di evoluzione;
+- decisione architetturale relativa a PostgreSQL;
+- contratto dei dati e regole di isolamento;
+- piano delle migrazioni e registro delle evidenze;
+- criteri di prodotto, collaudo e rilascio.
 
 ## Licenza
 
-Licenza MIT. Consulta il file [LICENSE](LICENSE).
+Licenza MIT. Consultare il file [LICENSE](LICENSE).
