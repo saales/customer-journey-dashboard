@@ -3,7 +3,12 @@ import { createPostgresApp, isValidPostgresDate } from "../src/postgres-app.js";
 
 const servers: Array<{ close: (callback: (error?: Error) => void) => void }> = [];
 const pool = {
-  connect: async () => { throw new Error("La connessione DB non deve essere usata in questo test."); },
+  connect: async () => ({
+    query: async (sql: string) => sql.includes("RETURNING attempts <= $2")
+      ? ({ rows: [{ allowed: true }], rowCount: 1 })
+      : ({ rows: [], rowCount: 0 }),
+    release: () => undefined,
+  }),
   query: async () => ({ rows: [{ ready: 1 }], rowCount: 1 }),
 };
 
