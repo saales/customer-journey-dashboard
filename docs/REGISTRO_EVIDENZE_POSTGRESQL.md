@@ -2,10 +2,21 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Ultimo HEAD del branch:** `f957e25d3f3035ac35f1da6a0b4eee8612df5156` (CI in esecuzione, run [43436719524](https://github.com/saales/customer-journey-dashboard/actions/runs/43436719524)); ultimo checkpoint con CI verde: `5070d3ab48b7a1fe8b6b0aef209d99bda77f49e9`, run [43433194436](https://github.com/saales/customer-journey-dashboard/actions/runs/43433194436).  
+**Ultimo HEAD del branch:** `637a2c3160c79fec2c53c3e6e0b77a29d2aa1b27`. Ultimo checkpoint con CI integralmente verde: `71f646bd12b48e09a8c69efd4864d1da15dd293b`, run [43438747565](https://github.com/saales/customer-journey-dashboard/actions/runs/43438747565). La successiva esecuzione [43439204074](https://github.com/saales/customer-journey-dashboard/actions/runs/43439204074) è stata annullata durante l'aggiornamento della richiesta di modifica: Node 20 ha completato i test ma la compilazione è stata annullata; Node 22 è stato annullato prima dei test. Le ultime modifiche al codice riguardano esclusivamente testi dell'interfaccia e metadati di esportazione; il README è documentazione. È necessaria una nuova esecuzione completa sul ramo aggiornato.  
 **PR:** [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta in bozza, non merged.
 
 Questo registro distingue il codice effettivamente presente nel branch, gli artefatti recuperati dallo ZIP checkpoint 12 e lo stato remoto non verificato. Non certifica lo stato del database Neon.
+
+## Aggiornamento del prodotto e della documentazione — 2026-11-13
+
+| Affermazione | Evidenza | Stato |
+|---|---|---|
+| Il nome e le etichette principali dell'interfaccia sono stati uniformati in italiano | `client/src/components/AppLayout.tsx`, `Segmentation.tsx`, `FunnelSettings.tsx`, `DataImport.tsx`, `Comparisons.tsx`, `CustomerManagement.tsx` | Modifiche presenti nel ramo; nuova CI completa da eseguire |
+| I metadati dei file Excel/PDF e il nome del foglio sono in italiano | `client/src/components/ExportButton.tsx` | Modifica presente nel ramo; nuova CI completa da eseguire |
+| La presentazione principale del progetto è stata riscritta in italiano e dichiara esplicitamente i limiti attuali | `README.md` | Verificato nel ramo |
+| Il materiale esaminato non contiene riferimenti espliciti a strumenti di intelligenza artificiale | `README.md`, documenti di architettura e rilascio consultati | Verificato nei file esaminati; non equivale a una scansione esaustiva di ogni file |
+| Il servizio di autenticazione PostgreSQL usa verifica password scrypt e crea sessioni tramite il repository dedicato | `server/src/postgres-authentication.ts`, `server/src/password-hashing.ts`, `server/src/postgres-session-repository.ts` | Codice presente; non collegato alle route Express |
+| La richiesta di modifica è stata rinominata e aggiornata per riportare lo stato effettivo e i blocchi ancora aperti | PR #1 | Verificato; resta in bozza e non unita |
 
 ## Evidenze verificate nel branch Git
 
