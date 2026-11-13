@@ -66,7 +66,7 @@ Il progetto permette di monitorare le performance del percorso di conversione, i
 └── LICENSE
 ```
 
-Le scelte progettuali, l'analisi per coorte, le query SQL, la validazione e i limiti dell'applicazione sono approfonditi nel documento [Architettura e scelte progettuali](docs/ARCHITETTURA.md).
+Le scelte progettuali, l'analisi per coorte, le query SQL, la validazione e i limiti dell'applicazione sono approfonditi nel documento [Architettura e scelte progettuali](docs/ARCHITETTURA.md). Per l'inventario tecnico del database PostgreSQL è disponibile la [guida all'ispezione read-only](docs/ISPEZIONE_POSTGRESQL_READ_ONLY.md).
 
 ## Come funziona l'analisi
 
