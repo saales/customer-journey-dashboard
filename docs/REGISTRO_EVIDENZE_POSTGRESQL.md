@@ -114,5 +114,5 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - UI account disponibile a tutti i ruoli: modifica nome, visualizzazione email/ruolo e cambio password con conferma; dopo il cambio viene richiesto un nuovo login.
 - Test unitari per aggiornamento profilo, password errata, aggiornamento atomico, revoca sessioni e audit. E2E admin verifica la modifica del profilo.
 - Il test RLS PostgreSQL ora inserisce un evento audit valido nel tenant A e dimostra che il ruolo runtime lo vede nel tenant A ma non nel tenant B; non si limita più a verificare una tabella audit vuota.
-- CI [43513998940](https://github.com/saales/customer-journey-dashboard/actions/runs/43513998940), commit `78432080f9d6b59c3960817e38392e0e3c4e09ec`: Node.js 20 e 22 verdi; 33 file test client, 37 test client e 142 test server, build, audit dipendenze, migrazioni 001–013/checksum, avvio runtime con ruolo limitato e Playwright/Chromium.
+- CI [43513998940](https://github.com/saales/customer-journey-dashboard/actions/runs/43513998940), commit `78432080f9d6b59c3960817e38392e0e3c4e09ec`: Node.js 20 e 22 verdi; 33 file test server con 142 test, 10 file test client con 37 test, build, audit dipendenze, migrazioni 001–013/checksum, avvio runtime con ruolo limitato e Playwright/Chromium.
 - Nessuna verifica o scrittura su Neon, nessun deploy e nessun invio reale email.
