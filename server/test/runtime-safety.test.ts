@@ -15,3 +15,26 @@ describe("assertRuntimeCanStart", () => {
     );
   });
 });
+
+
+describe("assertDemoSeedAllowed", () => {
+  it("richiede un consenso esplicito", async () => {
+    const { assertDemoSeedAllowed } = await import("../src/runtime-safety.js");
+    expect(() => assertDemoSeedAllowed("development", undefined)).toThrow(
+      /ALLOW_DEMO_SEED=true/,
+    );
+  });
+
+  it("consente il seed solo con consenso esplicito in ambienti non production", async () => {
+    const { assertDemoSeedAllowed } = await import("../src/runtime-safety.js");
+    expect(() => assertDemoSeedAllowed("development", "true")).not.toThrow();
+    expect(() => assertDemoSeedAllowed("test", "true")).not.toThrow();
+  });
+
+  it("vieta il seed in produzione anche con consenso esplicito", async () => {
+    const { assertDemoSeedAllowed } = await import("../src/runtime-safety.js");
+    expect(() => assertDemoSeedAllowed("production", "true")).toThrow(
+      /vietato in produzione/,
+    );
+  });
+});

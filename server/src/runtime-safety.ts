@@ -14,3 +14,24 @@ export function assertRuntimeCanStart(nodeEnv = process.env.NODE_ENV): void {
     );
   }
 }
+
+
+/**
+ * Protects the explicit demo-data command from accidental or production use.
+ */
+export function assertDemoSeedAllowed(
+  nodeEnv = process.env.NODE_ENV,
+  allowDemoSeed = process.env.ALLOW_DEMO_SEED,
+): void {
+  if (nodeEnv === "production") {
+    throw new Error(
+      "Seed demo vietato in produzione: non inserire dati sintetici in un ambiente aziendale.",
+    );
+  }
+
+  if (allowDemoSeed !== "true") {
+    throw new Error(
+      "Seed demo non autorizzato: impostare ALLOW_DEMO_SEED=true per confermare esplicitamente.",
+    );
+  }
+}

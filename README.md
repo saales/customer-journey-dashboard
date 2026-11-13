@@ -114,7 +114,7 @@ Aprire nel browser:
 
 [http://localhost:5173](http://localhost:5173)
 
-Il database SQLite (`journey.db`) viene creato e popolato automaticamente al primo avvio, utilizzando dati sintetici.
+Al primo avvio viene creato lo schema SQLite (`journey.db`), ma il database resta vuoto. Per caricare dati dimostrativi occorre abilitarli esplicitamente: `ALLOW_DEMO_SEED=true npm run seed`. Il comando rifiuta sempre l'esecuzione in `NODE_ENV=production`.
 
 ### Build e avvio in produzione
 
@@ -127,8 +127,10 @@ npm run build
 Per avviare il server:
 
 ```bash
-npm start -w server
+NODE_ENV=production npm start -w server
 ```
+
+**Nota:** l'avvio con `NODE_ENV=production` è intenzionalmente bloccato finché il backend non sarà migrato a PostgreSQL e non saranno implementati e verificati autenticazione e isolamento multi-tenant. Il prototipo corrente è utilizzabile solo in sviluppo/demo.
 
 L'applicazione completa è disponibile all'indirizzo:
 
@@ -145,8 +147,10 @@ npm test
 ### Generazione manuale dei dati sintetici
 
 ```bash
-npm run seed
+ALLOW_DEMO_SEED=true npm run seed
 ```
+
+Il consenso esplicito è obbligatorio e il comando è bloccato in produzione. Usare esclusivamente un database locale/demo: non eseguire il seed su database aziendali o contenenti dati reali.
 
 ## Sviluppo del progetto
 
