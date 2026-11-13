@@ -15,7 +15,6 @@ export function MemberManagement() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<OrganizationInvitation["role"]>("editor");
   const [inviteUrl, setInviteUrl] = useState("");
-  const [inviteEmailSent, setInviteEmailSent] = useState(false);
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [pendingRoles, setPendingRoles] = useState<Record<string, OrganizationMember["role"]>>({});
   const [loading, setLoading] = useState(true);
@@ -68,7 +67,6 @@ export function MemberManagement() {
     try {
       const created = await api.createInvitation({ email: inviteEmail, role: inviteRole, expiresInDays: 7 });
       setInviteUrl(created.inviteUrl);
-      setInviteEmailSent(created.emailSent);
       setInviteEmail("");
       const refreshed = await load();
       setMessage(refreshed
