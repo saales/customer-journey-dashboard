@@ -51,9 +51,9 @@ describe("Gestione membri", () => {
     await waitFor(() => {
       expect(api.updateMember).toHaveBeenCalledWith(member.membershipId, { role: "analyst" });
     });
-    expect(await screen.findByRole("status")).toHaveTextContent(
+    expect((await screen.findByRole("status")).textContent).toContain(
       "Modifica salvata, ma non è stato possibile aggiornare l'elenco.",
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("Connessione interrotta");
+    expect(screen.getByRole("alert").textContent).toContain("Connessione interrotta");
   });
 });
