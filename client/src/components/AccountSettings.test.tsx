@@ -30,15 +30,15 @@ describe("Impostazioni account", () => {
     render(<AccountSettings />);
 
     const name = await screen.findByLabelText("Nome e cognome");
-    expect(name).toHaveValue("Utente Demo");
-    expect(screen.getByLabelText("Email")).toHaveValue("utente@example.it");
-    expect(screen.getByLabelText("Ruolo")).toHaveValue("editor");
+    expect((name as HTMLInputElement).value).toBe("Utente Demo");
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("utente@example.it");
+    expect((screen.getByLabelText("Ruolo") as HTMLInputElement).value).toBe("editor");
 
     fireEvent.change(name, { target: { value: "Utente Aggiornato" } });
     fireEvent.click(screen.getByRole("button", { name: "Salva profilo" }));
     await waitFor(() => expect(api.updateAccount).toHaveBeenCalledWith("Utente Aggiornato"));
-    expect(await screen.findByRole("status")).toHaveTextContent("Profilo aggiornato.");
-    expect(name).toHaveValue("Utente Aggiornato");
+    expect((await screen.findByRole("status")).textContent).toContain("Profilo aggiornato.");
+    expect((name as HTMLInputElement).value).toBe("Utente Aggiornato");
   });
 
   it("non invia il cambio password se le conferme non coincidono", async () => {
@@ -51,13 +51,13 @@ describe("Impostazioni account", () => {
     fireEvent.change(screen.getByLabelText("Conferma nuova password"), { target: { value: "Password-diversa-2026!" } });
     fireEvent.click(screen.getByRole("button", { name: "Cambia password" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Le nuove password non coincidono.");
+    expect((await screen.findByRole("alert")).textContent).toContain("Le nuove password non coincidono.");
     expect(api.changePassword).not.toHaveBeenCalled();
   });
 
   it("mostra un errore se il profilo non può essere caricato", async () => {
     vi.mocked(api.account).mockRejectedValue(new Error("Servizio non disponibile"));
     render(<AccountSettings />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Servizio non disponibile");
+    expect((await screen.findByRole("alert")).textContent).toContain("Servizio non disponibile");
   });
 });
