@@ -99,6 +99,13 @@ export interface OrganizationSettings {
   createdAt: string;
 }
 
+export interface AccountProfile {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: "admin" | "editor" | "analyst" | "viewer";
+}
+
 export interface OrganizationMember {
   membershipId: string;
   userId: string;
@@ -231,6 +238,11 @@ async function send<T>(
 export const api = {
   audit: (q: { page: number; limit: number; from?: string; to?: string; actorUserId?: string; action?: string }) =>
     get<AuditPage>("audit", { page: String(q.page), limit: String(q.limit), from: q.from, to: q.to, actorUserId: q.actorUserId, action: q.action }),
+
+  account: (signal?: AbortSignal) => get<AccountProfile>("account", {}, signal),
+  updateAccount: (fullName: string) => send<AccountProfile>("account", "PATCH", { fullName }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    send<void>("account/password", "POST", { currentPassword, newPassword }),
 
   organization: (signal?: AbortSignal) => get<OrganizationSettings>("organization", {}, signal),
   updateOrganization: (name: string) => send<OrganizationSettings>("organization", "PATCH", { name }),
