@@ -38,9 +38,9 @@ export function hashSessionToken(token: string): string {
  * Each successful resolution refreshes last_used_at; sessions idle for 30 minutes
  * or past their absolute expires_at are rejected server-side.
  *
- * This resolver is not yet wired to Express. Cookie transport, CSRF policy,
- * login/password verification, session creation/revocation routes and
- * authorization middleware remain separate work.
+ * It is used by the HTTP authentication middleware; cookie transport,
+ * CSRF checks, credential verification and session lifecycle are implemented
+ * by the authentication routes and session repository.
  */
 export async function resolvePostgresSession(
   pool: Pick<Pool, "connect">,
