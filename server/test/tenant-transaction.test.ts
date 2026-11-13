@@ -75,4 +75,41 @@ describe("withTenantTransaction", () => {
     expect(mock.release).toHaveBeenCalledOnce();
     expect(mock.release).toHaveBeenCalledWith(true);
   });
+  it("esegue rollback se non riesce a impostare il contesto tenant", async () => {
+    const mock = createPoolMock();
+    const failure = new Error("tenant context setup failed");
+    mock.query.mockImplementation(async (sql: string) => {
+      if (sql.startsWith("SELECT set_config")) throw failure;
+      return { rows: [] };
+    });
+
+    await expect(
+      withTenantTransaction(mock.pool, "org-a", async () => "unreachable"),
+    ).rejects.toBe(failure);
+
+    expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
+      ["BEGIN"],
+      ["SELECT set_config('app.organization_id', $1, true)", ["org-a"]],
+      ["ROLLBACK"],
+    ]);
+    expect(mock.release).toHaveBeenCalledWith(false);
+  });
+
+  it("rilascia il client senza rollback se BEGIN fallisce", async () => {
+    const mock = createPoolMock();
+    const failure = new Error("begin failed");
+    mock.query.mockImplementation(async (sql: string) => {
+      if (sql === "BEGIN") throw failure;
+      return { rows: [] };
+    });
+
+    await expect(
+      withTenantTransaction(mock.pool, "org-a", async () => "unreachable"),
+    ).rejects.toBe(failure);
+
+    expect(mock.query.mock.calls).toEqual([["BEGIN"]]);
+    expect(mock.release).toHaveBeenCalledOnce();
+    expect(mock.release).toHaveBeenCalledWith(false);
+  });
+
 });
