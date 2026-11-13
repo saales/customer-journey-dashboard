@@ -37,6 +37,8 @@ export interface PostgresAppOptions {
   rateLimitSecret: string;
   production?: boolean;
   trustedProxyIps?: string[];
+  emailApiKey?: string;
+  emailFrom?: string;
 }
 
 class ApiError extends Error {
@@ -194,6 +196,8 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     allowedOrigins: [...origins],
     rateLimitSecret: options.rateLimitSecret,
     production,
+    emailApiKey: options.emailApiKey,
+    emailFrom: options.emailFrom,
   }));
 
   // L'accettazione usa un token monouso; il browser riceve una normale sessione HttpOnly.
