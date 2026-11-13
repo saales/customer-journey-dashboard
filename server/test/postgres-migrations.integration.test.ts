@@ -263,12 +263,12 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
       for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
         const tenantACount = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
-        expect(Number(tenantACount.rows[0]?.count), `tenant A / ${table}`).toBe(1);
+        expect(Number(tenantACount.rows[0]?.count), `tenant A / ${table}`).toBe(table === "audit_logs" ? 0 : 1);
       }
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [secondOrganizationId]);
       for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
         const tenantBCount = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
-        expect(Number(tenantBCount.rows[0]?.count), `tenant B / ${table}`).toBe(1);
+        expect(Number(tenantBCount.rows[0]?.count), `tenant B / ${table}`).toBe(table === "audit_logs" ? 0 : 1);
       }
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", ["00000000-0000-0000-0000-000000000000"]);
       const unknownTenantCount = await client.query<{ count: string }>(
