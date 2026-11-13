@@ -25,7 +25,8 @@
     "concurrently": "^9.0.0"
   },
   "overrides": {
-    "jsdom": "^25.0.1"
+    "jsdom": "^25.0.1",
+    "vite": "^6.4.6"
   },
   "dependencies": {
     "@neon/config": "^1.14.0",
