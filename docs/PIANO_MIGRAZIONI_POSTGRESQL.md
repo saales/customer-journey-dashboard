@@ -2,7 +2,7 @@
 
 - **Stato:** piano operativo; non è DDL e non autorizza modifiche a Neon.
 - **Branch di riferimento:** `recovery/checkpoint-12-postgres`
-- **Ultima base verificata durante la stesura:** `2b134609a63ef29ecd1323c388e291bba9ca7c37`
+- **Baseline documentale aggiornata:** `2ad539f234f629bfd2dae5f489e5c768d82dcedb`
 
 ## Obiettivo
 
