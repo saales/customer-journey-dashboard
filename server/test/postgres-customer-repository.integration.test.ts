@@ -88,7 +88,7 @@ describe("PostgreSQL customer repository", () => {
     expect(after.rows[0]?.tenant).not.toBe(organizationB);
   });
 
-  it.skipIf(!pool)("rejects invalid tenant identifiers and pagination before connecting", async () => {
+  it("rejects invalid tenant identifiers and pagination before connecting", async () => {
     const invalidPool = { connect: () => { throw new Error("must not connect"); } };
     await expect(listPostgresCustomers(invalidPool, "not-a-uuid")).rejects.toThrow(
       "Identificativo organizzazione non valido.",
