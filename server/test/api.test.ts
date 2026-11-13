@@ -80,23 +80,46 @@ describe("API", () => {
     expect(res.status).toBe(400);
   });
 
-  it("restituisce l'elenco dei clienti con i relativi eventi", async () => {
-  const res = await fetch(`${base}/api/customers`);
-  const customers = await res.json();
+  it("restituisce i clienti paginati con i relativi eventi", async () => {
+    const res = await fetch(`${base}/api/customers`);
+    const body = await res.json();
 
-  expect(res.status).toBe(200);
-  expect(Array.isArray(customers)).toBe(true);
-  expect(customers.length).toBe(500);
+    expect(res.status).toBe(200);
+    expect(body.data).toHaveLength(50);
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 50,
+      total: 500,
+      totalPages: 10,
+    });
 
-  const firstCustomer = customers[0];
+    const firstCustomer = body.data[0];
+    expect(firstCustomer).toHaveProperty("id");
+    expect(firstCustomer).toHaveProperty("channel");
+    expect(firstCustomer).toHaveProperty("createdAt");
+    expect(Array.isArray(firstCustomer.events)).toBe(true);
+    expect(firstCustomer.events[0].stage).toBe("visit");
+  });
 
-  expect(firstCustomer).toHaveProperty("id");
-  expect(firstCustomer).toHaveProperty("channel");
-  expect(firstCustomer).toHaveProperty("createdAt");
-  expect(Array.isArray(firstCustomer.events)).toBe(true);
+  it("supporta pagine successive e limita la dimensione massima", async () => {
+    const res = await fetch(`${base}/api/customers?page=2&limit=100`);
+    const body = await res.json();
 
-  expect(firstCustomer.events[0].stage).toBe("visit");
-});
+    expect(res.status).toBe(200);
+    expect(body.data).toHaveLength(100);
+    expect(body.pagination).toMatchObject({
+      page: 2,
+      limit: 100,
+      total: 500,
+      totalPages: 5,
+    });
+    expect(body.data[0].id).toBeLessThan(body.data[0 - 1]?.id ?? Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rifiuta parametri di paginazione non validi", async () => {
+    const res = await fetch(`${base}/api/customers?page=0&limit=500`);
+    expect(res.status).toBe(400);
+  });
 
   it("crea un cliente con i suoi eventi", async () => {
   const before = await (await fetch(`${base}/api/summary`)).json();
