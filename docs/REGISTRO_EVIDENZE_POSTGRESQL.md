@@ -128,3 +128,16 @@ Questa revisione è statica: il codice ZIP non è ancora integrato nel branch e 
 - La CI del commit precedente `0e6e4d5`, run [43435560705](https://github.com/saales/customer-journey-dashboard/actions/runs/43435560705), è fallita su due asserzioni obsolete in `server/test/postgres.integration.test.ts` che leggevano `app.organization_id`. Il codice impostava correttamente `app.current_organization_id`; il test è stato corretto nel commit `f957e25`. La nuova CI run [43436719524](https://github.com/saales/customer-journey-dashboard/actions/runs/43436719524) è in esecuzione e non è ancora prova di successo.
 - La PR #1 resta aperta in bozza. `main` non è stata modificata. Neon non è stato ispezionato né modificato; nessun DDL remoto eseguito.
 - Il runtime Express resta SQLite e le API non sono ancora autenticate/tenant-scoped; la migrazione 003 da sola non rende il prodotto pronto per clienti reali.
+
+
+## Stato runtime HTTP PostgreSQL — aggiornamento 2026-11-13
+
+| Affermazione | Evidenza | Stato |
+|---|---|---|
+| Runtime Express PostgreSQL separato con rotte clienti/funnel e middleware sessione/permessi | `server/src/postgres-app.ts`, `server/src/postgres-auth-routes.ts` | Codice presente nel branch; CI del commit finale da verificare |
+| Il runtime non si avvia se le migrazioni sono mancanti o con checksum divergente | `server/src/postgres-server.ts`, `planPostgresMigrations` | Preflight read-only nel codice |
+| Il ruolo applicativo non può essere owner, superuser o BYPASSRLS e deve avere privilegi minimi | `server/src/postgres-runtime-preflight.ts`, migrazione `005_runtime_role_grants.sql` | Implementato; test automatici aggiunti |
+| I privilegi sono separati dal ruolo proprietario e concessi esplicitamente | `docs/CONFIGURAZIONE_RUOLI_POSTGRESQL.md`, migrazione 005 | Non applicato a Neon; richiede creazione preventiva del ruolo da parte DBA |
+| Il runtime PostgreSQL non applica migrazioni automaticamente | `server/src/postgres-server.ts` | Verificato nel codice |
+| Il runtime SQLite resta l'entrypoint predefinito e il client non è ancora migrato | `server/src/index.ts`, `client/src/api.ts` | Verificato |
+| Neon non è stato ispezionato né modificato | Nessuna operazione remota eseguita | Confermato |

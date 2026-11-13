@@ -4,7 +4,7 @@ Applicazione web per osservare e comprendere il percorso che conduce una persona
 
 L'obiettivo del prodotto è aiutare organizzazioni e gruppi di lavoro a individuare i passaggi più efficaci, riconoscere i punti di abbandono e prendere decisioni basate sui dati.
 
-> **Stato del progetto:** è in corso l'evoluzione verso un servizio multi-organizzazione basato su PostgreSQL. Il server applicativo utilizza ancora SQLite e le nuove funzioni PostgreSQL non sono ancora collegate alle API operative. L'avvio in produzione è intenzionalmente bloccato. Questa versione non è ancora idonea a trattare dati aziendali reali né a essere venduta come servizio pronto all'uso.
+> **Stato del progetto:** è in corso la migrazione dal runtime SQLite a un servizio multi-organizzazione PostgreSQL. Nel ramo di sviluppo è ora presente un server HTTP PostgreSQL separato con accesso, sessioni, API iniziali clienti/funnel e controlli di sicurezza all'avvio. Il client web e le API di analisi, importazione ed esportazione non sono ancora migrati; il runtime predefinito resta SQLite e l'avvio in produzione resta bloccato. Il prodotto non è ancora idoneo a trattare dati aziendali reali né a essere venduto come servizio pronto all'uso.
 
 [![Verifiche automatiche](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
 
@@ -62,7 +62,7 @@ Questo criterio consente di confrontare periodi e canali mantenendo costante la 
 
 ## Interfacce applicative
 
-Le API attualmente operative espongono funzioni di consultazione e gestione dei dati. Il loro contratto è documentato nel codice del server e nei documenti tecnici. Le nuove funzioni PostgreSQL sono ancora moduli isolati: non sostituiscono il server SQLite attualmente in esecuzione.
+Le API operative del runtime predefinito sono ancora quelle SQLite. In parallelo, il ramo include un runtime PostgreSQL separato (`server/src/postgres-server.ts`) con rotte di autenticazione, clienti e fasi funnel. Questo runtime non sostituisce ancora SQLite e non offre tutta la parità funzionale: il client web, le analisi, l'importazione e le esportazioni devono ancora essere collegati e collaudati.
 
 ## Avvio in ambiente locale
 
@@ -116,12 +116,12 @@ Le verifiche automatiche del ramo di sviluppo vengono eseguite su Node.js 20 e 2
 
 Il percorso di evoluzione prevede PostgreSQL come unico database di destinazione, con separazione dei dati per organizzazione, ruoli, sessioni, registri di controllo e verifiche d'integrità.
 
-Nel ramo di sviluppo sono presenti migrazioni versionate, funzioni di accesso ai dati PostgreSQL, protezioni a livello di riga e componenti iniziali per password e sessioni. Questi moduli non sono ancora integrati nel server HTTP operativo.
+Nel ramo di sviluppo sono presenti migrazioni versionate, autenticazione PostgreSQL, cookie di sessione, middleware per i ruoli, API tenant-scoped iniziali, limiti persistenti ai tentativi di accesso e un preflight che rifiuta ruoli PostgreSQL non sicuri. Il server PostgreSQL si avvia solo se lo storico migrazioni è completo e coerente e se il ruolo runtime è separato dal proprietario, non privilegiato e dotato dei permessi minimi.
 
-Il server attuale continua a utilizzare SQLite. L'avvio in produzione rimane quindi bloccato fino al completamento e alla verifica di:
-- autenticazione e gestione completa delle sessioni;
-- protezione delle richieste e limitazione dei tentativi;
-- autorizzazioni per ruolo e isolamento tra organizzazioni;
+Il runtime predefinito continua a utilizzare SQLite e il client non è ancora collegato alle nuove API PostgreSQL. L'avvio in produzione rimane quindi bloccato fino al completamento e alla verifica di:
+- migrazione completa del client e delle API di analisi, importazione ed esportazione;
+- test end-to-end di login, logout, permessi e isolamento tra organizzazioni;
+- verifiche operative di backup, ripristino e osservabilità;
 - migrazione di tutte le funzioni applicative a PostgreSQL;
 - prove di aggiornamento, backup e ripristino;
 - collaudo in un ambiente separato.

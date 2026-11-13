@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import type { Pool } from "pg";
+import { CHANNELS } from "./types.js";
 import {
   requirePostgresSession,
   requireOrganizationPermission,
@@ -65,7 +66,7 @@ function validateCustomerBody(body: unknown): {
   const data = body as Record<string, unknown>;
   if (typeof data.externalId !== "string" || !data.externalId.trim() ||
       data.externalId.length > 100 || typeof data.channel !== "string" ||
-      !data.channel.trim() || data.channel.length > 100 ||
+      !data.channel.trim() || !(CHANNELS as readonly string[]).includes(data.channel) ||
       typeof data.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.createdAt) ||
       Number.isNaN(Date.parse(data.createdAt)) ||
       new Date(data.createdAt).toISOString().slice(0, 10) !== data.createdAt) {
@@ -204,9 +205,11 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         if (!body || typeof body !== "object" || Array.isArray(body)) {
           throw new ApiError(400, "Modifiche fase non valide.");
         }
+        const updates: { label?: unknown; isActive?: unknown } = {};
+        if (Object.prototype.hasOwnProperty.call(body, "label")) updates.label = body.label;
+        if (Object.prototype.hasOwnProperty.call(body, "isActive")) updates.isActive = body.isActive;
         const result = await updatePostgresFunnelStage(
-          pool, req.authenticatedSession!.organizationId, req.params.id,
-          { label: body.label, isActive: body.isActive },
+          pool, req.authenticatedSession!.organizationId, req.params.id, updates,
         );
         res.json(result);
       } catch (error) { next(error); }

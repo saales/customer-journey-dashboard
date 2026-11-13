@@ -12,6 +12,7 @@ const migration001Url = new URL("../migrations/001_initial_schema.sql", import.m
 const migration002Url = new URL("../migrations/002_session_organization.sql", import.meta.url);
 const migration003Url = new URL("../migrations/003_saas_tenant_hardening.sql", import.meta.url);
 const migration004Url = new URL("../migrations/004_login_attempt_limits.sql", import.meta.url);
+const migration005Url = new URL("../migrations/005_runtime_role_grants.sql", import.meta.url);
 
 const expectedChecksums = {
   "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
@@ -35,7 +36,7 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       .toBe(expectedChecksums["002_session_organization.sql"]);
   });
 
-  it.skipIf(!pool)("applica 001-003 in uno schema isolato e verifica vincoli, backfill e RLS", async () => {
+  it.skipIf(!pool)("applica 001-005 in uno schema isolato e verifica vincoli, backfill e RLS", async () => {
     const schemaName = `migration_it_${randomUUID().replace(/-/g, "")}`;
     const client = await pool!.connect();
     let transactionStarted = false;
@@ -47,11 +48,12 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       await client.query(`CREATE SCHEMA "${schemaName}"`);
       await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
 
-      const [sql001, sql002, sql003, sql004] = await Promise.all([
+      const [sql001, sql002, sql003, sql004, sql005] = await Promise.all([
         readFile(migration001Url, "utf8"),
         readFile(migration002Url, "utf8"),
         readFile(migration003Url, "utf8"),
         readFile(migration004Url, "utf8"),
+        readFile(migration005Url, "utf8"),
       ]);
 
       await client.query(sql001);
@@ -135,6 +137,14 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
 
       await client.query(sql003);
       await client.query(sql004);
+      await client.query("CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, name TEXT NOT NULL, checksum CHAR(64) NOT NULL, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+      await client.query("CREATE ROLE percorso_app NOLOGIN");
+      await client.query(sql005);
+      const grants = await client.query<{ allowed: boolean }>(
+        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2), $3) AS allowed",
+        ["percorso_app", "customers", "INSERT"],
+      );
+      expect(grants.rows[0]?.allowed).toBe(true);
       const loginLimits = await client.query("SELECT to_regclass($1) IS NOT NULL AS exists", ["login_attempt_limits"]);
       expect(loginLimits.rows[0]?.exists).toBe(true);
 

@@ -1,6 +1,6 @@
 # Inventario API e matrice di migrazione SaaS
 
-> **Stato verificato sul branch recovery/checkpoint-12-postgres.** Questo inventario descrive le route presenti nel prototipo Express/SQLite e il controllo di accesso richiesto per la futura versione SaaS. Non implementa autenticazione o autorizzazioni: oggi le route applicative elencate non hanno un contesto utente/tenant autenticato. L'avvio in produzione resta quindi bloccato.
+> **Stato verificato sul branch recovery/checkpoint-12-postgres.** Le tabelle seguenti descrivono il runtime storico Express/SQLite. Un runtime PostgreSQL separato è stato aggiunto nel ramo e offre già un sottoinsieme di route con autenticazione, autorizzazione e contesto tenant. Non è ancora stata raggiunta la parità funzionale e il client web non è stato collegato. L'avvio in produzione resta bloccato.
 
 ## Route attualmente presenti
 
@@ -60,3 +60,34 @@ Queste route non sono presenti nel prototipo e non vanno considerate implementat
 ## Criterio di chiusura
 
 Nessuna route applicativa può essere considerata pronta per dati aziendali finché non esistono test automatici che dimostrino autenticazione, autorizzazione e isolamento tenant. La sola presenza di PostgreSQL, di un pool o di una connessione riuscita non soddisfa questo criterio.
+
+
+## Nuovo runtime PostgreSQL separato (stato del ramo)
+
+Il modulo `server/src/postgres-server.ts` avvia `createPostgresApp` senza sostituire l'entrypoint SQLite predefinito. Lo startup non applica DDL: confronta in sola lettura il registro migrazioni, verifica il ruolo corrente e interrompe l'avvio in caso di migrazioni mancanti/divergenti, RLS disattivato, proprietà delle tabelle o privilegi mancanti.
+
+| Metodo e percorso | Funzione | Permesso | Stato |
+|---|---|---|---|
+| POST /api/auth/login | Autenticazione e cookie di sessione | Origine esatta consentita; limite persistente tentativi | Implementata nel runtime PostgreSQL |
+| GET /api/auth/session | Identità e ruolo correnti | Sessione valida | Implementata |
+| POST /api/auth/logout | Revoca sessione e cancellazione cookie | Sessione valida e origine consentita | Implementata |
+| GET /api/customers | Elenco paginato tenant-scoped | customers:read | Implementata |
+| POST /api/customers | Creazione cliente e percorso atomico | customers:write | Implementata |
+| GET /api/funnel-stages | Elenco fasi tenant-scoped | funnel:read | Implementata |
+| PUT /api/funnel-stages/reorder | Riordino fasi tenant-scoped | funnel:write | Implementata |
+| PUT /api/funnel-stages/:id | Modifica etichetta/attivazione fase | funnel:write | Implementata |
+
+Il contesto organizzazione viene sempre letto dalla sessione PostgreSQL verificata, non da parametri forniti dal client. Le scritture sono protette da controllo Origin esatto. I cookie di produzione usano il prefisso `__Host-`, `Secure`, `HttpOnly`, `Path=/` e `SameSite=Strict`.
+
+La migrazione `005_runtime_role_grants.sql` assegna privilegi minimi al ruolo `percorso_app`. La configurazione dei ruoli è documentata in `docs/CONFIGURAZIONE_RUOLI_POSTGRESQL.md`.
+
+### Funzioni ancora mancanti nel runtime PostgreSQL
+
+- API analytics: riepilogo, serie temporali, canali, segmenti e confronti.
+- API di modifica/eliminazione clienti e importazione CSV/Excel.
+- API di esportazione e audit consultabile.
+- Gestione membri, inviti, recupero account e bootstrap amministratore.
+- Collegamento del client React e test end-to-end dell'intero percorso utente.
+- Verifica su un ambiente di staging isolato e collaudo di backup/ripristino.
+
+Le route del runtime SQLite nella prima tabella non sono automaticamente protette dalle nuove middleware: il server PostgreSQL è un processo distinto e il runtime SQLite continua a non essere adatto a dati aziendali reali.

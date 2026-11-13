@@ -7,7 +7,7 @@ import {
 function makePool(role: Record<string, unknown>, tables: Record<string, unknown>[]) {
   return {
     query: async (sql: string) => ({
-      rows: sql.includes("pg_roles") ? [role] : tables,
+      rows: sql.includes("pg_roles") ? [role] : sql.includes("has_table_privilege") ? [] : tables,
       rowCount: sql.includes("pg_roles") ? 1 : tables.length,
     }),
   };
@@ -23,6 +23,7 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
     const result = await inspectPostgresRuntimeRole(pool as never);
     expect(result.ownedTables).toEqual([]);
     expect(result.rlsDisabledTables).toEqual([]);
+    expect(result.missingPrivileges).toEqual([]);
     await expect(assertSafePostgresRuntimeRole(pool as never)).resolves.toBeUndefined();
   });
 
@@ -46,4 +47,21 @@ describe("Preflight sicurezza ruolo PostgreSQL", () => {
       "Ruolo PostgreSQL non sicuro",
     );
   });
+  it("rifiuta un ruolo privo dei privilegi applicativi richiesti", async () => {
+    const pool = {
+      query: async (sql: string) => ({
+        rows: sql.includes("pg_roles") ? [goodRole]
+          : sql.includes("has_table_privilege")
+            ? [{ tableName: "customers", privilege: "INSERT" }]
+            : goodTables,
+        rowCount: 1,
+      }),
+    };
+    const result = await inspectPostgresRuntimeRole(pool as never);
+    expect(result.missingPrivileges).toEqual(["customers:INSERT"]);
+    await expect(assertSafePostgresRuntimeRole(pool as never)).rejects.toThrow(
+      "Ruolo PostgreSQL non sicuro",
+    );
+  });
+
 });

@@ -14,6 +14,7 @@ export interface PostgresRuntimeRoleCheck {
   bypassRls: boolean;
   ownedTables: string[];
   rlsDisabledTables: string[];
+  missingPrivileges: string[];
 }
 
 /**
@@ -61,12 +62,39 @@ export async function inspectPostgresRuntimeRole(
     !byName.get(name)?.rowSecurity,
   );
 
+  const privilegeResult = await pool.query<{ tableName: string; privilege: string }>(
+    `SELECT required.table_name AS "tableName", required.privilege
+     FROM unnest(
+       ARRAY['schema_migrations','users','organizations','memberships',
+             'sessions','sessions','sessions',
+             'login_attempt_limits','login_attempt_limits','login_attempt_limits','login_attempt_limits',
+             'customers','customers','events','events',
+             'funnel_stages','funnel_stages','funnel_stages',
+             'import_batches','import_batches','audit_logs']::text[],
+       ARRAY['SELECT','SELECT','SELECT','SELECT',
+             'SELECT','INSERT','DELETE',
+             'SELECT','INSERT','UPDATE','DELETE',
+             'SELECT','INSERT','SELECT','INSERT',
+             'SELECT','INSERT','UPDATE',
+             'SELECT','INSERT','INSERT']::text[]
+     ) AS required(table_name, privilege)
+     WHERE NOT has_table_privilege(
+       current_user,
+       format('%I.%I', current_schema(), required.table_name),
+       required.privilege
+     )`,
+  );
+  const missingPrivileges = privilegeResult.rows.map(
+    (row) => `${row.tableName}:${row.privilege}`,
+  );
+
   return {
     role: role.role,
     superuser: role.superuser,
     bypassRls: role.bypassRls,
     ownedTables: [...ownedTables],
     rlsDisabledTables: [...rlsDisabledTables],
+    missingPrivileges,
   };
 }
 
@@ -75,10 +103,10 @@ export async function assertSafePostgresRuntimeRole(
 ): Promise<void> {
   const result = await inspectPostgresRuntimeRole(pool);
   if (result.superuser || result.bypassRls || result.ownedTables.length > 0 ||
-      result.rlsDisabledTables.length > 0) {
+      result.rlsDisabledTables.length > 0 || result.missingPrivileges.length > 0) {
     throw new Error(
       "Ruolo PostgreSQL non sicuro: usare un ruolo applicativo non proprietario, " +
-      "senza SUPERUSER/BYPASSRLS, con RLS attivo su tutte le tabelle tenant.",
+      "senza SUPERUSER/BYPASSRLS, con RLS attivo e privilegi minimi completi.",
     );
   }
 }
