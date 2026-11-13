@@ -42,5 +42,9 @@ describe("AppLayout", () => {
     fireEvent.click(screen.getByRole("button", { name: "Gestione clienti" }));
     expect(screen.getByText("Elenco clienti")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Apri menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Chiudi menu di navigazione" }));
+    expect(screen.getByRole("button", { name: "Apri menu" }).getAttribute("aria-expanded")).toBe("false");
   });
 });
