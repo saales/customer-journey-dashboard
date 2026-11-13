@@ -5,9 +5,9 @@ const actions = [
   ["customer.created", "Cliente creato"],
   ["customer.updated", "Cliente modificato"],
   ["customer.deleted", "Cliente eliminato"],
-  ["funnel_stage.created", "Fase creata"],
-  ["funnel_stage.updated", "Fase modificata"],
-  ["funnel_stage.reordered", "Fasi riordinate"],
+  ["funnel.stage.created", "Fase creata"],
+  ["funnel.stage.updated", "Fase modificata"],
+  ["funnel.stages.reordered", "Fasi riordinate"],
 ] as const;
 
 function actionLabel(action: string) {
