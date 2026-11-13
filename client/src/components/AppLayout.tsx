@@ -99,6 +99,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
 
   return (
     <div className={`app-shell theme-${theme}`}>
+      <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
       <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-icon">
@@ -196,7 +197,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
           </div>
         </header>
 
-        <main className="app-content">{sectionContent}</main>
+        <main id="main-content" className="app-content" tabIndex={-1}>{sectionContent}</main>
       </div>
     </div>
   );
