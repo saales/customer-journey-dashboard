@@ -71,10 +71,18 @@ afterEach(() => {
 
 describe("App", () => {
   it("mostra la gestione membri nelle impostazioni e carica i dati dal server", async () => {
-    render(<App />);
+    render(<App organizationRole="admin" />);
     fireEvent.click(screen.getByRole("button", { name: "Impostazioni" }));
     expect(await screen.findByText("Utenti e permessi")).toBeTruthy();
     expect(fetchMock.mock.calls.some(([url]) => String(url).startsWith("/api/members"))).toBe(true);
+  });
+
+  it("non mostra la gestione membri agli utenti senza ruolo amministratore", async () => {
+    render(<App organizationRole="analyst" />);
+    fireEvent.click(screen.getByRole("button", { name: "Impostazioni" }));
+    expect(await screen.findByText("Configurazione del percorso")).toBeTruthy();
+    expect(screen.queryByText("Utenti e permessi")).toBeNull();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).startsWith("/api/members"))).toBe(false);
   });
 
   it("mostra KPI e tabella dei canali senza classificare i dati come sintetici", async () => {

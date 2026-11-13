@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 type AuthState = "loading" | "authenticated" | "anonymous" | "error" | "demo";
 interface AuthSession { userId: string; organizationId: string; role: "admin" | "editor" | "analyst" | "viewer"; }
-interface AuthGateProps { children: (logout: () => Promise<void>, demoMode: boolean) => ReactNode; }
+interface AuthGateProps { children: (logout: () => Promise<void>, demoMode: boolean, role: AuthSession["role"] | null) => ReactNode; }
 
 async function readSession(): Promise<{ response: Response; session?: AuthSession }> {
   const response = await fetch("/api/auth/session", {
@@ -15,6 +15,7 @@ async function readSession(): Promise<{ response: Response; session?: AuthSessio
 
 export function AuthGate({ children }: AuthGateProps) {
   const [state, setState] = useState<AuthState>("loading");
+  const [role, setRole] = useState<AuthSession["role"] | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [organizationSlug, setOrganizationSlug] = useState("");
@@ -25,9 +26,9 @@ export function AuthGate({ children }: AuthGateProps) {
     setState("loading"); setError("");
     try {
       const result = await readSession();
-      if (result.response.ok) { setState("authenticated"); return; }
-      if (result.response.status === 401) { setState("anonymous"); return; }
-      if (result.response.status === 404 && import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === "true") { setState("demo"); return; }
+      if (result.response.ok && result.session) { setRole(result.session.role); setState("authenticated"); return; }
+      if (result.response.status === 401) { setRole(null); setState("anonymous"); return; }
+      if (result.response.status === 404 && import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === "true") { setRole(null); setState("demo"); return; }
       throw new Error("Servizio di accesso non disponibile. Verificare il runtime PostgreSQL.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Impossibile verificare la sessione.");
@@ -49,7 +50,7 @@ export function AuthGate({ children }: AuthGateProps) {
       if (!response.ok) throw new Error(body.error ?? "Accesso non riuscito.");
       const session = await readSession();
       if (!session.response.ok) throw new Error("Accesso effettuato, ma la sessione non è verificabile.");
-      setPassword(""); setState("authenticated");
+      setPassword(""); setRole(session.session?.role ?? null); setState("authenticated");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Accesso non riuscito.");
     } finally { setSubmitting(false); }
@@ -65,7 +66,7 @@ export function AuthGate({ children }: AuthGateProps) {
         const body = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(body.error ?? "Uscita non riuscita.");
       }
-      setPassword(""); setState("anonymous");
+      setPassword(""); setRole(null); setState("anonymous");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Uscita non riuscita.");
       setState("error");
@@ -73,8 +74,8 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   if (state === "loading") return <main className="auth-screen"><p className="loading">Verifica dell'accesso in corso…</p></main>;
-  if (state === "authenticated") return <>{children(logout, false)}</>;
-  if (state === "demo") return <>{children(async () => undefined, true)}</>;
+  if (state === "authenticated") return <>{children(logout, false, role)}</>;
+  if (state === "demo") return <>{children(async () => undefined, true, null)}</>;
 
   return (
     <main className="auth-screen">

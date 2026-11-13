@@ -16,9 +16,9 @@ import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
 import { MemberManagement } from "./components/MemberManagement";
 
-interface AppProps { onLogout?: () => Promise<void>; demoMode?: boolean; }
+interface AppProps { onLogout?: () => Promise<void>; demoMode?: boolean; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
-export default function App({ onLogout, demoMode = false }: AppProps = {}) {
+export default function App({ onLogout, demoMode = false, organizationRole = null }: AppProps = {}) {
   const [preset, setPreset] = useState<Preset>(12);
   const [channel, setChannel] = useState("");
   const [customFrom, setCustomFrom] = useState("");
@@ -237,7 +237,7 @@ export default function App({ onLogout, demoMode = false }: AppProps = {}) {
   const settingsSection = (
     <div>
       <FunnelSettings onDataChange={refreshDashboard} />
-      <MemberManagement />
+      {!demoMode && organizationRole === "admin" && <MemberManagement />}
 
       <div className="card">
         <h2>Preferenze dell'interfaccia</h2>
