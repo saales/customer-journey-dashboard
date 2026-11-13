@@ -286,13 +286,18 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         "INSERT INTO import_batches (organization_id,fingerprint,file_name,customer_count,row_count) VALUES ($1,'fingerprint-a','a.csv',1,1),($2,'fingerprint-b','b.csv',1,1)",
         [organizationId, secondOrganizationId],
       );
-      // audit_logs viene verificata per policy/visibilità senza fabbricare
-      // un'azione che potrebbe non rispettare il catalogo applicativo.
+      // Seed di un evento audit valido nel tenant A: la RLS deve mostrarlo
+      // soltanto al tenant proprietario, non semplicemente nascondere una tabella vuota.
+      await client.query(
+        `INSERT INTO audit_logs (organization_id,actor_user_id,action,resource_type,resource_id,details)
+         VALUES ($1,$2,'customer.created','customer','rls-audit-probe','{}'::jsonb)`,
+        [organizationId,invitationActorId],
+      );
       await client.query(`SET LOCAL ROLE "${runtimeRole}"`);
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
       for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
         const tenantACount = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
-        expect(Number(tenantACount.rows[0]?.count), `tenant A / ${table}`).toBe(table === "audit_logs" ? 0 : 1);
+        expect(Number(tenantACount.rows[0]?.count), `tenant A / ${table}`).toBe(1);
       }
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [secondOrganizationId]);
       for (const table of ["customers", "events", "funnel_stages", "import_batches", "audit_logs"] as const) {
