@@ -306,6 +306,9 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       );
       expect(foreignUpdate.rowCount).toBe(0);
       expect(foreignDelete.rowCount).toBe(0);
+      // Isola il lookup per token dal normale accesso tenant: le policy RLS permissive
+      // si combinano in OR, quindi il contesto organizzazione va svuotato in questo test.
+      await client.query("SELECT set_config('app.current_organization_id', '', true)");
       await client.query("SELECT set_config('app.invitation_token_hash', $1, true)", ["known-invite-hash"]);
       const inviteLookup = await client.query<{ count: string }>(
         "SELECT COUNT(*)::text AS count FROM invitations",
