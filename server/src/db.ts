@@ -55,6 +55,9 @@ export function initSchema(db: Db): void {
     CREATE INDEX IF NOT EXISTS idx_events_customer
       ON events(customer_id, stage);
 
+    CREATE INDEX IF NOT EXISTS idx_events_customer_timeline
+      ON events(customer_id, occurred_at, id);
+
     CREATE INDEX IF NOT EXISTS idx_funnel_stages_position
       ON funnel_stages(position);
   `);
