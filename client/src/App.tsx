@@ -208,7 +208,7 @@ export default function App({ onLogout, demoMode = false, organizationRole = nul
   );
 
   const customersSection = (
-    <CustomerManagement onDataChange={refreshDashboard} />
+    <CustomerManagement onDataChange={refreshDashboard} serverExportEnabled={!demoMode} />
   );
 
   const importSection = (

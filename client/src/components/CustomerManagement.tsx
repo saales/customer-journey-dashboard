@@ -5,9 +5,10 @@ const PAGE_SIZE = 50;
 
 interface CustomerManagementProps {
   onDataChange: () => void;
+  serverExportEnabled?: boolean;
 }
 
-export function CustomerManagement({ onDataChange }: CustomerManagementProps) {
+export function CustomerManagement({ onDataChange, serverExportEnabled = false }: CustomerManagementProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -190,7 +191,7 @@ async function handleDelete(customerId: string) {
           <h2>Gestione clienti</h2>
           <p className="hint">Gestione dei clienti e delle relative fasi del percorso.</p>
         </div>
-<button className="button-secondary" type="button" onClick={() => void exportCustomers()}>Esporta tutti i clienti CSV</button>
+{serverExportEnabled && <button className="button-secondary" type="button" onClick={() => void exportCustomers()}>Esporta tutti i clienti CSV</button>}
 <button className="export" onClick={() => setShowForm(!showForm)}>
   {showForm ? "Annulla" : "Nuovo cliente"}
 </button>
