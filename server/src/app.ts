@@ -1039,16 +1039,42 @@ export function createApp(db: Db) {
       createdAt: string;
     }[];
 
-    const getEvents = db.prepare(`
-      SELECT stage, occurred_at AS occurredAt
-      FROM events
-      WHERE customer_id = ?
-      ORDER BY occurred_at ASC, id ASC
-    `);
+    // Carica gli eventi di tutta la pagina con una sola query, evitando
+    // il pattern N+1 (una query aggiuntiva per ogni cliente).
+    const eventsByCustomer = new Map<number, {
+      stage: string;
+      occurredAt: string;
+    }[]>();
+
+    if (customers.length > 0) {
+      const placeholders = customers.map(() => "?").join(", ");
+      const events = db.prepare(`
+        SELECT
+          customer_id AS customerId,
+          stage,
+          occurred_at AS occurredAt
+        FROM events
+        WHERE customer_id IN (${placeholders})
+        ORDER BY customer_id ASC, occurred_at ASC, id ASC
+      `).all(...customers.map((customer) => customer.id)) as {
+        customerId: number;
+        stage: string;
+        occurredAt: string;
+      }[];
+
+      for (const event of events) {
+        const customerEvents = eventsByCustomer.get(event.customerId) ?? [];
+        customerEvents.push({
+          stage: event.stage,
+          occurredAt: event.occurredAt,
+        });
+        eventsByCustomer.set(event.customerId, customerEvents);
+      }
+    }
 
     const result = customers.map((customer) => ({
       ...customer,
-      events: getEvents.all(customer.id),
+      events: eventsByCustomer.get(customer.id) ?? [],
     }));
 
     res.json({
