@@ -191,6 +191,7 @@ export function AppLayout({ children, sections, onLogout, visibleSections }: App
                 className={`nav-item ${active ? "active" : ""}`}
                 onClick={() => navigateTo(item.id)}
                 title={collapsed ? item.label : undefined}
+                aria-label={item.label}
                 aria-current={active ? "page" : undefined}
               >
                 <Icon size={19} aria-hidden="true" />
