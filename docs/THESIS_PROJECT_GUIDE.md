@@ -69,7 +69,7 @@ Queste misure vanno comunque sottoposte a revisione indipendente e test in ambie
 
 ## 6. Qualità del software
 
-La pipeline automatizzata comprende test frontend e backend, build TypeScript, migrazioni 001–010 su PostgreSQL temporaneo, controllo dello storico/checksum e avvio del server con un ruolo non privilegiato. Su Node.js 22 include un percorso browser Playwright/Chromium con login admin, creazione cliente, funnel, import/export CSV, invito e accettazione analista e verifica di un diniego HTTP 403 lato server.
+La pipeline automatizzata comprende test frontend e backend, build TypeScript, migrazioni 001–010 su PostgreSQL temporaneo, controllo dello storico/checksum e avvio del server con un ruolo non privilegiato. Su Node.js 22 include un percorso browser Playwright/Chromium con login admin, creazione cliente, funnel, import/export CSV, invito e accettazione di analista e viewer e verifica dei dinieghi HTTP 403 lato server. La matrice middleware verifica in modo esatto i permessi di admin, editor, analyst e viewer.
 
 Per completare il capitolo sperimentale della tesi occorre raccogliere evidenze su:
 
@@ -96,7 +96,7 @@ Non inserire valori di performance senza misurazioni ripetibili, indicando hardw
 
 ## 8. Limiti e sviluppi futuri
 
-Tra le attività da chiudere prima di un rilascio aziendale rientrano il collaudo in staging, l'analisi completa delle dipendenze, la verifica read-only del database remoto, il backup e il restore, completamento dei test browser per tutti i ruoli e i casi cross-tenant, test di carico, monitoraggio e automazione dell'invio email per inviti e recupero account.
+Tra le attività da chiudere prima di un rilascio aziendale rientrano il collaudo in staging, l'analisi completa delle dipendenze, la verifica read-only del database remoto, il backup e il restore, estensione dei test browser ai percorsi non ancora coperti (in particolare editor) e ai casi cross-tenant, test di carico, monitoraggio e automazione dell'invio email per inviti e recupero account.
 
 ## 9. Struttura suggerita della tesi
 
