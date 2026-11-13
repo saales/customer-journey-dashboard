@@ -79,3 +79,16 @@ La migrazione non può essere dichiarata conclusa finché:
 ## Limiti dello stato attuale
 
 Questo documento registra la situazione del branch e le condizioni per una migrazione sicura. Non afferma che autenticazione, multi-tenancy o PostgreSQL runtime siano già implementati. Non esegue query né modifiche sul database Neon.
+
+
+## Risoluzione delle sessioni e membership (primo nucleo auth)
+
+Nel commit `5070d3a` è stato aggiunto `server/src/postgres-session-resolver.ts`:
+- genera token opachi casuali da 256 bit e calcola SHA-256 per la persistenza; il token grezzo non va memorizzato;
+- risolve il contesto utente/organizzazione/ruolo tramite join tra `sessions`, `users`, `organizations` e `memberships`;
+- accetta soltanto sessioni non scadute e con utente, organizzazione e membership attivi;
+- ricava l'organizzazione esclusivamente dalla sessione server-side, non da parametri della richiesta.
+
+Il test `server/test/postgres-session-resolver.integration.test.ts` copre token validi, scaduti e membership sospese su PostgreSQL effimero. CI run [43433194436](https://github.com/saales/customer-journey-dashboard/actions/runs/43433194436) ha completato `npm ci`, `npm test` e `npm run build` su Node 20 e 22.
+
+Questo è un resolver isolato, **non un sistema di login completo**: password verification Argon2id, creazione/revoca sessioni, cookie HttpOnly/Secure/SameSite, protezione CSRF, rate limiting, middleware Express e autorizzazione per operazione non sono ancora collegati o implementati. Il runtime continua a usare SQLite.
