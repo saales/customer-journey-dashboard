@@ -6,6 +6,6 @@ import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthGate>{(logout, demoMode) => <App onLogout={logout} demoMode={demoMode} />}</AuthGate>
+    <AuthGate>{(logout, demoMode, role) => <App onLogout={logout} demoMode={demoMode} organizationRole={role} />}</AuthGate>
   </StrictMode>,
 );
