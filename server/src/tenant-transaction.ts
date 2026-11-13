@@ -28,7 +28,7 @@ export async function withTenantTransaction<T>(
     transactionStarted = true;
 
     await client.query(
-      "SELECT set_config('app.organization_id', $1, true)",
+      "SELECT set_config('app.current_organization_id', $1, true)",
       [organizationId],
     );
 
