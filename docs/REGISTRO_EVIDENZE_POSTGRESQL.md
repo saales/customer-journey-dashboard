@@ -2,7 +2,7 @@
 
 **Aggiornato:** 2026-11-13  
 **Branch:** `recovery/checkpoint-12-postgres`  
-**Commit di riferimento:** `02a19b585d9095196eef3c260c4d9c71a61b28a0` (filtro metadati in attesa di CI).
+**Commit di riferimento:** `68f4319097d28d7be490b62f7a7bfa2b8e6a2c58`.
 
 Questo registro separa ciò che è stato verificato nel repository e nella CI da ciò che proviene da riepiloghi storici o resta da verificare. Non certifica lo stato del database Neon.
 
@@ -19,8 +19,8 @@ Questo registro separa ciò che è stato verificato nel repository e nella CI da
 | I test controllano alias SQL, filtri schema e comportamento read-only con mock | `server/test/postgres-schema-inspection.test.ts` | Verificato nel branch |
 | La CI dispone di PostgreSQL 16 effimero | `.github/workflows/ci.yml` | Verificato nella configurazione |
 | Il test d'integrazione crea uno schema/tabella temporanei, attiva RLS e verifica proprietario, colonne, PK, indice e policy | `server/test/postgres.integration.test.ts` | Verificato nel branch |
-| Il test esegue l'ispezione come ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43417529693](https://github.com/saales/customer-journey-dashboard/actions/runs/43417529693), Node 20 e 22 |
-| L'ispezione limita tabelle, colonne, vincoli, indici e policy agli oggetti per cui il ruolo corrente ha `SELECT` | `server/src/postgres-schema-inspection.ts` e test d'integrazione con `private_probe` senza grant | Implementato; nuova verifica in attesa di CI |
+| Il test esegue l'ispezione come ruolo `NOLOGIN`, non superuser e senza `BYPASSRLS` | `server/test/postgres.integration.test.ts` | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
+| L'ispezione limita tabelle, colonne, vincoli, indici e policy agli oggetti per cui il ruolo corrente ha `SELECT` | `server/src/postgres-schema-inspection.ts` e test d'integrazione con `private_probe` senza grant | Verificato in CI run [43418128323](https://github.com/saales/customer-journey-dashboard/actions/runs/43418128323), Node 20 e 22 |
 | Test e build sono passati su Node 20 e Node 22 sul commit con ruolo limitato | CI run [43417529693](https://github.com/saales/customer-journey-dashboard/actions/runs/43417529693), entrambi i job conclusi `success` | Verificato su CI |
 | La PR resta aperta in bozza e `main` non è stata modificata | PR #1, branch e base verificati dopo il commit | Verificato al momento dell'aggiornamento |
 
@@ -40,13 +40,13 @@ Queste informazioni non sono state ricostruite da file SQL originali né verific
 - Autenticazione, sessioni, inviti e autorizzazione tenant runtime: **non implementati**.
 - Repository PostgreSQL per le route applicative: **non implementati**.
 - Isolamento multi-tenant end-to-end delle API: **non implementato**.
-- Il report di ispezione filtra tabelle, colonne, vincoli, indici e policy tramite `has_table_privilege(..., 'SELECT')`; la verifica d'integrazione della non-visibilità di `private_probe` senza grant è in attesa di CI.
+- Il report di ispezione filtra tabelle, colonne, vincoli, indici e policy tramite `has_table_privilege(..., 'SELECT')`; il test PostgreSQL reale conferma che `private_probe`, senza grant, non compare nel report.
 - Prova di upgrade da una copia dello schema storico: **bloccata finché la baseline non è disponibile**.
 - Connessione o modifica del database Neon: **non eseguita**.
 
 ## Prossimi passi sicuri
 
-1. Ottenere CI verde sul filtro dei metadati per il ruolo limitato e verificare che nessun dettaglio di `private_probe` senza grant compaia nel report.
+1. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
 2. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
 3. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
 
