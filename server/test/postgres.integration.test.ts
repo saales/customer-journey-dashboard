@@ -73,4 +73,33 @@ describe("PostgreSQL integration smoke test", () => {
     expect(after.rows[0]?.tenant).not.toBe(tenantB);
   });
 
+
+  it.skipIf(!pool)("ripristina il contesto tenant dopo ROLLBACK prima di riutilizzare la connessione", async () => {
+    const tenantA = "integration-org-rollback-a";
+    const tenantB = "integration-org-rollback-b";
+    const failure = new Error("rollback integration sentinel");
+
+    const first = await withTenantTransaction(pool!, tenantA, async (client) => {
+      const result = await client.query<{ tenant: string; pid: number }>(
+        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+      );
+      expect(result.rows[0]?.tenant).toBe(tenantA);
+      throw failure;
+    }).catch((error: unknown) => {
+      expect(error).toBe(failure);
+      return null;
+    });
+
+    expect(first).toBeNull();
+
+    const second = await withTenantTransaction(pool!, tenantB, async (client) => {
+      const result = await client.query<{ tenant: string; pid: number }>(
+        "SELECT current_setting('app.organization_id', true) AS tenant, pg_backend_pid() AS pid",
+      );
+      return result.rows[0]!;
+    });
+
+    expect(second.tenant).toBe(tenantB);
+  });
+
 });
