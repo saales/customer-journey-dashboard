@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
+import { verifyPostgresPool } from "../src/postgres-health.js";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = connectionString
@@ -11,6 +12,10 @@ afterAll(async () => {
 });
 
 describe("PostgreSQL integration smoke test", () => {
+  it.skipIf(!pool)("verifica la connessione usando il modulo applicativo", async () => {
+    await expect(verifyPostgresPool(pool!)).resolves.toBeUndefined();
+  });
+
   it.skipIf(!pool)("connects and supports transactional DDL/DML", async () => {
     const client = await pool!.connect();
 
