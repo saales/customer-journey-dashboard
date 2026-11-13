@@ -1,6 +1,11 @@
 import { createApp } from "./app.js";
 import { openDb } from "./db.js";
 import { seedIfEmpty } from "./seed.js";
+import { assertRuntimeCanStart } from "./runtime-safety.js";
+
+// Fail closed: non esporre in produzione il prototipo SQLite privo di auth
+// e isolamento tenant. La guardia va rimossa solo con runtime SaaS verificato.
+assertRuntimeCanStart();
 
 const db = openDb();
 
