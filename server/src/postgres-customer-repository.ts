@@ -26,6 +26,13 @@ export interface CustomerPage {
   };
 }
 
+export class PostgresCustomerNotFoundError extends Error {
+  constructor() {
+    super("Cliente non trovato.");
+    this.name = "PostgresCustomerNotFoundError";
+  }
+}
+
 interface CustomerRow {
   id: string;
   channel: string;
@@ -284,7 +291,7 @@ export async function updatePostgresCustomer(
       "SELECT id FROM customers WHERE organization_id=$1::uuid AND id=$2::bigint FOR UPDATE",
       [organizationId, customerId],
     );
-    if (current.rowCount !== 1) throw new Error("Cliente non trovato.");
+    if (current.rowCount !== 1) throw new PostgresCustomerNotFoundError();
     const stageRows = await client.query<{id:string;position:number;is_active:boolean}>(
       "SELECT id,position,is_active FROM funnel_stages WHERE organization_id=$1::uuid ORDER BY position",
       [organizationId],
@@ -346,7 +353,7 @@ export async function deletePostgresCustomer(
       [organizationId,customerId],
     );
     const deleted = result.rows[0];
-    if(!deleted) throw new Error("Cliente non trovato.");
+    if(!deleted) throw new PostgresCustomerNotFoundError();
     await writeCustomerAudit(client, organizationId, actorUserId, "customer.deleted", customerId, {
       channel: deleted.channel,
     });
