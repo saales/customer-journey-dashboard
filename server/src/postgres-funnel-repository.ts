@@ -5,6 +5,29 @@ import { withTenantTransaction } from "./tenant-transaction.js";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STAGE_ID_RE = /^[a-z0-9][a-z0-9_-]{0,79}$/;
 
+
+function assertActorUserId(actorUserId?: string): void {
+  if (actorUserId !== undefined && !UUID_RE.test(actorUserId)) {
+    throw new Error("Identificativo attore non valido.");
+  }
+}
+
+async function writeFunnelAudit(
+  client: PoolClient,
+  organizationId: string,
+  actorUserId: string | undefined,
+  action: string,
+  resourceType: string,
+  resourceId: string,
+  details: Record<string, unknown>,
+): Promise<void> {
+  if (!actorUserId) return;
+  await client.query(
+    "INSERT INTO audit_logs (organization_id, actor_user_id, action, resource_type, resource_id, details) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6::jsonb)",
+    [organizationId, actorUserId, action, resourceType, resourceId, JSON.stringify(details)],
+  );
+}
+
 export interface PostgresFunnelStage {
   id: string;
   label: string;
@@ -55,8 +78,10 @@ export async function reorderPostgresFunnelStages(
   pool: Pick<Pool, "connect">,
   organizationId: string,
   orderedStageIds: string[],
+  actorUserId?: string,
 ): Promise<PostgresFunnelStage[]> {
   assertOrganizationId(organizationId);
+  assertActorUserId(actorUserId);
   if (!Array.isArray(orderedStageIds) || orderedStageIds.length > 100) {
     throw new Error("Elenco fasi non valido.");
   }
@@ -104,6 +129,9 @@ export async function reorderPostgresFunnelStages(
         [organizationId, orderedStageIds[position], position],
       );
     }
+    await writeFunnelAudit(client, organizationId, actorUserId, "funnel.stages.reordered", "funnel", "stages", {
+      orderedStageIds,
+    });
 
     const result = await client.query<FunnelStageRow>(
       `SELECT id, label, position, is_active AS "isActive", is_system AS "isSystem"
@@ -126,8 +154,10 @@ export async function updatePostgresFunnelStage(
   organizationId: string,
   stageId: string,
   updates: { label?: unknown; isActive?: unknown },
+  actorUserId?: string,
 ): Promise<PostgresFunnelStage> {
   assertOrganizationId(organizationId);
+  assertActorUserId(actorUserId);
   if (typeof stageId !== "string" || !STAGE_ID_RE.test(stageId)) {
     throw new Error("Identificativo fase non valido.");
   }
@@ -202,6 +232,10 @@ export async function updatePostgresFunnelStage(
     if (!result.rows[0]) {
       throw new Error("Fase del percorso non trovata.");
     }
+    await writeFunnelAudit(client, organizationId, actorUserId, "funnel.stage.updated", "funnel_stage", stageId, {
+      label: result.rows[0].label,
+      isActive: result.rows[0].isActive,
+    });
     return result.rows[0];
   });
 }
@@ -213,8 +247,10 @@ export async function createPostgresFunnelStage(
   pool: Pick<Pool, "connect">,
   organizationId: string,
   rawLabel: string,
+  actorUserId?: string,
 ): Promise<PostgresFunnelStage> {
   assertOrganizationId(organizationId);
+  assertActorUserId(actorUserId);
   if (typeof rawLabel !== "string" || !rawLabel.trim() || rawLabel.trim().length > 50) {
     throw new Error("Il nome della fase deve contenere da 1 a 50 caratteri.");
   }
@@ -226,20 +262,44 @@ export async function createPostgresFunnelStage(
       [organizationId, label],
     );
     if (duplicate.rowCount) throw new Error("Esiste già una fase con questo nome.");
-    const stats = await client.query<{ count: number; maxPosition: number }>(
-      'SELECT COUNT(*)::int AS count, COALESCE(MAX(position),-1)::int AS "maxPosition" FROM funnel_stages WHERE organization_id=$1::uuid',
+    const current = await client.query<{ id: string; position: number }>(
+      "SELECT id, position FROM funnel_stages WHERE organization_id=$1::uuid ORDER BY position ASC FOR UPDATE",
       [organizationId],
     );
-    if ((stats.rows[0]?.count ?? 0) >= 100) throw new Error("Il percorso non può contenere più di 100 fasi.");
-    const position = (stats.rows[0]?.maxPosition ?? -1) + 1;
+    const currentIds = current.rows.map((row) => row.id);
+    if (currentIds[0] !== "visit" || currentIds[currentIds.length - 1] !== "customer") {
+      throw new Error("Configurazione delle fasi non valida: Visita deve essere prima e Cliente ultima.");
+    }
+    if (current.rows.length >= 100) throw new Error("Il percorso non può contenere più di 100 fasi.");
+    const customerPosition = currentIds.length - 1;
+    const maxPosition = Math.max(...current.rows.map((row) => row.position));
+    const offset = maxPosition + current.rows.length + 2;
+    if (!Number.isSafeInteger(offset) || offset > 2_000_000_000) {
+      throw new Error("Posizioni funnel fuori dall'intervallo consentito.");
+    }
+    await client.query(
+      "UPDATE funnel_stages SET position=position+$2,updated_at=NOW() WHERE organization_id=$1::uuid",
+      [organizationId, offset],
+    );
+    for (let index = 0; index < current.rows.length; index += 1) {
+      const position = index < customerPosition ? index : index + 1;
+      await client.query(
+        "UPDATE funnel_stages SET position=$3,updated_at=NOW() WHERE organization_id=$1::uuid AND id=$2",
+        [organizationId, current.rows[index].id, position],
+      );
+    }
     const id = `custom_${randomUUID().replace(/-/g, "")}`;
     const inserted = await client.query<FunnelStageRow>(
       `INSERT INTO funnel_stages (organization_id,id,label,position,is_active,is_system)
        VALUES ($1::uuid,$2,$3,$4,TRUE,FALSE)
        RETURNING id,label,position,is_active AS "isActive",is_system AS "isSystem"`,
-      [organizationId,id,label,position],
+      [organizationId,id,label,customerPosition],
     );
     if (!inserted.rows[0]) throw new Error("Creazione fase non riuscita.");
+    await writeFunnelAudit(client, organizationId, actorUserId, "funnel.stage.created", "funnel_stage", id, {
+      label,
+      position: customerPosition,
+    });
     return inserted.rows[0];
   });
 }

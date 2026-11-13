@@ -46,8 +46,7 @@ interface EventRow {
  * carry the tenant predicate explicitly; the transaction also scopes the
  * connection-local tenant setting for future RLS policies.
  *
- * This repository is deliberately not wired into Express until authentication
- * and membership authorization provide a trusted organization context.
+ * The HTTP routes pass the organization and actor from the verified session.
  */
 export async function listPostgresCustomers(
   pool: Pick<Pool, "connect">,
@@ -131,6 +130,22 @@ export async function listPostgresCustomers(
 }
 
 
+
+async function writeCustomerAudit(
+  client: PoolClient,
+  organizationId: string,
+  actorUserId: string | undefined,
+  action: string,
+  customerId: string,
+  details: Record<string, unknown>,
+): Promise<void> {
+  if (!actorUserId) return;
+  await client.query(
+    "INSERT INTO audit_logs (organization_id, actor_user_id, action, resource_type, resource_id, details) VALUES ($1::uuid, $2::uuid, $3, 'customer', $4, $5::jsonb)",
+    [organizationId, actorUserId, action, customerId, JSON.stringify(details)],
+  );
+}
+
 export interface CreatePostgresCustomerInput {
   externalId: string;
   channel: string;
@@ -151,9 +166,13 @@ export async function createPostgresCustomer(
   pool: Pick<Pool, "connect">,
   organizationId: string,
   input: CreatePostgresCustomerInput,
+  actorUserId?: string,
 ): Promise<CreatedPostgresCustomer> {
   if (!UUID_RE.test(organizationId)) {
     throw new Error("Identificativo organizzazione non valido.");
+  }
+  if (actorUserId !== undefined && !UUID_RE.test(actorUserId)) {
+    throw new Error("Identificativo attore non valido.");
   }
   const externalId = input.externalId.trim();
   if (!externalId || externalId.length > 100) {
@@ -222,6 +241,10 @@ export async function createPostgresCustomer(
         [organizationId, customerId, event.stage, event.occurredAt],
       );
     }
+    await writeCustomerAudit(client, organizationId, actorUserId, "customer.created", customerId, {
+      channel: input.channel,
+      eventCount: input.events.length,
+    });
 
     return { id: customerId, externalId };
   });
@@ -242,8 +265,10 @@ export async function updatePostgresCustomer(
   organizationId: string,
   customerId: string,
   input: CreatePostgresCustomerInput,
+  actorUserId?: string,
 ): Promise<UpdatedPostgresCustomer> {
   if (!UUID_RE.test(organizationId)) throw new Error("Identificativo organizzazione non valido.");
+  if (actorUserId !== undefined && !UUID_RE.test(actorUserId)) throw new Error("Identificativo attore non valido.");
   if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new Error("Identificativo cliente non valido.");
   if (!input.channel.trim() || input.channel.length > 100) throw new Error("Canale non valido.");
   const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
@@ -288,6 +313,10 @@ export async function updatePostgresCustomer(
         [organizationId,customerId,event.stage,event.occurredAt],
       );
     }
+    await writeCustomerAudit(client, organizationId, actorUserId, "customer.updated", customerId, {
+      channel: input.channel,
+      eventCount: input.events.length,
+    });
     return {id:customerId,channel:input.channel,createdAt:input.createdAt,events:input.events};
   });
 }
@@ -297,14 +326,20 @@ export async function deletePostgresCustomer(
   pool: Pick<Pool, "connect">,
   organizationId: string,
   customerId: string,
+  actorUserId?: string,
 ): Promise<void> {
   if (!UUID_RE.test(organizationId)) throw new Error("Identificativo organizzazione non valido.");
+  if (actorUserId !== undefined && !UUID_RE.test(actorUserId)) throw new Error("Identificativo attore non valido.");
   if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new Error("Identificativo cliente non valido.");
   await withTenantTransaction(pool,organizationId,async client=>{
-    const result=await client.query(
-      "DELETE FROM customers WHERE organization_id=$1::uuid AND id=$2::bigint RETURNING id",
+    const result=await client.query<{ id: string; channel: string }>(
+      "DELETE FROM customers WHERE organization_id=$1::uuid AND id=$2::bigint RETURNING id::text AS id, channel",
       [organizationId,customerId],
     );
-    if(result.rowCount!==1) throw new Error("Cliente non trovato.");
+    const deleted = result.rows[0];
+    if(!deleted) throw new Error("Cliente non trovato.");
+    await writeCustomerAudit(client, organizationId, actorUserId, "customer.deleted", customerId, {
+      channel: deleted.channel,
+    });
   });
 }

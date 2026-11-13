@@ -287,7 +287,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       try {
         const input = validateCustomerBody(req.body);
         const session = req.authenticatedSession!;
-        const created = await createPostgresCustomer(pool, session.organizationId, input);
+        const created = await createPostgresCustomer(pool, session.organizationId, input, session.userId);
         res.status(201).json(created);
       } catch (error) { next(error); }
     });
@@ -297,7 +297,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     async (req, res, next) => {
       try {
         const input = validateCustomerBody(req.body);
-        res.json(await updatePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id, input));
+        res.json(await updatePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id, input, req.authenticatedSession!.userId));
       } catch (error) { next(error); }
     });
 
@@ -305,7 +305,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     requireOrganizationPermission("customers:write"),
     async (req, res, next) => {
       try {
-        await deletePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id);
+        await deletePostgresCustomer(pool, req.authenticatedSession!.organizationId, req.params.id, req.authenticatedSession!.userId);
         res.status(204).send();
       } catch (error) { next(error); }
     });
@@ -318,7 +318,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         if (typeof label !== "string" || !label.trim() || label.trim().length > 50) {
           throw new ApiError(400, "Il nome della fase deve contenere da 1 a 50 caratteri.");
         }
-        const created = await createPostgresFunnelStage(pool, req.authenticatedSession!.organizationId, label);
+        const created = await createPostgresFunnelStage(pool, req.authenticatedSession!.organizationId, label, req.authenticatedSession!.userId);
         res.status(201).json(created);
       } catch (error) { next(error); }
     });
@@ -341,7 +341,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
           throw new ApiError(400, "Elenco delle fasi non valido.");
         }
         const result = await reorderPostgresFunnelStages(
-          pool, req.authenticatedSession!.organizationId, stages as string[],
+          pool, req.authenticatedSession!.organizationId, stages as string[], req.authenticatedSession!.userId,
         );
         res.json(result);
       } catch (error) { next(error); }
@@ -359,7 +359,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         if (Object.prototype.hasOwnProperty.call(body, "label")) updates.label = body.label;
         if (Object.prototype.hasOwnProperty.call(body, "isActive")) updates.isActive = body.isActive;
         const result = await updatePostgresFunnelStage(
-          pool, req.authenticatedSession!.organizationId, req.params.id, updates,
+          pool, req.authenticatedSession!.organizationId, req.params.id, updates, req.authenticatedSession!.userId,
         );
         res.json(result);
       } catch (error) { next(error); }
