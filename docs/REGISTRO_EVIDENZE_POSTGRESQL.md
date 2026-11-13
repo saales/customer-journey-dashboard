@@ -47,3 +47,16 @@ Restano necessari test browser end-to-end completi, test di carico, prova backup
 | Pulizia in batch dei record HMAC del rate limiter oltre retention | `cleanupPostgresLoginAttemptLimits` | Implementata; comando pianificabile giornalmente |
 | Configurazione esplicita dei proxy attendibili per risolvere l'IP client | `TRUSTED_PROXY_IPS`, `req.ip` e `validateTrustedProxyIps` | Implementata; richiede configurazione corretta del reverse proxy |
 | Test retention/batch e validazione IP/CIDR | test unitari e PostgreSQL integration | Aggiunti; CI da verificare sul commit successivo |
+
+## Collaudo browser end-to-end — 13 novembre 2026
+
+- Run CI [43492421898](https://github.com/saales/customer-journey-dashboard/actions/runs/43492421898), commit `a7f6c3139296f3b2ef2091e5c87c7006b504b62e`: concluso con successo su Node.js 20 e 22.
+- Il job Node.js 22 ha eseguito Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
+- Flusso verificato: login admin, creazione cliente, aggiunta fase funnel, importazione CSV, esportazione CSV, invito e accettazione analista, controllo HTTP 403 sulla creazione cliente invocata direttamente dall'analista.
+- Non è un test completo di tutti i ruoli o dell'isolamento cross-tenant; non sono stati eseguiti test di carico.
+- Il test non accede al database Neon, non usa dati reali e non effettua deploy.
+
+## Hardening del preflight runtime
+
+- Il preflight verifica anche SELECT/INSERT/UPDATE/DELETE sulla tabella globale `api_request_limits`, introdotta dalla migrazione 009.
+- Test unitario negativo dedicato: un ruolo senza INSERT su `api_request_limits` deve fallire il preflight.
