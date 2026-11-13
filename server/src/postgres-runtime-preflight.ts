@@ -6,6 +6,7 @@ const REQUIRED_RLS_TABLES = [
   "funnel_stages",
   "import_batches",
   "audit_logs",
+  "invitations",
 ] as const;
 
 export interface PostgresRuntimeRoleCheck {
@@ -91,20 +92,22 @@ export async function inspectPostgresRuntimeRole(
   const privilegeResult = await pool.query<{ tableName: string; privilege: string }>(
     `SELECT required.table_name AS "tableName", required.privilege
      FROM unnest(
-       ARRAY['schema_migrations','users','organizations','memberships','memberships',
+       ARRAY['schema_migrations','users','users','organizations','memberships','memberships','memberships',
              'sessions','sessions','sessions',
              'login_attempt_limits','login_attempt_limits','login_attempt_limits','login_attempt_limits',
              'customers','customers','customers','customers',
              'events','events','events','events',
              'funnel_stages','funnel_stages','funnel_stages',
-             'import_batches','import_batches','audit_logs']::text[],
-       ARRAY['SELECT','SELECT','SELECT','SELECT','UPDATE',
+             'import_batches','import_batches','audit_logs',
+             'invitations','invitations','invitations']::text[],
+       ARRAY['SELECT','SELECT','INSERT','SELECT','SELECT','INSERT','UPDATE',
              'SELECT','INSERT','DELETE',
              'SELECT','INSERT','UPDATE','DELETE',
              'SELECT','INSERT','UPDATE','DELETE',
              'SELECT','INSERT','UPDATE','DELETE',
              'SELECT','INSERT','UPDATE',
-             'SELECT','INSERT','INSERT']::text[]
+             'SELECT','INSERT','INSERT',
+             'SELECT','INSERT','UPDATE']::text[]
      ) AS required(table_name, privilege)
      WHERE NOT has_table_privilege(
        current_user,

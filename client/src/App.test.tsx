@@ -54,6 +54,7 @@ function openAnalytics() {
 beforeEach(() => {
   fetchMock = vi.fn((url: string) => {
     if (url.startsWith("/api/members")) return json([]);
+    if (url.startsWith("/api/invitations")) return json([]);
     if (url.startsWith("/api/funnel-stages")) return json([
       { id: "visit", label: "Visita", position: 0, isActive: true, isSystem: true },
       { id: "customer", label: "Cliente", position: 1, isActive: true, isSystem: true },

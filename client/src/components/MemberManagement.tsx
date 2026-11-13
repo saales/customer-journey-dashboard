@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { api, type OrganizationMember } from "../api";
+import { useEffect, useState, type FormEvent } from "react";
+import { api, type OrganizationMember, type OrganizationInvitation } from "../api";
 
 const roles: OrganizationMember["role"][] = ["admin", "editor", "analyst", "viewer"];
 const roleLabels: Record<OrganizationMember["role"], string> = {
@@ -11,6 +11,11 @@ const roleLabels: Record<OrganizationMember["role"], string> = {
 
 export function MemberManagement() {
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [invitations, setInvitations] = useState<OrganizationInvitation[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<OrganizationInvitation["role"]>("editor");
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [creatingInvite, setCreatingInvite] = useState(false);
   const [pendingRoles, setPendingRoles] = useState<Record<string, OrganizationMember["role"]>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -21,7 +26,9 @@ export function MemberManagement() {
     setLoading(true);
     setError("");
     try {
-      setMembers(await api.members());
+      const [memberRows, invitationRows] = await Promise.all([api.members(), api.invitations()]);
+      setMembers(memberRows);
+      setInvitations(invitationRows);
       setPendingRoles({});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile caricare i membri.");
@@ -44,6 +51,46 @@ export function MemberManagement() {
       setError(err instanceof Error ? err.message : "Impossibile aggiornare il membro.");
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function createInvite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreatingInvite(true);
+    setError("");
+    setMessage("");
+    setInviteUrl("");
+    try {
+      const created = await api.createInvitation({ email: inviteEmail, role: inviteRole, expiresInDays: 7 });
+      setInviteUrl(created.inviteUrl);
+      setInviteEmail("");
+      await load();
+      setMessage("Invito creato. Condividi il collegamento con il destinatario tramite un canale sicuro.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile creare l'invito.");
+    } finally {
+      setCreatingInvite(false);
+    }
+  }
+
+  async function revokeInvite(invitation: OrganizationInvitation) {
+    setError("");
+    setMessage("");
+    try {
+      await api.revokeInvitation(invitation.id);
+      await load();
+      setMessage("Invito revocato.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile revocare l'invito.");
+    }
+  }
+
+  async function copyInviteUrl() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setMessage("Collegamento copiato.");
+    } catch {
+      setMessage("Seleziona e copia manualmente il collegamento visualizzato.");
     }
   }
 
@@ -84,6 +131,31 @@ export function MemberManagement() {
           </td>
         </tr>)}</tbody>
       </table></div>}
-    <p className="hint">Per sicurezza non puoi modificare il tuo stesso accesso. L'organizzazione deve mantenere almeno un amministratore attivo. L'aggiunta di nuovi membri richiede il flusso di invito, non ancora disponibile.</p>
+    <div className="card" style={{ marginTop: 20 }}>
+      <h3>Invita un collaboratore</h3>
+      <p className="hint">Crea un collegamento monouso da condividere direttamente. L'invio automatico di email non è configurato.</p>
+      <form className="customer-form" onSubmit={(event) => void createInvite(event)}>
+        <label>Email<input type="email" required maxLength={254} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} /></label>
+        <label>Ruolo<select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as OrganizationInvitation["role"])}>
+          {roles.map(role => <option key={role} value={role}>{roleLabels[role]}</option>)}
+        </select></label>
+        <button className="button-secondary" type="submit" disabled={creatingInvite || !inviteEmail.trim()}>{creatingInvite ? "Creazione…" : "Crea invito (7 giorni)"}</button>
+      </form>
+      {inviteUrl && <div className="customer-form">
+        <label>Collegamento da condividere<input readOnly value={inviteUrl} onFocus={(event) => event.currentTarget.select()} /></label>
+        <button className="button-secondary" type="button" onClick={() => void copyInviteUrl()}>Copia collegamento</button>
+      </div>}
+      <h3>Inviti recenti</h3>
+      {!invitations.length ? <p className="empty">Nessun invito creato.</p> : <div className="table-wrap"><table>
+        <thead><tr><th>Email</th><th>Ruolo</th><th>Stato</th><th>Scadenza</th><th>Azioni</th></tr></thead>
+        <tbody>{invitations.map(invite => <tr key={invite.id}>
+          <td>{invite.email}</td><td>{roleLabels[invite.role]}</td>
+          <td>{{pending:"In attesa",accepted:"Accettato",revoked:"Revocato",expired:"Scaduto"}[invite.status]}</td>
+          <td>{new Date(invite.expiresAt).toLocaleDateString("it-IT")}</td>
+          <td>{invite.status === "pending" && <button className="button-secondary" type="button" onClick={() => void revokeInvite(invite)}>Revoca</button>}</td>
+        </tr>)}</tbody>
+      </table></div>}
+    </div>
+    <p className="hint">Per sicurezza non puoi modificare il tuo stesso accesso. L'organizzazione deve mantenere almeno un amministratore attivo.</p>
   </section>;
 }

@@ -22,7 +22,7 @@ Il ruolo `percorso_owner` deve essere il proprietario delle tabelle e lo stesso 
 4. La migrazione `005` assegna a `percorso_app` solo i privilegi DML necessari.
 5. Configurare `DATABASE_URL` del runtime con le credenziali di `percorso_app`, non con quelle del proprietario.
 
-La migrazione `005` fallisce intenzionalmente se `percorso_app` non esiste o possiede attributi incompatibili con RLS. Non modifica dati aziendali.
+La migrazione `005` fallisce intenzionalmente se `percorso_app` non esiste o possiede attributi incompatibili con RLS. La migrazione `007` assegna i privilegi minimi di lettura/aggiornamento delle membership; la `008` protegge gli inviti con RLS e concede INSERT su utenti e membership per l'accettazione dei link monouso. Non modifica dati aziendali.
 
 ## Avvio del runtime PostgreSQL
 

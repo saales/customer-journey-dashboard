@@ -1,50 +1,127 @@
-# Inventario API e stato del runtime PostgreSQL
+# Inventario API e matrice di migrazione SaaS
 
-## Stato
+> **Stato verificato sul branch recovery/checkpoint-12-postgres.** Le tabelle seguenti descrivono il runtime storico Express/SQLite. Un runtime PostgreSQL separato è stato aggiunto nel ramo con autenticazione, autorizzazione e contesto tenant. Il client React è collegato alle API principali (analisi, clienti, funnel, importazione ed esportazione CSV), ma non è ancora stata raggiunta la parità funzionale e mancano test end-to-end completi. L'avvio in produzione resta bloccato.
 
-Il runtime standard è PostgreSQL. Il client web usa le API same-origin del server Express; l'identità organizzativa deriva dalla sessione e non da parametri inviati dal client.
+## Route attualmente presenti
 
-## Endpoint
-
-| Metodo | Endpoint | Permesso | Funzione |
+| Metodo e percorso | Funzione | Accesso SaaS previsto | Stato attuale |
 |---|---|---|---|
-| GET | `/api/health` | Pubblico | Readiness del database |
-| POST | `/api/auth/login` | Pubblico + rate limit | Autenticazione e creazione sessione |
-| GET | `/api/auth/session` | Cookie sessione | Stato sessione e ruolo |
-| POST | `/api/auth/logout` | Cookie sessione + Origin | Revoca sessione |
-| GET | `/api/meta` | `analytics:read` | Intervallo dati e canali |
-| GET | `/api/summary` | `analytics:read` | KPI e funnel |
-| GET | `/api/channels` | `analytics:read` | Confronto canali |
-| GET | `/api/timeseries` | `analytics:read` | Andamento mensile |
-| GET/POST | `/api/customers` | `customers:read` / `customers:write` | Elenco paginato e creazione |
-| PUT/DELETE | `/api/customers/:id` | `customers:write` | Modifica ed eliminazione |
-| GET/POST/PUT | `/api/funnel-stages` | `funnel:read` / `funnel:write` | Configurazione fasi |
-| PUT | `/api/funnel-stages/reorder` | `funnel:write` | Riordino fasi |
-| POST | `/api/import` | `data:import` | Importazione tenant-scoped |
-| GET | `/api/segments` | `analytics:read` | Segmentazione |
-| GET | `/api/segments/customers` | `analytics:read` | Dettaglio segmento |
-| GET | `/api/export/customers.csv` | `data:export` | Esportazione clienti ed eventi |
-| GET | `/api/members` | `members:manage` | Elenco membri |
-| PATCH | `/api/members/:id` | `members:manage` | Ruolo e stato membro |
+| GET /api/health | Stato API e database runtime | Pubblico, risposta minima senza dettagli interni | Implementata su SQLite |
+| GET /api/meta | Date disponibili e canali | admin, editor, analyst, viewer | Nessuna autenticazione |
+| GET /api/funnel-stages | Elenco fasi funnel | admin, editor, analyst, viewer | Nessuna autenticazione |
+| PUT /api/funnel-stages/reorder | Riordino fasi | admin | Nessuna autenticazione |
+| PUT /api/funnel-stages/:id | Modifica etichetta/stato fase | admin | Nessuna autenticazione |
+| POST /api/funnel-stages | Creazione fase | admin | Nessuna autenticazione |
+| GET /api/summary | KPI e riepilogo funnel | admin, editor, analyst, viewer | Nessuna autenticazione |
+| GET /api/channels | Confronto canali | admin, editor, analyst, viewer | Nessuna autenticazione |
+| GET /api/timeseries | Serie temporale | admin, editor, analyst, viewer | Nessuna autenticazione |
+| GET /api/segments | Analisi segmenti | admin, editor, analyst, viewer | Nessuna autenticazione |
+| GET /api/segments/customers | Clienti di un segmento | admin, editor, analyst, viewer | Nessuna autenticazione |
+| GET /api/customers | Elenco clienti paginato | admin, editor, analyst, viewer | Nessuna autenticazione |
+| POST /api/customers | Creazione cliente ed eventi | admin, editor | Nessuna autenticazione |
+| PUT /api/customers/:id | Modifica cliente ed eventi | admin, editor | Nessuna autenticazione |
+| DELETE /api/customers/:id | Eliminazione cliente ed eventi | admin, editor | Nessuna autenticazione |
+| POST /api/import | Importazione CSV validata | admin, editor | Nessuna autenticazione |
 
-## Matrice sintetica dei ruoli
+La matrice dei ruoli è una policy target da implementare e testare lato server. Non descrive permessi già attivi.
 
-| Ruolo | Permessi |
-|---|---|
-| Admin | Tutti |
-| Editor | Analisi, lettura/scrittura clienti e funnel, importazione ed esportazione |
-| Analyst | Analisi, lettura clienti/funnel ed esportazione |
-| Viewer | Analisi e lettura clienti/funnel |
+## Requisiti trasversali per ogni route tenant-scoped
 
-## Comportamenti e controlli
+1. Il middleware di autenticazione valida il cookie di sessione, cerca l'hash del token nel database e verifica scadenza/revoca.
+2. Il contesto della richiesta contiene `userId`, `organizationId` e `role`, ricavati dalla sessione e dalla membership corrente.
+3. Nessun endpoint accetta `organizationId` dal body, dalla query string o da header controllabili dal client come fonte di autorizzazione.
+4. Ogni query, conteggio, join, update e delete applica il filtro `organization_id`; le foreign key composite impediscono collegamenti tra tenant anche in caso di bug applicativo.
+5. Il controllo del ruolo avviene dopo l'autenticazione e prima di leggere o modificare dati.
+6. Le risposte per risorse inesistenti o appartenenti a un altro tenant non devono rivelare l'esistenza di dati esterni.
+7. Le operazioni multi-record (creazione cliente/eventi, import, riordino fasi) sono atomiche.
+8. Il logging di audit registra le mutazioni sensibili senza password, token, cookie o altri segreti.
 
-- Le richieste di scrittura richiedono un Origin autorizzato.
-- Le API protette richiedono una sessione valida e membership attiva.
-- Le risposte API sono marcate `no-store`.
-- Le richieste JSON ordinarie hanno limite 1 MiB; importazioni 12 MiB.
-- L'esportazione clienti è limitata a 100.000 righe per richiesta e neutralizza celle che potrebbero essere interpretate come formule.
-- L'endpoint di health restituisce uno stato sintetico e non espone credenziali.
+## Route SaaS ancora da progettare
 
-## Funzioni non ancora disponibili
+Queste route non sono presenti nel prototipo e non vanno considerate implementate:
 
-Invito utenti con consegna email, recupero password/account, provisioning self-service e audit viewer nell'interfaccia non sono ancora completati. L'esportazione aggregata dei report avviene nel browser; l'endpoint server-side copre clienti ed eventi.
+- Sessioni: login, logout, sessioni correnti e revoca.
+- Inviti: creazione, consultazione e accettazione con token monouso.
+- Membri: elenco, cambio ruolo e rimozione membership.
+- Organizzazione: lettura e modifica delle impostazioni tenant.
+- Audit: consultazione degli eventi di audit da parte degli admin.
+- Bootstrap amministratore: comando CLI una tantum, mai endpoint HTTP pubblico.
+- Recupero account e verifica email: richiedono flussi e provider da definire prima dell'esposizione.
+
+## Sequenza di implementazione e test
+
+1. Recuperare la baseline SQL esatta già applicata e verificare il checksum; non creare una baseline sostitutiva per supposizione.
+2. Realizzare repository PostgreSQL e migrazioni su un database effimero CI, mantenendo Neon fuori dai test.
+3. Implementare sessioni e middleware per costruire il contesto autenticato.
+4. Convertire le route sopra una per volta, introducendo repository asincroni e scope tenant esplicito.
+5. Aggiungere test per ogni endpoint e ruolo, inclusi tentativi cross-tenant con ID noti.
+6. Verificare transazioni, import rollback, revoca/scadenza sessioni e health check sul database runtime effettivo.
+
+## Criterio di chiusura
+
+Nessuna route applicativa può essere considerata pronta per dati aziendali finché non esistono test automatici che dimostrino autenticazione, autorizzazione e isolamento tenant. La sola presenza di PostgreSQL, di un pool o di una connessione riuscita non soddisfa questo criterio.
+
+
+## Nuovo runtime PostgreSQL separato (stato del ramo)
+
+Il modulo `server/src/postgres-server.ts` avvia `createPostgresApp` senza sostituire l'entrypoint SQLite predefinito. Lo startup non applica DDL: confronta in sola lettura il registro migrazioni, verifica il ruolo corrente e interrompe l'avvio in caso di migrazioni mancanti/divergenti, RLS disattivato, proprietà delle tabelle o privilegi mancanti.
+
+| Metodo e percorso | Funzione | Permesso | Stato |
+|---|---|---|---|
+| POST /api/auth/login | Autenticazione e cookie di sessione | Origine esatta consentita; limite persistente tentativi | Server e modulo browser collegati |
+| GET /api/auth/session | Identità e ruolo correnti | Sessione valida | Implementata |
+| POST /api/auth/logout | Revoca sessione e cancellazione cookie | Sessione valida e origine consentita | Implementata |
+| GET /api/customers | Elenco paginato tenant-scoped | customers:read | Implementata |
+| POST /api/customers | Creazione cliente e percorso atomico | customers:write | Implementata; la fase Visita viene generata dal server |
+| PUT /api/customers/:id | Modifica dati e percorso cliente atomica | customers:write | Implementata |
+| DELETE /api/customers/:id | Eliminazione cliente tenant-scoped | customers:write | Implementata |
+| GET /api/funnel-stages | Elenco fasi tenant-scoped | funnel:read | Implementata |
+| POST /api/funnel-stages | Creazione fase personalizzata con posizione finale | funnel:write | Implementata |
+| PUT /api/funnel-stages/reorder | Riordino fasi tenant-scoped con visita e cliente come estremi | funnel:write | Implementata |
+| PUT /api/funnel-stages/:id | Modifica etichetta/attivazione fase | funnel:write | Implementata |
+
+Il contesto organizzazione viene sempre letto dalla sessione PostgreSQL verificata, non da parametri forniti dal client. Le scritture sono protette da controllo Origin esatto. I cookie di produzione usano il prefisso `__Host-`, `Secure`, `HttpOnly`, `Path=/` e `SameSite=Strict`.
+
+La migrazione `005_runtime_role_grants.sql` assegna privilegi minimi al ruolo `percorso_app`. La configurazione dei ruoli è documentata in `docs/CONFIGURAZIONE_RUOLI_POSTGRESQL.md`.
+
+### API aggiuntive già presenti nel runtime PostgreSQL
+
+| Metodo e percorso | Funzione | Permesso | Stato |
+|---|---|---|---|
+| GET /api/meta | Date e canali disponibili | analytics:read | Implementata e collegata al client |
+| GET /api/summary | KPI e funnel | analytics:read | Implementata e collegata al client |
+| GET /api/channels | Confronto canali | analytics:read | Implementata e collegata al client |
+| GET /api/timeseries | Andamento mensile | analytics:read | Implementata e collegata al client |
+| GET /api/segments | Segmenti per canale, fase, mese e combinazione | analytics:read | Implementata e collegata al client |
+| GET /api/segments/customers | Dettaglio clienti del segmento | analytics:read | Implementata e collegata al client |
+| POST /api/import | Importazione atomica con deduplica e audit | data:import | Implementata e collegata al client |
+| GET /api/export/customers.csv | Esportazione tenant-scoped con protezione da CSV formula injection | data:export | Implementata e collegata al client |
+| GET /api/members | Elenco membri dell'organizzazione | members:manage | API e schermata admin implementate |
+| PATCH /api/members/:id | Modifica ruolo/stato membro e audit | members:manage | API e schermata admin implementate |
+| GET /api/invitations | Elenco inviti e stato | members:manage | Implementata |
+| POST /api/invitations | Crea invito monouso e restituisce il link | members:manage | Implementata; condivisione manuale |
+| POST /api/invitations/:id/revoke | Revoca invito pendente | members:manage | Implementata |
+| POST /api/invitations/accept | Crea/collega account, membership e sessione | Origine consentita + token valido | Implementata e collegata al client
+
+Il comando amministrativo `npm run db:bootstrap -w server -- --confirm-empty-database` crea il primo tenant e l'amministratore solo su un database vuoto, usando `BOOTSTRAP_DATABASE_URL` separata. La procedura è documentata in `docs/BOOTSTRAP_POSTGRESQL.md`.
+
+La migrazione `007_membership_management.sql` assegna al ruolo HTTP solo SELECT e UPDATE su `memberships`. La migrazione `008_invitations_tenant_rls.sql` abilita RLS sugli inviti e concede i soli privilegi INSERT su utenti e membership necessari all’accettazione.
+
+### Funzioni ancora mancanti o da collaudare
+
+- Consegna automatica degli inviti via email: al momento l’amministratore deve condividere manualmente il link monouso.
+- Recupero account e reset password.
+- Consultazione amministrativa del registro audit e gestione storico/annullamento importazioni.
+- Test end-to-end completi su login, inviti, ruoli, importazione ed esportazione; test cross-tenant a livello HTTP.
+- Verifica su un ambiente di staging isolato e collaudo di backup/ripristino.
+
+Le esportazioni CSV, Excel e PDF non sono ancora equivalenti: è disponibile l'esportazione CSV completa tenant-scoped dal server; le esportazioni Excel/PDF restano lato browser.
+
+Le route del runtime SQLite nella prima tabella non sono automaticamente protette dalle nuove middleware: il server PostgreSQL è un processo distinto e il runtime SQLite continua a non essere adatto a dati aziendali reali.
+
+
+## Accesso dal browser
+
+Il client ora verifica `GET /api/auth/session` prima di montare la dashboard, presenta il modulo di accesso e invia email, password e codice organizzazione a `POST /api/auth/login`. La sessione resta in un cookie HttpOnly e non viene copiata in localStorage o JavaScript. L'uscita chiama `POST /api/auth/logout`.
+
+In sviluppo, se il runtime non espone la route di sessione (404), il client mantiene una modalità demo esclusivamente locale per il server SQLite storico. In produzione non esiste questo ripiego: se il runtime PostgreSQL non è disponibile o l'accesso non è configurato, la dashboard resta chiusa.

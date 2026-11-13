@@ -102,6 +102,21 @@ export interface OrganizationMember {
   joinedAt: string;
 }
 
+export interface OrganizationInvitation {
+  id: string;
+  email: string;
+  role: "admin" | "editor" | "analyst" | "viewer";
+  status: "pending" | "accepted" | "revoked" | "expired";
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+}
+export interface CreatedOrganizationInvitation {
+  invitation: OrganizationInvitation;
+  inviteUrl: string;
+}
+
 export interface Query {
   from: string;
   to: string;
@@ -199,6 +214,11 @@ export const api = {
 
   updateMember: (id: string, data: { role?: OrganizationMember["role"]; status?: OrganizationMember["status"] }) =>
     send<OrganizationMember>(`members/${id}`, "PATCH", data),
+
+  invitations: (signal?: AbortSignal) => get<OrganizationInvitation[]>("invitations", {}, signal),
+  createInvitation: (data: { email: string; role: OrganizationInvitation["role"]; expiresInDays: number }) =>
+    send<CreatedOrganizationInvitation>("invitations", "POST", data),
+  revokeInvitation: (id: string) => send<void>(`invitations/${id}/revoke`, "POST"),
 
   meta: (signal?: AbortSignal) =>
     get<Meta>("meta", {}, signal),

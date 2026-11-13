@@ -16,15 +16,15 @@ import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
 import { MemberManagement } from "./components/MemberManagement";
 
-interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
+interface AppProps { onLogout?: () => Promise<void>; demoMode?: boolean; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
-export default function App({ onLogout, organizationRole = null }: AppProps = {}) {
+export default function App({ onLogout, demoMode = false, organizationRole = null }: AppProps = {}) {
   const [preset, setPreset] = useState<Preset>(12);
   const [channel, setChannel] = useState("");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const canWrite = organizationRole === "admin" || organizationRole === "editor";
-  const canExport = organizationRole === "admin" || organizationRole === "editor" || organizationRole === "analyst";
+  const canWrite = demoMode || organizationRole === "admin" || organizationRole === "editor";
+  const canExport = demoMode || organizationRole === "admin" || organizationRole === "editor" || organizationRole === "analyst";
   const visibleSections = canWrite
     ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings"] as const
     : ["dashboard", "customers", "analytics", "segmentation", "comparisons", "settings"] as const;
@@ -152,6 +152,10 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
 
   const dashboardSection = (
     <>
+      {demoMode && (
+        <p className="notice">Dati sintetici generati a scopo dimostrativo: nessun dato reale di clienti o aziende.</p>
+      )}
+
       {statusMessages}
 
       {noData && (
@@ -209,7 +213,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
   );
 
   const customersSection = (
-    <CustomerManagement onDataChange={refreshDashboard} serverExportEnabled={canExport} readOnly={!canWrite} />
+    <CustomerManagement onDataChange={refreshDashboard} serverExportEnabled={!demoMode && canExport} readOnly={!canWrite && !demoMode} />
   );
 
   const importSection = (
@@ -237,8 +241,8 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
 
   const settingsSection = (
     <div>
-      <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite} />
-      {organizationRole === "admin" && <MemberManagement />}
+      <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite && !demoMode} />
+      {!demoMode && organizationRole === "admin" && <MemberManagement />}
 
       <div className="card">
         <h2>Preferenze dell'interfaccia</h2>

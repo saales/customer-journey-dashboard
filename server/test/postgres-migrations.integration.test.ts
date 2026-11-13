@@ -15,6 +15,7 @@ const migration004Url = new URL("../migrations/004_login_attempt_limits.sql", im
 const migration005Url = new URL("../migrations/005_runtime_role_grants.sql", import.meta.url);
 const migration006Url = new URL("../migrations/006_session_idle_timeout.sql", import.meta.url);
 const migration007Url = new URL("../migrations/007_membership_management.sql", import.meta.url);
+const migration008Url = new URL("../migrations/008_invitations_tenant_rls.sql", import.meta.url);
 
 const expectedChecksums = {
   "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
@@ -50,7 +51,7 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query(`CREATE SCHEMA "${schemaName}"`);
       await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
 
-      const [sql001, sql002, sql003, sql004, sql005, sql006, sql007] = await Promise.all([
+      const [sql001, sql002, sql003, sql004, sql005, sql006, sql007, sql008] = await Promise.all([
         readFile(migration001Url, "utf8"),
         readFile(migration002Url, "utf8"),
         readFile(migration003Url, "utf8"),
@@ -58,6 +59,7 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         readFile(migration005Url, "utf8"),
         readFile(migration006Url, "utf8"),
         readFile(migration007Url, "utf8"),
+        readFile(migration008Url, "utf8"),
       ]);
 
       await client.query(sql001);
@@ -146,6 +148,26 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query(sql005);
       await client.query(sql006);
       await client.query(sql007);
+      await client.query(sql008);
+      const invitationRls = await client.query<{ enabled: boolean }>(
+        "SELECT relrowsecurity AS enabled FROM pg_class WHERE oid='invitations'::regclass",
+      );
+      expect(invitationRls.rows[0]?.enabled).toBe(true);
+      const invitationGrant = await client.query<{ allowed: boolean }>(
+        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
+        ["percorso_app", "invitations", "INSERT"],
+      );
+      expect(invitationGrant.rows[0]?.allowed).toBe(true);
+      const userInsertGrant = await client.query<{ allowed: boolean }>(
+        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
+        ["percorso_app", "users", "INSERT"],
+      );
+      expect(userInsertGrant.rows[0]?.allowed).toBe(true);
+      const membershipInsertGrant = await client.query<{ allowed: boolean }>(
+        "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
+        ["percorso_app", "memberships", "INSERT"],
+      );
+      expect(membershipInsertGrant.rows[0]?.allowed).toBe(true);
       const memberManagementGrant = await client.query<{ allowed: boolean }>(
         "SELECT has_table_privilege($1, format('%I.%I', current_schema(), $2::text), $3::text) AS allowed",
         ["percorso_app", "memberships", "UPDATE"],
@@ -178,14 +200,27 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       const policyCount = await client.query<{ count: string }>(
         "SELECT COUNT(*)::text AS count FROM pg_policies WHERE schemaname = current_schema()",
       );
-      expect(Number(policyCount.rows[0]?.count)).toBe(5);
+      expect(Number(policyCount.rows[0]?.count)).toBe(7);
 
       // Verifica RLS con un ruolo non proprietario: ciascun contesto vede
       // esclusivamente i clienti del tenant selezionato.
       const runtimeRole = `rls_test_${schemaName}`;
       await client.query(`CREATE ROLE "${runtimeRole}" NOLOGIN`);
       await client.query(`GRANT USAGE ON SCHEMA "${schemaName}" TO "${runtimeRole}"`);
-      await client.query(`GRANT SELECT ON customers TO "${runtimeRole}"`);
+      await client.query(`GRANT SELECT ON customers, invitations TO "${runtimeRole}"`);
+      const invitationActorId = randomUUID();
+      await client.query(
+        "INSERT INTO users (id,email,password_hash,full_name,status) VALUES ($1,'inviter@example.test','unused','Inviter','active')",
+        [invitationActorId],
+      );
+      await client.query(
+        "INSERT INTO memberships (organization_id,user_id,role,status) VALUES ($1,$2,'admin','active')",
+        [organizationId, invitationActorId],
+      );
+      await client.query(
+        "INSERT INTO invitations (organization_id,email,role,token_hash,invited_by,expires_at) VALUES ($1,'invitee@example.test','viewer','known-invite-hash',$2,NOW()+INTERVAL '1 day')",
+        [organizationId, invitationActorId],
+      );
       await client.query(`SET LOCAL ROLE "${runtimeRole}"`);
       await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
       const tenantACount = await client.query<{ count: string }>(
@@ -202,6 +237,16 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         "SELECT COUNT(*)::text AS count FROM customers",
       );
       expect(Number(unknownTenantCount.rows[0]?.count)).toBe(0);
+      await client.query("SELECT set_config('app.invitation_token_hash', $1, true)", ["known-invite-hash"]);
+      const inviteLookup = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM invitations",
+      );
+      expect(Number(inviteLookup.rows[0]?.count)).toBe(1);
+      await client.query("SELECT set_config('app.invitation_token_hash', $1, true)", ["not-a-valid-hash"]);
+      const inviteLookupDenied = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM invitations",
+      );
+      expect(Number(inviteLookupDenied.rows[0]?.count)).toBe(0);
       await client.query("RESET ROLE");
 
       const membershipFk = await client.query<{ count: string }>(

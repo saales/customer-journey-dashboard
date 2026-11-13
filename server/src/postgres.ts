@@ -32,8 +32,8 @@ if (!connectionString) {
   );
 }
 
-// Pool PostgreSQL condiviso dal runtime applicativo.
-// Il runtime applicativo usa esclusivamente PostgreSQL.
+// Pool dedicato a Neon PostgreSQL.
+// SQLite rimane attivo separatamente durante la migrazione.
 export const postgresPool = new Pool({
   connectionString,
   max: 5,

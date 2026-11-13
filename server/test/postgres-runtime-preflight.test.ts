@@ -17,7 +17,7 @@ function makePool(role: Record<string, unknown>, tables: Record<string, unknown>
 }
 
 const goodRole = { role: "percorso_app", superuser: false, bypassRls: false, inheritsPrivileges: false, canCreateRoles: false, canCreateDatabases: false, canReplicate: false };
-const goodTables = ["customers", "events", "funnel_stages", "import_batches", "audit_logs"]
+const goodTables = ["customers", "events", "funnel_stages", "import_batches", "audit_logs", "invitations"]
   .map((tableName) => ({ tableName, ownerName: "percorso_owner", rowSecurity: true }));
 
 describe("Preflight sicurezza ruolo PostgreSQL", () => {

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createPostgresApp } from "./postgres-app.js";
 import { postgresPool } from "./postgres.js";
 import { loadPostgresMigrations, planPostgresMigrations } from "./postgres-migrations.js";

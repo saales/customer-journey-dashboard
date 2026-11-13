@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
-type AuthState = "loading" | "authenticated" | "anonymous" | "error";
+type AuthState = "loading" | "authenticated" | "anonymous" | "error" | "demo";
 interface AuthSession { userId: string; organizationId: string; role: "admin" | "editor" | "analyst" | "viewer"; }
-interface AuthGateProps { children: (logout: () => Promise<void>, role: AuthSession["role"] | null) => ReactNode; }
+interface AuthGateProps { children: (logout: () => Promise<void>, demoMode: boolean, role: AuthSession["role"] | null) => ReactNode; }
 
 async function readSession(): Promise<{ response: Response; session?: AuthSession }> {
   const response = await fetch("/api/auth/session", {
@@ -16,6 +16,11 @@ async function readSession(): Promise<{ response: Response; session?: AuthSessio
 export function AuthGate({ children }: AuthGateProps) {
   const [state, setState] = useState<AuthState>("loading");
   const [role, setRole] = useState<AuthSession["role"] | null>(null);
+  const [inviteToken, setInviteToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
+  const [inviteName, setInviteName] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
+  const [invitePasswordConfirm, setInvitePasswordConfirm] = useState("");
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [organizationSlug, setOrganizationSlug] = useState("");
@@ -28,6 +33,7 @@ export function AuthGate({ children }: AuthGateProps) {
       const result = await readSession();
       if (result.response.ok && result.session) { setRole(result.session.role); setState("authenticated"); return; }
       if (result.response.status === 401) { setRole(null); setState("anonymous"); return; }
+      if (result.response.status === 404 && import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === "true") { setRole(null); setState("demo"); return; }
       throw new Error("Servizio di accesso non disponibile. Verificare il runtime PostgreSQL.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Impossibile verificare la sessione.");
@@ -35,7 +41,7 @@ export function AuthGate({ children }: AuthGateProps) {
     }
   }
 
-  useEffect(() => { void checkSession(); }, []);
+  useEffect(() => { if (!inviteToken) void checkSession(); }, [inviteToken]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSubmitting(true); setError("");
@@ -55,6 +61,35 @@ export function AuthGate({ children }: AuthGateProps) {
     } finally { setSubmitting(false); }
   }
 
+  async function acceptInvitation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (invitePassword !== invitePasswordConfirm) {
+      setError("Le password inserite non coincidono.");
+      return;
+    }
+    setInviteSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/invitations/accept", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ token: inviteToken, fullName: inviteName, password: invitePassword }),
+      });
+      const body = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Accettazione dell'invito non riuscita.");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("token");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      setInvitePassword("");
+      setInvitePasswordConfirm("");
+      setInviteToken("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Accettazione dell'invito non riuscita.");
+    } finally {
+      setInviteSubmitting(false);
+    }
+  }
+
   async function logout() {
     try {
       const response = await fetch("/api/auth/logout", {
@@ -72,8 +107,30 @@ export function AuthGate({ children }: AuthGateProps) {
     }
   }
 
+  if (inviteToken) return (
+    <main className="auth-screen">
+      <section className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-brand-mark">PC</div>
+          <div><strong>Percorso Cliente</strong><span>Invito organizzazione</span></div>
+        </div>
+        <h1>Completa l'accesso</h1>
+        <p className="auth-intro">Imposta i tuoi dati per entrare nell'organizzazione. Se possiedi già un account, inserisci la password attuale.</p>
+        <form onSubmit={(event) => void acceptInvitation(event)} className="auth-form">
+          <label>Nome e cognome<input type="text" autoComplete="name" required maxLength={150} value={inviteName} onChange={(event) => setInviteName(event.target.value)} /></label>
+          <label>Password<input type="password" autoComplete="new-password" required minLength={12} maxLength={1024} value={invitePassword} onChange={(event) => setInvitePassword(event.target.value)} /></label>
+          <label>Conferma password<input type="password" autoComplete="new-password" required minLength={12} maxLength={1024} value={invitePasswordConfirm} onChange={(event) => setInvitePasswordConfirm(event.target.value)} /></label>
+          {error && <div className="error" role="alert">{error}</div>}
+          <button className="auth-submit" type="submit" disabled={inviteSubmitting}>{inviteSubmitting ? "Verifica invito…" : "Accetta invito"}</button>
+        </form>
+        <p className="auth-footnote">Il collegamento è monouso e ha una scadenza. Non inoltrarlo a persone non autorizzate.</p>
+      </section>
+    </main>
+  );
+
   if (state === "loading") return <main className="auth-screen"><p className="loading">Verifica dell'accesso in corso…</p></main>;
-  if (state === "authenticated") return <>{children(logout, role)}</>;
+  if (state === "authenticated") return <>{children(logout, false, role)}</>;
+  if (state === "demo") return <>{children(async () => undefined, true, null)}</>;
 
   return (
     <main className="auth-screen">
