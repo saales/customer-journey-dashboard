@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { api, type Customer, type CustomerInput } from "../api";
 
+const PAGE_SIZE = 50;
+
 interface CustomerManagementProps {
   onDataChange: () => void;
 }
 
 export function CustomerManagement({ onDataChange }: CustomerManagementProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -19,13 +24,16 @@ const [qualifiedDate, setQualifiedDate] = useState("");
 const [opportunityDate, setOpportunityDate] = useState("");
 const [customerDate, setCustomerDate] = useState("");
 
-  async function loadCustomers() {
+  async function loadCustomers(requestedPage = page) {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await api.customers();
-      setCustomers(data);
+      const result = await api.customers(requestedPage, PAGE_SIZE);
+      setCustomers(result.data);
+      setPage(result.pagination.page);
+      setTotal(result.pagination.total);
+      setTotalPages(result.pagination.totalPages);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore nel caricamento.");
     } finally {
@@ -319,6 +327,31 @@ async function handleDelete(customerId: number) {
     </table>
   </div>
 )}
+      {!loading && !error && total > 0 && (
+        <div className="pagination">
+          <span className="hint">
+            {total} clienti · pagina {page} di {Math.max(totalPages, 1)}
+          </span>
+          <div className="pagination-actions">
+            <button
+              type="button"
+              className="export"
+              disabled={page <= 1}
+              onClick={() => void loadCustomers(page - 1)}
+            >
+              Precedente
+            </button>
+            <button
+              type="button"
+              className="export"
+              disabled={page >= totalPages}
+              onClick={() => void loadCustomers(page + 1)}
+            >
+              Successiva
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
