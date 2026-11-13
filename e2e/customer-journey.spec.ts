@@ -33,6 +33,13 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   // Aggiunta di una fase funnel persistente.
   await page.getByRole("button", { name: "Impostazioni" }).click();
+  await expect(page.getByRole("heading", { name: "Organizzazione" })).toBeVisible();
+  const organizationName = page.getByLabel("Nome organizzazione");
+  await expect(organizationName).toHaveValue("E2E Workspace");
+  await organizationName.fill("E2E Workspace aggiornato");
+  await page.getByRole("button", { name: "Salva modifiche" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Nome organizzazione aggiornato." })).toBeVisible();
+  await expect(organizationName).toHaveValue("E2E Workspace aggiornato");
   await page.getByLabel("Aggiungi una fase").fill("Demo completata");
   await page.getByRole("button", { name: "Aggiungi fase" }).click();
   await expect(page.getByText("Demo completata", { exact: true })).toBeVisible();
