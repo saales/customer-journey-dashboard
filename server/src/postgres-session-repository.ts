@@ -54,6 +54,13 @@ export async function issuePostgresSession(
   organizationId: string,
   ttlMs = DEFAULT_SESSION_TTL_MS,
 ): Promise<IssuedPostgresSession> {
+  // Rifiuta input errati prima di acquisire una connessione dal pool.
+  if (!UUID_RE.test(userId) || !UUID_RE.test(organizationId)) {
+    throw new Error("Identificativo utente o organizzazione non valido.");
+  }
+  if (!Number.isSafeInteger(ttlMs) || ttlMs < 60_000 || ttlMs > MAX_SESSION_TTL_MS) {
+    throw new Error("Durata della sessione non valida.");
+  }
   const client: PoolClient = await pool.connect();
   let released = false;
   try {

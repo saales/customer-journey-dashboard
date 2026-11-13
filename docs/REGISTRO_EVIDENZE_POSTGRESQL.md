@@ -249,3 +249,12 @@ La gestione membri non include ancora inviti o consegna email. Il CSV lato serve
 | Schermata di creazione/revoca e accettazione nel browser | `MemberManagement.tsx`, `AuthGate.tsx` | Implementata |
 | Consegna email automatica | provider email non configurato | Non disponibile; link condiviso manualmente |
 | Test PostgreSQL su accettazione, revoca e sessione | `postgres-invitations.integration.test.ts` | Aggiunti; CI da verificare |
+
+
+## Ripristino del runtime PostgreSQL standard e collegamento inviti — 2026-11-13
+
+- Il commit che ha introdotto gli inviti aveva reintrodotto SQLite come avvio predefinito e rimosso lo smoke test PostgreSQL dalla CI. Correzione applicata: `npm run dev` e `npm start` usano ora il server PostgreSQL; il runtime SQLite storico è isolato dietro `dev:sqlite` / `start:sqlite`. I comandi database sono esposti anche dalla root con inoltro esplicito degli argomenti.
+- Le API HTTP inviti sono ora montate in `postgres-app.ts`: elenco, creazione e revoca richiedono sessione e permesso `members:manage`; accettazione usa token monouso e crea la sessione HttpOnly. Il link è restituito al chiamante, non viene inviata un'email automatica.
+- Aggiunto test HTTP che verifica che elenco/creazione richiedano autenticazione e che l'endpoint pubblico di accettazione rifiuti token non validi.
+- Ripristinato lo smoke test CI che applica le migrazioni PostgreSQL, verifica lo storico e avvia il server con il ruolo `percorso_app` non privilegiato.
+- La CI del commit `c86411fe` è in corso; non considerare ancora validate le modifiche finché entrambi i job Node 20/22 non risultano verdi.
