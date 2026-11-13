@@ -116,7 +116,7 @@ Le verifiche automatiche del ramo di sviluppo vengono eseguite su Node.js 20 e 2
 
 Il percorso di evoluzione prevede PostgreSQL come unico database di destinazione, con separazione dei dati per organizzazione, ruoli, sessioni, registri di controllo e verifiche d'integrità.
 
-Nel ramo di sviluppo sono presenti migrazioni versionate, autenticazione PostgreSQL, cookie di sessione, middleware per i ruoli, API tenant-scoped iniziali, limiti persistenti ai tentativi di accesso e un preflight che rifiuta ruoli PostgreSQL non sicuri. Il server PostgreSQL si avvia solo se lo storico migrazioni è completo e coerente e se il ruolo runtime è separato dal proprietario, non privilegiato e dotato dei permessi minimi.
+Nel ramo di sviluppo sono presenti migrazioni versionate, autenticazione PostgreSQL, cookie di sessione, scadenza per inattività dopo 30 minuti e scadenza assoluta, middleware per i ruoli, API tenant-scoped iniziali, limiti persistenti ai tentativi di accesso e un preflight che rifiuta ruoli PostgreSQL non sicuri. Il server PostgreSQL si avvia solo se lo storico migrazioni è completo e coerente e se il ruolo runtime è separato dal proprietario, non privilegiato e dotato dei permessi minimi.
 
 Il runtime predefinito continua a utilizzare SQLite e il client non è ancora collegato alle nuove API PostgreSQL. L'avvio in produzione rimane quindi bloccato fino al completamento e alla verifica di:
 - migrazione completa del client e delle API di analisi, importazione ed esportazione;
