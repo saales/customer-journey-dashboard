@@ -25,8 +25,9 @@ Stato del database remoto: non verificato in questa attività.
 
 ## Evidenze CI
 
-- Il commit `147e5579` ha superato la pipeline su Node.js 20 e 22, con test e build: run [43465811359](https://github.com/saales/customer-journey-dashboard/actions/runs/43465811359).
-- Il commit successivo che rende PostgreSQL il runtime standard deve essere verificato nuovamente: il risultato della CI non va dedotto da quello del commit precedente.
+- Il commit `98f58dd3` ha superato test e build su Node.js 20 e 22: run [43466631320](https://github.com/saales/customer-journey-dashboard/actions/runs/43466631320).
+- Il commit `ba8cef2a` ha superato test e build su Node.js 20 e 22: run [43466820624](https://github.com/saales/customer-journey-dashboard/actions/runs/43466820624).
+- Il commit `dfc3adea` (inoltro degli argomenti dei comandi database dal livello principale) ha superato test e build su Node.js 20 e 22: run [43467004044](https://github.com/saales/customer-journey-dashboard/actions/runs/43467004044).
 - La CI usa un PostgreSQL temporaneo; non accede a Neon.
 
 ## Verifiche remote non eseguite
