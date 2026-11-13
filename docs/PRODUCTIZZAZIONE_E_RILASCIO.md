@@ -87,7 +87,7 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 - Migrazioni versionate 001–009, controllo checksum e preflight dei privilegi del ruolo runtime, inclusi i privilegi del rate limiter API persistente.
 - Sessioni opache, autenticazione, autorizzazione per ruolo e tenant scope nelle API.
 - Dashboard, clienti, funnel, segmentazione, importazione, export CSV, gestione membri e inviti monouso.
-- La CI esegue build e test su Node.js 20/22, applica le migrazioni 001–009 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Su Node.js 22 esegue inoltre un percorso browser Playwright/Chromium con tenant sintetico: login admin, creazione cliente, aggiunta fase funnel, import/export CSV, invito e accettazione analista e rifiuto server-side di una POST non autorizzata.
+- La CI esegue build e test su Node.js 20/22, applica le migrazioni 001–009 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Su Node.js 22 esegue inoltre un percorso browser Playwright/Chromium con tenant sintetico: login admin, creazione cliente, aggiunta fase funnel, import/export CSV, invito e accettazione analista, export con ruolo analista, rifiuto server-side della lettura audit e della creazione cliente e logout con revoca sessione.
 
 ### Non ancora dimostrato / non disponibile
 
@@ -95,7 +95,6 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 - Nessun deploy o collaudo su un ambiente staging reale.
 - Nessuna prova operativa di backup e ripristino.
 - Il test browser copre un percorso end-to-end rappresentativo e il confine admin/analista; non sostituisce ancora la matrice completa dei quattro ruoli su tutte le API, i test cross-tenant esaustivi o i test di carico.
-- Nessun deploy o collaudo su un ambiente staging reale e nessuna prova operativa di backup/ripristino.
 - Nessun invio automatico degli inviti, recupero password, MFA/SSO o billing.
 - La CI verifica il ruolo runtime sul PostgreSQL temporaneo; il ruolo, lo schema e i checksum del database remoto non sono stati verificati.
 
