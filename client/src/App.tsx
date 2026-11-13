@@ -26,9 +26,11 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
   const [customTo, setCustomTo] = useState("");
   const canWrite = organizationRole === "admin" || organizationRole === "editor";
   const canExport = organizationRole === "admin" || organizationRole === "editor" || organizationRole === "analyst";
-  const visibleSections = canWrite
+  const visibleSections = organizationRole === "admin"
     ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings", "audit"] as const
-    : ["dashboard", "customers", "analytics", "segmentation", "comparisons", "settings"] as const;
+    : canWrite
+      ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings"] as const
+      : ["dashboard", "customers", "analytics", "segmentation", "comparisons", "settings"] as const;
 
   const meta = useAsync((s) => api.meta(s), []);
   const fallbackDate = new Date().toISOString().slice(0, 10);
