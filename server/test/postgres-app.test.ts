@@ -1,0 +1,74 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { createPostgresApp } from "../src/postgres-app.js";
+
+const servers: Array<{ close: (callback: (error?: Error) => void) => void }> = [];
+const pool = {
+  connect: async () => { throw new Error("La connessione DB non deve essere usata in questo test."); },
+  query: async () => ({ rows: [{ ready: 1 }], rowCount: 1 }),
+};
+
+async function startApp() {
+  const app = createPostgresApp(pool as never, {
+    allowedOrigins: ["https://app.example.it"],
+    rateLimitSecret: "test-secret-that-is-long-enough-123456",
+    production: false,
+  });
+  const server = app.listen(0);
+  servers.push(server);
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Porta test non disponibile.");
+  return `http://127.0.0.1:${address.port}`;
+}
+
+afterEach(async () => {
+  await Promise.all(servers.splice(0).map((server) =>
+    new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())),
+  ));
+});
+
+describe("Runtime HTTP PostgreSQL", () => {
+  it("espone readiness PostgreSQL e header di sicurezza", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/health`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "ok", database: "connected" });
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("nega le API protette senza sessione valida", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/customers`);
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Accesso richiesto." });
+  });
+
+  it("applica il controllo Origin prima di ogni scrittura API", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
+      body: JSON.stringify({ externalId: "1" }),
+    });
+    expect(response.status).toBe(403);
+  });
+
+  it("non accetta origini mancanti per le scritture", async () => {
+    const base = await startApp();
+    const response = await fetch(`${base}/api/funnel-stages/reorder`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stages: [] }),
+    });
+    expect(response.status).toBe(403);
+  });
+
+  it("rifiuta configurazioni HTTP in produzione", () => {
+    expect(() => createPostgresApp(pool as never, {
+      allowedOrigins: ["http://app.example.it"],
+      rateLimitSecret: "test-secret-that-is-long-enough-123456",
+      production: true,
+    })).toThrow("In produzione sono ammesse esclusivamente origini HTTPS.");
+  });
+});
