@@ -46,7 +46,6 @@ export async function consumePostgresPasswordReset(
     throw new Error("La password deve contenere tra 12 e 1024 caratteri.");
   }
   const tokenHash = digest(token);
-  const passwordHash = await hashPassword(password);
   const client: PoolClient = await pool.connect();
   let transaction = false;
   let destroy = false;
@@ -66,6 +65,7 @@ export async function consumePostgresPasswordReset(
       transaction = false;
       return false;
     }
+    const passwordHash = await hashPassword(password);
     const updated = await client.query(
       `UPDATE users SET password_hash=$2, updated_at=NOW()
        WHERE id=$1::uuid AND status='active'`, [userId, passwordHash],
