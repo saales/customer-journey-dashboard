@@ -114,6 +114,11 @@ describe("PostgreSQL session resolver", () => {
       organizationId: organizationA,
       role: "admin",
     });
+    const refreshed = await pool!.query<{ recent: boolean }>(
+      "SELECT last_used_at > NOW() - INTERVAL '5 seconds' AS recent FROM sessions WHERE token_hash = $1",
+      [active.tokenHash],
+    );
+    expect(refreshed.rows[0]?.recent).toBe(true);
     await expect(resolvePostgresSession(pool!, suspendedMembership.token)).resolves.toBeNull();
     await expect(resolvePostgresSession(pool!, expired.token)).resolves.toBeNull();
     await expect(resolvePostgresSession(pool!, idle.token)).resolves.toBeNull();
