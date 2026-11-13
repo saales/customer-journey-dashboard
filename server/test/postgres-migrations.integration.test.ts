@@ -161,7 +161,8 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
       await client.query(sql009);
       await client.query(sql010);
       await client.query(sql011);
-      await client.query(sql012);\n      await client.query(sql013);
+      await client.query(sql012);
+      await client.query(sql013);
       const invitationRls = await client.query<{ enabled: boolean }>(
         "SELECT relrowsecurity AS enabled FROM pg_class WHERE oid='invitations'::regclass",
       );
