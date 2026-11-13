@@ -29,6 +29,7 @@ Stato del database remoto: non verificato in questa attività.
 - Il commit `ba8cef2a` ha superato test e build su Node.js 20 e 22: run [43466820624](https://github.com/saales/customer-journey-dashboard/actions/runs/43466820624).
 - Il commit `dfc3adea` (inoltro degli argomenti dei comandi database dal livello principale) ha superato test e build su Node.js 20 e 22: run [43467004044](https://github.com/saales/customer-journey-dashboard/actions/runs/43467004044).
 - La CI usa un PostgreSQL temporaneo; non accede a Neon.
+- La pipeline è stata estesa per creare il ruolo runtime non privilegiato, applicare le migrazioni 001–007, verificare lo storico e avviare il server con quel ruolo, controllando health e risposta 401 senza sessione. La nuova estensione deve essere confermata dal prossimo esito CI.
 
 ## Verifiche remote non eseguite
 
