@@ -40,7 +40,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 /** Returns false for malformed hashes and wrong passwords without throwing. */
 export async function verifyPassword(password: string, encoded: string): Promise<boolean> {
-  if (typeof password !== "string" || typeof encoded !== "string" || encoded.length > 256) {
+  if (typeof password !== "string" || password.length > 1024 || typeof encoded !== "string" || encoded.length > 256) {
     return false;
   }
   const parts = encoded.split("$");
