@@ -47,7 +47,6 @@ Queste informazioni non sono state ricostruite da file SQL originali né verific
 ## Prossimi passi sicuri
 
 1. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
-2. Recuperare la baseline SQL storica e verificare lo schema di destinazione in sola lettura prima di progettare migrazioni.
-3. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
+2. Solo dopo il confronto della baseline, definire migrazioni nuove e repository PostgreSQL.
 
 **Regola:** nessuna migrazione eseguibile e nessuna modifica a Neon finché la provenienza della baseline non è verificata.
