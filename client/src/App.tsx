@@ -22,12 +22,15 @@ export default function App() {
   const [customTo, setCustomTo] = useState("");
 
   const meta = useAsync((s) => api.meta(s), []);
+  const fallbackDate = new Date().toISOString().slice(0, 10);
+  const maxDate = meta.data?.maxDate ?? fallbackDate;
+  const minDate = meta.data?.minDate ?? maxDate;
 
   function handlePreset(next: Preset) {
     if (next === "custom" && meta.data && !customFrom && !customTo) {
       const months = preset === "custom" ? 12 : preset;
-      setCustomFrom(startOfPeriod(meta.data.maxDate, months));
-      setCustomTo(meta.data.maxDate);
+      setCustomFrom(startOfPeriod(maxDate, months));
+      setCustomTo(maxDate);
     }
 
     setPreset(next);
@@ -56,7 +59,7 @@ export default function App() {
       };
     }
 
-    const to = meta.data.maxDate;
+    const to = maxDate;
 
     return {
       from: startOfPeriod(to, preset),
@@ -108,8 +111,8 @@ export default function App() {
       channel={channel}
       from={customFrom}
       to={customTo}
-      minDate={meta.data.minDate}
-      maxDate={meta.data.maxDate}
+      minDate={minDate}
+      maxDate={maxDate}
       onPreset={handlePreset}
       onChannel={setChannel}
       onFrom={setCustomFrom}
