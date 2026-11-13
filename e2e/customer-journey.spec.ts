@@ -77,16 +77,28 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await expect(page.getByRole("button", { name: "Importazione dati" })).toHaveCount(0);
   await page.getByRole("button", { name: "Gestione clienti" }).click();
   await expect(page.getByRole("button", { name: "Nuovo cliente" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Esporta tutti i clienti CSV" })).toBeVisible();
+  // L'analista può esportare ma non accedere all'audit o scrivere dati.
+  const analystDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Esporta tutti i clienti CSV" }).click();
+  const analystDownload = await analystDownloadPromise;
+  expect(analystDownload.suggestedFilename()).toBe("percorso-clienti.csv");
 
-  // La protezione è server-side: nascondere un pulsante non è sufficiente.
-  const forbiddenStatus = await page.evaluate(async () => {
-    const response = await fetch("/api/customers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel: "Organico", createdAt: "2025-05-01", events: [] }),
-    });
-    return response.status;
+  const permissionStatuses = await page.evaluate(async () => {
+    const [audit, customerWrite] = await Promise.all([
+      fetch("/api/audit"),
+      fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "Organico", createdAt: "2025-05-01", events: [] }),
+      }),
+    ]);
+    return { audit: audit.status, customerWrite: customerWrite.status };
   });
-  expect(forbiddenStatus).toBe(403);
+  expect(permissionStatuses).toEqual({ audit: 403, customerWrite: 403 });
+
+  // Logout revoca la sessione e riporta alla schermata di accesso.
+  await page.getByRole("button", { name: "Esci" }).click();
+  await expect(page.getByRole("heading", { name: "Accedi al tuo spazio di lavoro" })).toBeVisible();
+  const revokedSessionStatus = await page.evaluate(async () => (await fetch("/api/auth/session")).status);
+  expect(revokedSessionStatus).toBe(401);
 });
