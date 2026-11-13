@@ -115,3 +115,29 @@ jobs:
           grep -q '"database":"connected"' /tmp/percorso-health.json
           session_status="$(curl -sS -o /tmp/percorso-session.json -w '%{http_code}' http://127.0.0.1:3001/api/auth/session)"
           test "$session_status" = "401"
+
+      - name: Install Playwright for browser E2E
+        if: matrix.node-version == 22
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Bootstrap isolated E2E organization
+        if: matrix.node-version == 22
+        env:
+          BOOTSTRAP_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journey_test
+          BOOTSTRAP_CONFIRM_DATABASE: journey_test
+          BOOTSTRAP_ORGANIZATION_NAME: E2E Workspace
+          BOOTSTRAP_ORGANIZATION_SLUG: e2e-workspace
+          BOOTSTRAP_ADMIN_EMAIL: admin@e2e.example
+          BOOTSTRAP_ADMIN_NAME: E2E Administrator
+          BOOTSTRAP_ADMIN_PASSWORD: E2E-admin-password-2026!
+        run: npm run db:bootstrap -w server -- --confirm-empty-database
+      - name: Run browser end-to-end tests
+        if: matrix.node-version == 22
+        env:
+          CI: "true"
+          DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
+          APP_ORIGIN: http://localhost:5173
+          LOGIN_RATE_LIMIT_SECRET: ci-only-secret-with-more-than-32-random-characters
+          PORT: "3001"
+        run: npx playwright test
