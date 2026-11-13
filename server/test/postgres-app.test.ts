@@ -109,6 +109,23 @@ describe("Runtime HTTP PostgreSQL", () => {
     expect(await response.json()).toEqual({ error: "Origine della richiesta non autorizzata." });
   });
 
+  it("espone le route inviti, le protegge con sessione e valida il token pubblico", async () => {
+    const base = await startApp();
+    const list = await fetch(`${base}/api/invitations`);
+    expect(list.status).toBe(401);
+    const create = await fetch(`${base}/api/invitations`, {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "https://app.example.it" },
+      body: JSON.stringify({ email: "collaboratore@example.it", role: "editor", expiresInDays: 7 }),
+    });
+    expect(create.status).toBe(401);
+    const accept = await fetch(`${base}/api/invitations/accept`, {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "https://app.example.it" },
+      body: JSON.stringify({ token: "non-valido", fullName: "Collaboratore", password: "Password-sicura-2026" }),
+    });
+    expect(accept.status).toBe(400);
+    expect(await accept.json()).toEqual({ error: "Codice invito non valido." });
+  });
+
   it("rifiuta configurazioni HTTP in produzione", () => {
     expect(() => createPostgresApp(pool as never, {
       allowedOrigins: ["http://app.example.it"],
