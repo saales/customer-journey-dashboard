@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { postgresPool } from "./postgres.js";
 import { cleanupPostgresLoginAttemptLimits } from "./postgres-login-attempt-maintenance.js";
+import { cleanupPostgresApiRequestLimits } from "./postgres-api-rate-limit-maintenance.js";
 
 async function main(): Promise<void> {
   const raw = process.env.LOGIN_ATTEMPT_RETENTION_DAYS ?? "7";
@@ -13,7 +14,13 @@ async function main(): Promise<void> {
       totalDeleted += result.deleted;
       if (result.deleted < 1000) break;
     }
-    console.log(`Record di limitazione login eliminati: ${totalDeleted}. Retention: ${retentionDays} giorni.`);
+    let apiDeleted = 0;
+    for (let batch = 0; batch < 100; batch += 1) {
+      const result = await cleanupPostgresApiRequestLimits(postgresPool, retentionDays, 1000);
+      apiDeleted += result.deleted;
+      if (result.deleted < 1000) break;
+    }
+    console.log(`Record limiti login eliminati: ${totalDeleted}. Record limiti API eliminati: ${apiDeleted}. Retention: ${retentionDays} giorni.`);
   } finally {
     await postgresPool.end();
   }
