@@ -303,7 +303,7 @@ export async function updatePostgresCustomer(
       const position = stage?.position;
       const inactiveStageWasAlreadyRecorded =
         stage !== undefined && !stage.isActive && previousDates.get(event.stage) === event.occurredAt;
-      if (position === undefined || position <= previousPosition || seen.has(event.stage) ||
+      if (stage === undefined || position === undefined || position <= previousPosition || seen.has(event.stage) ||
           (!stage.isActive && !inactiveStageWasAlreadyRecorded) ||
           !validDate(event.occurredAt) || event.occurredAt < previousDate) {
         throw new Error("Le fasi e le date del percorso non sono valide.");
