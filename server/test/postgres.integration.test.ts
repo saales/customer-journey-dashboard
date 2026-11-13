@@ -138,8 +138,8 @@ describe("PostgreSQL integration smoke test", () => {
       ).toBe(true);
     } finally {
       await pool!.query("RESET ROLE");
-      await pool!.query("DROP ROLE IF EXISTS inspection_reader");
       await pool!.query(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE`);
+      await pool!.query("DROP ROLE IF EXISTS inspection_reader");
     }
   });
 
