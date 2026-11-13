@@ -8,15 +8,14 @@ function digest(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
-/** Creates a short-lived reset token only for an active account in an active organization. */
 export async function createPostgresPasswordReset(
   pool: Pick<Pool, "connect">, email: string, organizationSlug: string,
-): Promise<{ token: string; email: string; fullName: string } | null> {
+): Promise<{ token: string; email: string; fullName: string; organizationId: string } | null> {
   const normalized = email.trim().toLowerCase();
   const client = await pool.connect();
   try {
-    const found = await client.query<{ id: string; email: string; fullName: string }>(
-      `SELECT u.id::text AS id, u.email, u.full_name AS "fullName"
+    const found = await client.query<{ id: string; email: string; fullName: string; organizationId: string }>(
+      `SELECT u.id::text AS id, u.email, u.full_name AS "fullName", o.id::text AS "organizationId"
        FROM users u
        JOIN memberships m ON m.user_id=u.id AND m.status='active'
        JOIN organizations o ON o.id=m.organization_id AND o.status='active'
@@ -27,20 +26,19 @@ export async function createPostgresPasswordReset(
     if (!user) return null;
     const token = randomBytes(32).toString("base64url");
     await client.query(
-      `DELETE FROM password_reset_tokens WHERE user_id=$1::uuid OR expires_at<=NOW()`, [user.id],
+      "DELETE FROM password_reset_tokens WHERE user_id=$1::uuid OR expires_at<=NOW()", [user.id],
     );
     await client.query(
-      `INSERT INTO password_reset_tokens(user_id,token_hash,expires_at)
-       VALUES($1::uuid,$2,NOW()+INTERVAL '30 minutes')`,
-      [user.id, digest(token)],
+      `INSERT INTO password_reset_tokens(user_id,organization_id,token_hash,expires_at)
+       VALUES($1::uuid,$2::uuid,$3,NOW()+INTERVAL '30 minutes')`,
+      [user.id, user.organizationId, digest(token)],
     );
-    return { token, email: user.email, fullName: user.fullName };
+    return { token, email: user.email, fullName: user.fullName, organizationId: user.organizationId };
   } finally {
     client.release();
   }
 }
 
-/** Consumes the token atomically, updates the password and revokes every active session. */
 export async function consumePostgresPasswordReset(
   pool: Pick<Pool, "connect">, token: string, password: string,
 ): Promise<boolean> {
@@ -55,13 +53,15 @@ export async function consumePostgresPasswordReset(
   try {
     await client.query("BEGIN");
     transaction = true;
-    const selected = await client.query<{ userId: string }>(
-      `SELECT user_id::text AS "userId" FROM password_reset_tokens
+    const selected = await client.query<{ userId: string; organizationId: string }>(
+      `SELECT user_id::text AS "userId", organization_id::text AS "organizationId"
+       FROM password_reset_tokens
        WHERE token_hash=$1 AND consumed_at IS NULL AND expires_at>NOW()
        FOR UPDATE`, [tokenHash],
     );
     const userId = selected.rows[0]?.userId;
-    if (!userId) {
+    const organizationId = selected.rows[0]?.organizationId;
+    if (!userId || !organizationId) {
       await client.query("ROLLBACK");
       transaction = false;
       return false;
@@ -79,9 +79,11 @@ export async function consumePostgresPasswordReset(
       "UPDATE password_reset_tokens SET consumed_at=NOW() WHERE token_hash=$1", [tokenHash],
     );
     await client.query("DELETE FROM sessions WHERE user_id=$1::uuid", [userId]);
+    await client.query("SELECT set_config('app.current_organization_id',$1,true)", [organizationId]);
     await client.query(
-      `INSERT INTO audit_logs(actor_user_id,action,resource_type,resource_id,details)
-       VALUES($1::uuid,'account.password_reset','user',$1::text,'{}'::jsonb)`, [userId],
+      `INSERT INTO audit_logs(organization_id,actor_user_id,action,resource_type,resource_id,details)
+       VALUES($1::uuid,$2::uuid,'account.password_reset','user',$2::text,'{}'::jsonb)`,
+      [organizationId,userId],
     );
     await client.query("COMMIT");
     transaction = false;
