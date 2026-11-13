@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import {
+  assertSafePostgresRuntimeRole,
+  inspectPostgresRuntimeRole,
+} from "../src/postgres-runtime-preflight.js";
+
+function makePool(role: Record<string, unknown>, tables: Record<string, unknown>[]) {
+  return {
+    query: async (sql: string) => ({
+      rows: sql.includes("pg_roles") ? [role] : tables,
+      rowCount: sql.includes("pg_roles") ? 1 : tables.length,
+    }),
+  };
+}
+
+const goodRole = { role: "percorso_app", superuser: false, bypassRls: false };
+const goodTables = ["customers", "events", "funnel_stages", "import_batches", "audit_logs"]
+  .map((tableName) => ({ tableName, ownerName: "percorso_owner", rowSecurity: true }));
+
+describe("Preflight sicurezza ruolo PostgreSQL", () => {
+  it("accetta un ruolo applicativo separato con RLS attivo", async () => {
+    const pool = makePool(goodRole, goodTables);
+    const result = await inspectPostgresRuntimeRole(pool as never);
+    expect(result.ownedTables).toEqual([]);
+    expect(result.rlsDisabledTables).toEqual([]);
+    await expect(assertSafePostgresRuntimeRole(pool as never)).resolves.toBeUndefined();
+  });
+
+  it("rifiuta superuser, BYPASSRLS e tabelle possedute dal ruolo", async () => {
+    const unsafe = makePool(
+      { role: "postgres", superuser: true, bypassRls: true },
+      goodTables.map((row) => ({ ...row, ownerName: "postgres" })),
+    );
+    await expect(assertSafePostgresRuntimeRole(unsafe as never)).rejects.toThrow(
+      "Ruolo PostgreSQL non sicuro",
+    );
+  });
+
+  it("rifiuta tabelle tenant prive di RLS o mancanti", async () => {
+    const unsafe = makePool(goodRole, goodTables.filter((row) => row.tableName !== "events")
+      .map((row) => row.tableName === "customers" ? { ...row, rowSecurity: false } : row));
+    const result = await inspectPostgresRuntimeRole(unsafe as never);
+    expect(result.rlsDisabledTables).toContain("customers");
+    expect(result.rlsDisabledTables).toContain("events");
+    await expect(assertSafePostgresRuntimeRole(unsafe as never)).rejects.toThrow(
+      "Ruolo PostgreSQL non sicuro",
+    );
+  });
+});
