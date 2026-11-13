@@ -103,10 +103,14 @@ describe("organization role and permission policy", () => {
     expect(deniedNext).not.toHaveBeenCalled();
   });
 
-  it("allows member management only to administrators", () => {
+  it("allows member management and audit history only to administrators", () => {
     expect(getRolePermissions("admin").has("members:manage")).toBe(true);
+    expect(getRolePermissions("admin").has("audit:read")).toBe(true);
     expect(getRolePermissions("editor").has("members:manage")).toBe(false);
+    expect(getRolePermissions("editor").has("audit:read")).toBe(false);
+    expect(getRolePermissions("analyst").has("audit:read")).toBe(false);
     expect(getRolePermissions("analyst").has("data:import")).toBe(false);
+    expect(getRolePermissions("viewer").has("audit:read")).toBe(false);
     expect(getRolePermissions("viewer").has("data:export")).toBe(false);
   });
 
