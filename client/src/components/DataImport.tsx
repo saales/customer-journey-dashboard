@@ -272,7 +272,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
           setStagesError(
             err instanceof Error
               ? err.message
-              : "Impossibile caricare le fasi del funnel."
+              : "Impossibile caricare le fasi del percorso."
           );
         }
       } finally {
@@ -699,7 +699,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
       <div className="card">
         <div className="card-head">
           <div>
-            <h2>Importa dati da CSV o Excel</h2>
+            <h2>Importazione dati da CSV o Excel</h2>
             <p className="hint">
               Carica un file CSV, controlla i dati e correggi
               eventuali errori prima dell'importazione.
@@ -710,13 +710,13 @@ export function DataImport({ onDataChange }: DataImportProps) {
         </div>
 
         {stagesLoading && (
-          <p className="loading">Caricamento delle fasi del funnel…</p>
+          <p className="loading">Caricamento delle fasi del percorso…</p>
         )}
 
         {stagesError && (
           <div className="error" role="alert">
             <AlertCircle size={18} />
-            Impossibile caricare le fasi del funnel: {stagesError}
+            Impossibile caricare le fasi del percorso: {stagesError}
           </div>
         )}
 
