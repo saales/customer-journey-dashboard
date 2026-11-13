@@ -36,7 +36,9 @@ async function main(): Promise<void> {
     allowedOrigins,
     rateLimitSecret,
     production,
-    trustedProxyIps: (process.env.TRUSTED_PROXY_IPS ?? "").split(",").map((value) => value.trim()).filter(Boolean),\n    emailApiKey: process.env.RESEND_API_KEY,\n    emailFrom: process.env.EMAIL_FROM,
+    trustedProxyIps: (process.env.TRUSTED_PROXY_IPS ?? "").split(",").map((value) => value.trim()).filter(Boolean),
+    emailApiKey: process.env.RESEND_API_KEY,
+    emailFrom: process.env.EMAIL_FROM,
   });
   const port = Number(process.env.PORT ?? "3001");
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
