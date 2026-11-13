@@ -242,7 +242,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Panoramica" })).toBeVisible();
   const crossTenantChecks = await page.evaluate(async ({ foreignCustomerId, foreignStageId }) => {
-    const [customers, update, remove, exportResponse, audit, funnel, updateStage] = await Promise.all([
+    const [customers, update, remove, exportResponse, audit, funnel, updateStage, members, invitations] = await Promise.all([
       fetch("/api/customers?limit=100"),
       fetch(`/api/customers/${encodeURIComponent(foreignCustomerId)}`, {
         method: "PUT",
@@ -258,6 +258,8 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: "Modifica cross-tenant non autorizzata" }),
       }),
+      fetch("/api/members"),
+      fetch("/api/invitations"),
     ]);
     return {
       customerStatus: customers.status,
@@ -271,6 +273,10 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
       funnelStatus: funnel.status,
       funnelStages: (await funnel.json()).data,
       updateStageStatus: updateStage.status,
+      membersStatus: members.status,
+      members: await members.json(),
+      invitationsStatus: invitations.status,
+      invitations: await invitations.json(),
     };
   }, { tenantACustomerId, tenantAFunnelStageId });
   expect(crossTenantChecks.customerStatus).toBe(200);
@@ -285,6 +291,11 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   expect(crossTenantChecks.funnelStatus).toBe(200);
   expect(crossTenantChecks.funnelStages.some((stage: { label: string }) => stage.label === "Demo completata")).toBe(false);
   expect(crossTenantChecks.updateStageStatus).toBe(404);
+  expect(crossTenantChecks.membersStatus).toBe(200);
+  expect(crossTenantChecks.members).toHaveLength(1);
+  expect(crossTenantChecks.members[0]).toMatchObject({ email: "admin@e2e.example", role: "admin" });
+  expect(crossTenantChecks.invitationsStatus).toBe(200);
+  expect(crossTenantChecks.invitations).toHaveLength(0);
   expect(crossTenantChecks.auditStatus).toBe(200);
   expect(crossTenantChecks.audit.every((entry: { action: string }) =>
     !["membership.invited", "data.imported", "customer.created"].includes(entry.action),
