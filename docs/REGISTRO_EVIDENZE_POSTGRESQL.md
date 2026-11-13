@@ -94,3 +94,14 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - Il browser verifica che l'editor possa creare clienti, aggiungere fasi funnel, importare ed esportare CSV; verifica inoltre HTTP 403 su audit e gestione membri.
 - CI [43502016449](https://github.com/saales/customer-journey-dashboard/actions/runs/43502016449), commit `c2c3112c9562add0d98ed7f28b14dad79c37620e`: successo su Node.js 20 e 22. Entrambi i runtime hanno superato `npm ci`, npm audit, test, build, migrazioni 001–010, verifica storico/checksum e avvio PostgreSQL con ruolo runtime limitato. Su Node.js 22 è passato anche Playwright/Chromium con gli scenari admin, analyst, viewer ed editor.
 - La pipeline usa un database temporaneo e dati sintetici; non costituisce una verifica del database Neon né una prova completa di isolamento API cross-tenant.
+
+
+## Recupero account, inviti email e impostazioni organizzazione — 13 novembre 2026
+
+- Migrazione incrementale 011: token di recupero password con SHA-256, scadenza 30 minuti, uso singolo, revoca atomica di tutte le sessioni e grant limitato alla modifica di `users.password_hash` e `updated_at`.
+- Endpoint pubblici di richiesta e completamento recupero: risposta generica per evitare enumerazione account, verifica Origin, rate limiting API condiviso e aggiornamento password con scrypt.
+- Adapter email transazionale per Resend. Se `RESEND_API_KEY` e `EMAIL_FROM` non sono configurati, l'invio automatico resta disattivato; i link invito restano condivisibili manualmente. Nessuna email reale è stata inviata o verificata.
+- La UI di accesso include richiesta e completamento recupero password; la UI amministrativa mostra lo stato dell'invio invito.
+- Migrazione incrementale 012: concede soltanto UPDATE sulle colonne `organizations.name` e `updated_at`. API amministrative e UI per leggere/aggiornare nome, slug e data creazione; le modifiche generano audit event nella stessa transazione.
+- Test unitari aggiunti per token monouso, revoca sessioni, provider email, audit e impostazioni organizzazione. CI su commit aggiornato ancora da completare.
+- Le migrazioni 011–012 sono registrate nel runner; non sono state applicate al database Neon né ad altri database remoti.
