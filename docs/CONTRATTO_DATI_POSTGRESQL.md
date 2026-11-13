@@ -1,6 +1,6 @@
 # Contratto dati PostgreSQL — specifica di progettazione
 
-> **Stato: specifica non eseguibile.** Questo documento descrive i vincoli richiesti per il backend SaaS. Non è una migrazione SQL e non certifica che lo schema corrisponda a quello già presente su Neon. Prima di creare migrazioni eseguibili è obbligatorio recuperare gli SQL storici e confrontarne checksum e struttura con il database di destinazione.
+ > **Stato: contratto implementato in parte nel runtime PostgreSQL.** Le migrazioni eseguibili sono versionate in `server/migrations/`; questo documento descrive il modello dati e i vincoli attesi. Non certifica che lo schema remoto Neon sia già stato aggiornato: lo stato va verificato con il preflight read-only.
 
 ## Principi di modellazione
 
@@ -86,11 +86,11 @@ Questa matrice è il requisito previsto; ogni route deve verificarlo sul server.
 - Non alterare file di migrazione già applicati.
 - Non eseguire DDL su Neon da CI.
 - Testare le migrazioni su PostgreSQL usa-e-getta e su una copia ripristinata del database.
-- Prima del cutover, confrontare conteggi, vincoli e risultati analitici tra SQLite e PostgreSQL sullo stesso dataset.
+- Prima del rilascio, confrontare conteggi, vincoli e risultati analitici sul database PostgreSQL di staging e sul dataset di riferimento.
 - Mantenere un piano di rollback che non richieda downgrade distruttivi dello schema.
 - Non eseguire seed automatico in produzione; ogni nuova organizzazione deve essere vuota.
 
 
 ## Implementazione introdotta nel branch
 
-La migrazione additiva `003_saas_tenant_hardening.sql` implementa una prima parte del contratto: `customers.external_id` tenant-scoped, FK sessione/membership non validata sui record storici e policy RLS sulle tabelle operative. I record clienti preesistenti ricevono un valore tecnico `legacy:<id>`; non si tratta del recupero di un identificativo esterno originario. Il contesto RLS è `app.current_organization_id` e deve essere impostato nella stessa transazione delle query. Restano da implementare ruolo DB runtime dedicato, middleware autenticazione/autorizzazione e test API end-to-end cross-tenant.
+Le migrazioni `003`–`007` aggiungono hardening tenant, limiti ai tentativi di accesso, privilegi minimi del ruolo applicativo, timeout di inattività sessione e gestione delle membership. I record clienti legacy ricevono un valore tecnico `legacy:<id>`: non è il recupero di un identificativo esterno originario. Il contesto RLS è `app.current_organization_id` e viene impostato nella stessa transazione delle query. Il ruolo runtime, il middleware di autenticazione/autorizzazione e i repository tenant-scoped sono presenti nel ramo; le verifiche sul database remoto e i test browser end-to-end restano da completare.
