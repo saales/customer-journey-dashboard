@@ -138,7 +138,7 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -d journey_test -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO organizations (name, slug)
           VALUES ('E2E Second Workspace', 'e2e-second-workspace')
-          RETURNING id AS organization_id \\gset
+          RETURNING id AS organization_id \gset
           INSERT INTO memberships (organization_id, user_id, role, status)
           SELECT :'organization_id', id, 'admin', 'active'
           FROM users WHERE LOWER(email) = 'admin@e2e.example';
