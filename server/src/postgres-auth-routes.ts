@@ -61,7 +61,7 @@ function appendCookie(res: Response, cookie: string): void {
   res.append("Set-Cookie", cookie);
 }
 
-function serializeSessionCookie(token: string, expiresAt: string, production: boolean): string {
+export function serializePostgresSessionCookie(token: string, expiresAt: string, production: boolean): string {
   const name = getPostgresSessionCookieName(production);
   const expires = new Date(expiresAt);
   if (!Number.isFinite(expires.getTime())) throw new Error("Scadenza sessione non valida.");
@@ -190,7 +190,7 @@ export function createPostgresAuthRouter(
         return;
       }
       await resetLoginAttempts(pool, options.rateLimitSecret, address, email);
-      appendCookie(res, serializeSessionCookie(issued.token, issued.expiresAt, production));
+      appendCookie(res, serializePostgresSessionCookie(issued.token, issued.expiresAt, production));
       res.status(200).json({ expiresAt: issued.expiresAt });
     } catch (error) {
       next(error);

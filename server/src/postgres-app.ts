@@ -11,7 +11,8 @@ import {
   requirePostgresSession,
   requireOrganizationPermission,
 } from "./postgres-auth-middleware.js";
-import { createPostgresAuthRouter, isAllowedPostgresAuthOrigin } from "./postgres-auth-routes.js";
+import { createPostgresAuthRouter, isAllowedPostgresAuthOrigin, serializePostgresSessionCookie } from "./postgres-auth-routes.js";
+import { acceptOrganizationInvitation, createOrganizationInvitation, listOrganizationInvitations, revokeOrganizationInvitation, InvitationError } from "./postgres-invitations-repository.js";
 import {
   createPostgresCustomer,
   updatePostgresCustomer,
@@ -163,6 +164,27 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     rateLimitSecret: options.rateLimitSecret,
     production,
   }));
+
+  // L'accettazione usa un token monouso; il browser riceve una normale sessione HttpOnly.
+  app.post("/api/invitations/accept", async (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      const body = req.body as Record<string, unknown> | null;
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        throw new ApiError(400, "Dati di accettazione non validi.");
+      }
+      const accepted = await acceptOrganizationInvitation(pool, {
+        token: body.token, fullName: body.fullName, password: body.password,
+      });
+      res.append("Set-Cookie", serializePostgresSessionCookie(
+        accepted.session.token, accepted.session.expiresAt, production,
+      ));
+      res.status(200).json({ organizationSlug: accepted.organizationSlug, expiresAt: accepted.session.expiresAt });
+    } catch (error) {
+      if (error instanceof InvitationError) { res.status(error.status).json({ error: error.message }); return; }
+      next(error);
+    }
+  });
 
   const authenticated = requirePostgresSession(
     pool,
@@ -382,7 +404,41 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         res.json(await updateOrganizationMember(pool, req.authenticatedSession!.organizationId,
           req.params.id, req.authenticatedSession!.userId, updates));
       } catch (error) {
-        if (error instanceof MemberManagementError) { res.status(error.status).json({ error: error.message }); return; }
+        if (error instanceof MemberManagementError || error instanceof InvitationError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
+    });
+
+  app.get("/api/invitations", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try { res.json(await listOrganizationInvitations(pool, req.authenticatedSession!.organizationId)); }
+      catch (error) { next(error); }
+    });
+  app.post("/api/invitations", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try {
+        const body = req.body as Record<string, unknown> | null;
+        if (!body || typeof body !== "object" || Array.isArray(body)) throw new ApiError(400, "Dati invito non validi.");
+        const origin = req.get("Origin");
+        if (!origin || !origins.has(origin)) throw new ApiError(403, "Origine della richiesta non autorizzata.");
+        const created = await createOrganizationInvitation(pool, req.authenticatedSession!.organizationId,
+          req.authenticatedSession!.userId, { email: body.email, role: body.role, expiresInDays: body.expiresInDays });
+        const inviteUrl = new URL("/", origin);
+        inviteUrl.searchParams.set("token", created.token);
+        res.status(201).json({ invitation: created.invitation, inviteUrl: inviteUrl.toString() });
+      } catch (error) {
+        if (error instanceof InvitationError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
+    });
+  app.post("/api/invitations/:id/revoke", authenticated, requireOrganizationPermission("members:manage"),
+    async (req, res, next) => {
+      try {
+        await revokeOrganizationInvitation(pool, req.authenticatedSession!.organizationId,
+          req.authenticatedSession!.userId, req.params.id);
+        res.status(204).send();
+      } catch (error) {
+        if (error instanceof InvitationError) { res.status(error.status).json({ error: error.message }); return; }
         next(error);
       }
     });
