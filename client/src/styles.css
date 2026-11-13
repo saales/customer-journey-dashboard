@@ -2214,3 +2214,27 @@ button:disabled {
     backdrop-filter: blur(2px);
   }
 }
+
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  padding: 10px 14px;
+  transform: translateY(-160%);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #17243b);
+  box-shadow: 0 4px 18px rgba(8, 20, 39, 0.2);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+#main-content:focus {
+  outline: none;
+}
