@@ -7,10 +7,10 @@ Assicurare che il database effettivamente usato dal prodotto sia PostgreSQL, che
 ## Stato codice
 
 - Runtime standard PostgreSQL.
-- Migrazioni versionate 001–008.
+- Migrazioni versionate 001–009.
 - Runner con checksum, ordine e advisory lock.
 - Startup read-only che si interrompe in caso di migrazioni pendenti o drift.
-- CI con PostgreSQL temporaneo, applicazione migrazioni e avvio con ruolo limitato.
+- CI con PostgreSQL temporaneo, applicazione migrazioni e avvio con ruolo limitato; test browser Playwright rappresentativo su Node.js 22.
 
 ## Verifiche sul database effettivo
 
@@ -40,5 +40,5 @@ Assicurare che il database effettivamente usato dal prodotto sia PostgreSQL, che
 - RLS e vincoli verificati sulle tabelle tenant-scoped.
 - Conteggi e campioni dati riconciliati.
 - Backup e restore dimostrati.
-- Test HTTP/browser end-to-end e isolamento cross-tenant superati.
+- Test HTTP/browser end-to-end rappresentativo e test di isolamento cross-tenant superati; completare la matrice browser dei quattro ruoli prima del pilot.
 - Staging validato prima del rilascio.
