@@ -74,25 +74,21 @@ export async function changePostgresAccountPassword(
       typeof newPassword !== "string" || newPassword.length < 12 || newPassword.length > 1024) {
     throw new PostgresAccountError(400,"Inserire la password attuale e una nuova password di almeno 12 caratteri.");
   }
-  const lookup:PoolClient=await pool.connect();
-  let passwordHash:string|undefined;
-  try{
-    const result=await lookup.query<{passwordHash:string}>(
-      "SELECT password_hash AS \"passwordHash\" FROM users WHERE id=$1::uuid AND status='active' LIMIT 1",
-      [userId],
-    );
-    passwordHash=result.rows[0]?.passwordHash;
-  }finally{lookup.release();}
-  if(!passwordHash||!(await verifyPassword(currentPassword,passwordHash))){
-    throw new PostgresAccountError(401,"La password attuale non è corretta.");
-  }
-  const nextHash=await hashPassword(newPassword);
   await withTenantTransaction(pool,organizationId,async client=>{
     const membership=await client.query(
       "SELECT 1 FROM memberships WHERE organization_id=$1::uuid AND user_id=$2::uuid AND status='active' FOR SHARE",
       [organizationId,userId],
     );
     if(!membership.rowCount)throw new PostgresAccountError(404,"Profilo non trovato.");
+    const credential=await client.query<{passwordHash:string}>(
+      "SELECT password_hash AS \"passwordHash\" FROM users WHERE id=$1::uuid AND status='active' FOR UPDATE",
+      [userId],
+    );
+    const passwordHash=credential.rows[0]?.passwordHash;
+    if(!passwordHash||!(await verifyPassword(currentPassword,passwordHash))){
+      throw new PostgresAccountError(401,"La password attuale non è corretta.");
+    }
+    const nextHash=await hashPassword(newPassword);
     const updated=await client.query(
       "UPDATE users SET password_hash=$2,updated_at=NOW() WHERE id=$1::uuid AND status='active'",
       [userId,nextHash],
