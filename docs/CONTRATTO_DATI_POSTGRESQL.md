@@ -18,7 +18,7 @@
 | Entità | Dati principali | Vincoli e responsabilità |
 |---|---|---|
 | organizations | id UUID, name, created_at | Radice del tenant |
-| users | id UUID, email normalizzata, password_hash, email_verified_at, last_login_at | Email univoca secondo la policy globale scelta; password hash Argon2id |
+| users | id UUID, email normalizzata, password_hash, email_verified_at, last_login_at | Email univoca secondo la policy globale scelta; password hash scrypt con salt casuale e parametri espliciti |
 | memberships | organization_id, user_id, role, created_at | PK composta; ruoli admin/editor/analyst/viewer |
 | invitations | id, organization_id, email, role, token_hash, expires_at, accepted_at | Token mai memorizzato in chiaro; invito limitato al tenant |
 | sessions | id, user_id, organization_id, token_hash, expires_at, created_at, last_seen_at | Token casuale lato client, hash lato DB, revoca e scadenza |
@@ -86,7 +86,7 @@ Questa matrice è il requisito previsto; ogni route deve verificarlo sul server.
 - Non alterare file di migrazione già applicati.
 - Non eseguire DDL su Neon da CI.
 - Testare le migrazioni su PostgreSQL usa-e-getta e su una copia ripristinata del database.
-- Prima del cutover, confrontare conteggi, vincoli e risultati analitici tra SQLite e PostgreSQL sullo stesso dataset.
+- Prima del rilascio, confrontare conteggi, vincoli e risultati analitici sul database PostgreSQL di staging e sul dataset di riferimento.
 - Mantenere un piano di rollback che non richieda downgrade distruttivi dello schema.
 - Non eseguire seed automatico in produzione; ogni nuova organizzazione deve essere vuota.
 

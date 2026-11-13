@@ -50,4 +50,4 @@ La password viene derivata con scrypt e non è stampata. Il codice organizzazion
 
 ## Limiti
 
-Il bootstrap iniziale non crea altri tenant, non invita altri utenti e non migra dati SQLite. Non modifica automaticamente Neon o altri database: agisce esclusivamente sull'endpoint indicato da `BOOTSTRAP_DATABASE_URL`. I test automatici includono sia verifiche simulate sia test d'integrazione su PostgreSQL temporaneo: verificano la creazione dei record, la derivazione della password e il rollback in caso di errore durante la creazione del funnel. Prima di un rilascio reale è comunque necessario ripetere la procedura su un ambiente PostgreSQL di staging isolato.
+Il bootstrap iniziale crea esclusivamente la prima organizzazione e il primo amministratore in un database vuoto. Non invita altri utenti e non trasferisce dataset preesistenti. Non modifica automaticamente database remoti: agisce soltanto sull'endpoint esplicitamente configurato. I test automatici verificano creazione, hashing password e rollback su PostgreSQL temporaneo. Prima di un rilascio reale, ripetere la procedura in staging isolato.
