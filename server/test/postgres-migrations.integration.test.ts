@@ -10,6 +10,7 @@ const pool = connectionString
 
 const migration001Url = new URL("../migrations/001_initial_schema.sql", import.meta.url);
 const migration002Url = new URL("../migrations/002_session_organization.sql", import.meta.url);
+const migration003Url = new URL("../migrations/003_saas_tenant_hardening.sql", import.meta.url);
 
 const expectedChecksums = {
   "001_initial_schema.sql": "483595e49acac3dd534ecef096d4735ef9527fbaaa73ef2bff38e904db2dc162",
@@ -33,7 +34,7 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       .toBe(expectedChecksums["002_session_organization.sql"]);
   });
 
-  it.skipIf(!pool)("applica 001 e 002 in uno schema isolato e verifica vincoli e nullability", async () => {
+  it.skipIf(!pool)("applica 001-003 in uno schema isolato e verifica vincoli, backfill e RLS", async () => {
     const schemaName = `migration_it_${randomUUID().replace(/-/g, "")}`;
     const client = await pool!.connect();
     let transactionStarted = false;
@@ -45,12 +46,23 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
       await client.query(`CREATE SCHEMA "${schemaName}"`);
       await client.query(`SET LOCAL search_path TO "${schemaName}", public`);
 
-      const [sql001, sql002] = await Promise.all([
+      const [sql001, sql002, sql003] = await Promise.all([
         readFile(migration001Url, "utf8"),
         readFile(migration002Url, "utf8"),
+        readFile(migration003Url, "utf8"),
       ]);
 
       await client.query(sql001);
+
+      const organizationId = randomUUID();
+      await client.query(
+        "INSERT INTO organizations (id, name, slug) VALUES ($1, 'Migration Test', $2)",
+        [organizationId, `migration-${schemaName}`],
+      );
+      const customer = await client.query<{ id: string }>(
+        "INSERT INTO customers (organization_id, channel, created_at) VALUES ($1, 'organic', NOW()) RETURNING id::text AS id",
+        [organizationId],
+      );
 
       const tables = await client.query<{ table_name: string }>(
         `SELECT table_name
@@ -108,6 +120,29 @@ describe("PostgreSQL migrations recuperate dal checkpoint 12", () => {
         "SELECT to_regclass(format('%I.%I', current_schema(), 'sessions_org_expiry_idx')) IS NOT NULL AS exists",
       );
       expect(sessionIndex.rows[0]?.exists).toBe(true);
+
+      await client.query(sql003);
+
+      const customerExternalId = await client.query<{ external_id: string }>(
+        "SELECT external_id FROM customers WHERE id = $1",
+        [customer.rows[0]?.id],
+      );
+      expect(customerExternalId.rows[0]?.external_id).toBe(`legacy:${customer.rows[0]?.id}`);
+
+      const hardenedRls = await client.query<{ relrowsecurity: boolean }>(
+        "SELECT relrowsecurity FROM pg_class WHERE oid = 'customers'::regclass",
+      );
+      expect(hardenedRls.rows[0]?.relrowsecurity).toBe(true);
+
+      const policyCount = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM pg_policies WHERE schemaname = current_schema()",
+      );
+      expect(Number(policyCount.rows[0]?.count)).toBe(5);
+
+      const membershipFk = await client.query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM pg_constraint WHERE conrelid = 'sessions'::regclass AND conname = 'sessions_org_user_membership_fk' AND NOT convalidated",
+      );
+      expect(Number(membershipFk.rows[0]?.count)).toBe(1);
 
       await client.query("ROLLBACK");
       transactionStarted = false;
