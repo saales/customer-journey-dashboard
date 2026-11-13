@@ -466,11 +466,32 @@ export function createApp(db: Db) {
   app.disable("x-powered-by");
   app.use(express.json({ limit: "12mb" }));
 
-  // Header di sicurezza di base
+  // Header di sicurezza e policy conservative per le API.
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=()",
+    );
+
+    // Evita che browser e proxy conservino risposte contenenti dati aziendali.
+    if (_req.path.startsWith("/api")) {
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Pragma", "no-cache");
+    }
+
+    // Il deploy production deve terminare TLS prima di esporre l'applicazione.
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000",
+      );
+    }
+
     next();
   });
 
