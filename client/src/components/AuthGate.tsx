@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
-type AuthState = "loading" | "authenticated" | "anonymous" | "error" | "demo";
+type AuthState = "loading" | "authenticated" | "anonymous" | "error";
 interface AuthSession { userId: string; organizationId: string; role: "admin" | "editor" | "analyst" | "viewer"; }
-interface AuthGateProps { children: (logout: () => Promise<void>, demoMode: boolean, role: AuthSession["role"] | null) => ReactNode; }
+interface AuthGateProps { children: (logout: () => Promise<void>, role: AuthSession["role"] | null) => ReactNode; }
 
 async function readSession(): Promise<{ response: Response; session?: AuthSession }> {
   const response = await fetch("/api/auth/session", {
@@ -33,7 +33,6 @@ export function AuthGate({ children }: AuthGateProps) {
       const result = await readSession();
       if (result.response.ok && result.session) { setRole(result.session.role); setState("authenticated"); return; }
       if (result.response.status === 401) { setRole(null); setState("anonymous"); return; }
-      if (result.response.status === 404 && import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === "true") { setRole(null); setState("demo"); return; }
       throw new Error("Servizio di accesso non disponibile. Verificare il runtime PostgreSQL.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Impossibile verificare la sessione.");
@@ -129,8 +128,7 @@ export function AuthGate({ children }: AuthGateProps) {
   );
 
   if (state === "loading") return <main className="auth-screen"><p className="loading">Verifica dell'accesso in corso…</p></main>;
-  if (state === "authenticated") return <>{children(logout, false, role)}</>;
-  if (state === "demo") return <>{children(async () => undefined, true, null)}</>;
+  if (state === "authenticated") return <>{children(logout, role)}</>;
 
   return (
     <main className="auth-screen">

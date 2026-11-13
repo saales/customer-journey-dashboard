@@ -9,10 +9,10 @@ afterEach(() => {
 });
 
 describe("Accesso PostgreSQL dal browser", () => {
-  it("non entra automaticamente in modalità dimostrativa se il runtime non risponde", async () => {
+  it("non consente l'accesso senza una sessione valida se il runtime non risponde", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("not found", { status: 404 })));
 
-    render(<AuthGate>{() => <p>Dashboard dimostrativa</p>}</AuthGate>);
+    render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText("Servizio di accesso non disponibile. Verificare il runtime PostgreSQL.")).toBeTruthy();
@@ -71,7 +71,7 @@ describe("Accesso PostgreSQL dal browser", () => {
       return new Response("not found", { status: 404 });
     });
     vi.stubGlobal("fetch", fetchMock);
-    render(<AuthGate>{(_logout, _demo, role) => <p>Ruolo: {role}</p>}</AuthGate>);
+    render(<AuthGate>{(_logout, role) => <p>Ruolo: {role}</p>}</AuthGate>);
     fireEvent.change(await screen.findByLabelText("Nome e cognome"), { target: { value: "Nuovo utente" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Password-Invito-2026" } });
     fireEvent.change(screen.getByLabelText("Conferma password"), { target: { value: "Password-Invito-2026" } });
