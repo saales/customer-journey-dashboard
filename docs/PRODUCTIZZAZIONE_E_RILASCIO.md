@@ -87,14 +87,14 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 - Migrazioni versionate 001–010, controllo checksum e preflight dei privilegi del ruolo runtime, inclusi i privilegi del rate limiter API persistente e la lettura tenant-scoped dell'audit.
 - Sessioni opache, autenticazione, autorizzazione per ruolo e tenant scope nelle API.
 - Dashboard, clienti, funnel, segmentazione, importazione, export CSV, gestione membri e inviti monouso.
-- La CI esegue build e test su Node.js 20/22, applica le migrazioni 001–010 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Su Node.js 22 esegue inoltre un percorso browser Playwright/Chromium con tenant sintetico: login admin, creazione cliente, aggiunta fase funnel, import/export CSV, invito e accettazione di analista e viewer, verifica delle autorizzazioni UI/API per entrambi e logout con revoca sessione. Un test middleware controlla esattamente la matrice permessi di admin, editor, analyst e viewer.
+- La CI esegue build e test su Node.js 20/22, applica le migrazioni 001–010 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Su Node.js 22 esegue Playwright/Chromium: percorso admin, creazione cliente, aggiunta fase funnel, import/export CSV, inviti e accettazione di analyst, viewer ed editor, verifica dei permessi e logout con revoca sessione. Lo stesso test crea un secondo tenant sintetico e verifica che una sessione nel tenant B non possa modificare o cancellare un cliente del tenant A; verifica inoltre che elenco clienti, export CSV e audit restino nel tenant B. Un test middleware controlla la matrice permessi dei quattro ruoli.
 
 ### Non ancora dimostrato / non disponibile
 
 - Nessuna prova che il database remoto sia già migrato o che dati precedenti siano stati trasferiti.
 - Nessun deploy o collaudo su un ambiente staging reale.
 - Nessuna prova operativa di backup e ripristino.
-- Il test browser copre un percorso end-to-end rappresentativo con admin, analyst e viewer; editor è coperto dal test esatto della matrice middleware, non da un percorso browser dedicato. Non sostituisce test cross-tenant esaustivi su ogni API o test di carico.
+- Il test browser copre admin, analyst, viewer ed editor e un caso cross-tenant per i clienti (lettura elenco, update/delete IDOR, export e audit). Non copre ancora in modo cross-tenant tutte le API: in particolare non è stata verificata via browser la modifica di una fase funnel appartenente a un altro tenant. Non sostituisce test di carico.
 - Nessun invio automatico degli inviti, recupero password, MFA/SSO o billing.
 - La CI verifica il ruolo runtime sul PostgreSQL temporaneo; il ruolo, lo schema e i checksum del database remoto non sono stati verificati.
 
