@@ -66,6 +66,8 @@ describe("Migrazioni PostgreSQL recuperate dal checkpoint 12", () => {
         readFile(migration008Url, "utf8"),
         readFile(migration009Url, "utf8"),
         readFile(migration010Url, "utf8"),
+        readFile(migration011Url, "utf8"),
+        readFile(migration012Url, "utf8"),
       ]);
 
       await client.query(sql001);
