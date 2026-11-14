@@ -58,14 +58,14 @@ export function AccountSettings() {
       <div className="divider" />
       <h3>Sessioni attive</h3>
       <p className="hint">Controlla gli accessi al tuo account e revoca i dispositivi che non riconosci. La sessione corrente non può essere revocata da qui.</p>
-      {sessions.length===0?<p className="hint">Nessuna sessione attiva trovata.</p>:<div className="member-list">
-        {sessions.map(session=><div className="member-row" key={session.id}>
-          <div className="member-info">
+      {sessions.length===0?<p className="hint">Nessuna sessione attiva trovata.</p>:<div className="session-list">
+        {sessions.map(session=><div className="session-row" key={session.id}>
+          <div className="session-info">
             <strong>{session.current?"Questo dispositivo":"Sessione attiva"}</strong>
             <span className="hint">Ultimo utilizzo: {new Date(session.lastUsedAt).toLocaleString("it-IT")}</span>
             <span className="hint">Accesso: {new Date(session.createdAt).toLocaleString("it-IT")}</span>
           </div>
-          {session.current?<span className="status-badge">Corrente</span>:<button type="button" className="button-secondary" disabled={revokingSession===session.id} onClick={async()=>{
+          {session.current?<span className="session-current">Corrente</span>:<button type="button" className="button-secondary" disabled={revokingSession===session.id} onClick={async()=>{
             if(!window.confirm("Revocare questa sessione? Il dispositivo dovrà accedere nuovamente."))return;
             setRevokingSession(session.id);setError("");setMessage("");
             try{await api.revokeAccountSession(session.id);setSessions(current=>current.filter(item=>item.id!==session.id));setMessage("Sessione revocata.");}
