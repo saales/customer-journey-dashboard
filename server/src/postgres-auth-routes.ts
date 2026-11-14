@@ -137,6 +137,39 @@ export async function consumePostgresLoginAttempt(
     client.release(destroy);
   }
 }
+/** Limite separato per il recupero password: 3 richieste per coppia IP/email e 30 per IP ogni 15 minuti. */
+export async function consumePostgresPasswordResetAttempt(
+  pool: Pick<Pool, "connect">, secret: string, address: string, email: string,
+): Promise<boolean> {
+  if (typeof secret !== "string" || secret.length < 32 || !address.trim()) {
+    throw new Error("Configurazione o indirizzo non valido per il limite recupero password.");
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const ipHash = createHmac("sha256", secret).update("password-reset-ip\\0").update(address).digest("hex");
+  const identityHash = createHmac("sha256", secret).update("password-reset-identity\\0")
+    .update(address).update("\\0").update(normalizedEmail).digest("hex");
+  const client: PoolClient = await pool.connect();
+  let transaction = false;
+  let destroy = false;
+  try {
+    await client.query("BEGIN");
+    transaction = true;
+    await client.query(`WITH stale AS (
+      SELECT key_hash FROM login_attempt_limits
+      WHERE updated_at < NOW() - INTERVAL '30 days'
+      ORDER BY updated_at LIMIT 100
+    ) DELETE FROM login_attempt_limits AS limits USING stale WHERE limits.key_hash=stale.key_hash`);
+    const ipAllowed = await consumeLoginBucket(client, ipHash, 30);
+    const identityAllowed = await consumeLoginBucket(client, identityHash, 3);
+    await client.query("COMMIT");
+    transaction = false;
+    return ipAllowed && identityAllowed;
+  } catch (error) {
+    if (transaction) { try { await client.query("ROLLBACK"); } catch { destroy = true; } }
+    throw error;
+  } finally { client.release(destroy); }
+}
+
 async function resetLoginAttempts(
   pool: Pick<Pool, "connect">,
   secret: string,
@@ -228,6 +261,12 @@ export function createPostgresAuthRouter(
       return;
     }
     try {
+      const address = req.ip || req.socket.remoteAddress || "unknown";
+      if (!await consumePostgresPasswordResetAttempt(pool, options.rateLimitSecret, address, body.email)) {
+        res.setHeader("Retry-After", String(RATE_WINDOW_MS / 1000));
+        res.status(429).json({ error: "Troppe richieste di recupero. Riprovare più tardi." });
+        return;
+      }
       // Identical response for unknown accounts and disabled email delivery.
       if (options.emailApiKey && options.emailFrom) {
         const reset = await createPostgresPasswordReset(pool, body.email, body.organizationSlug);
