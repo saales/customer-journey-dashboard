@@ -2238,3 +2238,38 @@ button:disabled {
 #main-content:focus {
   outline: none;
 }
+
+
+/* Account security: active session list */
+.session-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--border, #dce3ed);
+  border-radius: 12px;
+  background: var(--surface-subtle, transparent);
+}
+.session-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.session-current {
+  flex: 0 0 auto;
+  color: var(--success, #18794e);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+@media (max-width: 520px) {
+  .session-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
