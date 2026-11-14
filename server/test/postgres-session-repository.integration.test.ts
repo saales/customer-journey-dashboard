@@ -70,7 +70,7 @@ describe("PostgreSQL session repository", () => {
       .resolves.toEqual([]);
     await expect(revokePostgresAccountSession(pool!, organizationId, "efefefef-efef-4fef-8fef-efefefefefef", sessions[0]!.id))
       .resolves.toBeNull();
-    await expect(revokePostgresAccountSession(pool!, "abababab-abab-4bab-8bab-abababababab", userId, sessions[0]!.id))
+    await expect(revokePostgresAccountSession(pool!, "efefefef-efef-4fef-8fef-efefefefefef", userId, sessions[0]!.id))
       .resolves.toBeNull();
     await expect(revokePostgresAccountSession(pool!, organizationId, userId, sessions[0]!.id))
       .resolves.toMatch(/^[a-f0-9]{64}$/);
