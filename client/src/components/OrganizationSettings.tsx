@@ -44,5 +44,9 @@ export function OrganizationSettings() {
       <label>Creata il<input type="text" readOnly value={new Date(settings.createdAt).toLocaleDateString("it-IT")} /></label>
       <button className="button-secondary" type="submit" disabled={saving || !name.trim() || name.trim() === settings.name}>{saving ? "Salvataggio…" : "Salva modifiche"}</button>
     </form>}
+    <div className="divider" />
+    <h3>Esportazione dei dati</h3>
+    <p className="hint">Scarica una copia JSON dei dati dell'organizzazione: configurazione del funnel, clienti, eventi e cronologia delle importazioni. Le credenziali e i token segreti non sono inclusi.</p>
+    <a className="button-secondary" href="/api/export/organization.json" download="percorso-organizzazione.json">Esporta dati organizzazione (JSON)</a>
   </section>;
 }
