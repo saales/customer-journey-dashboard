@@ -7,7 +7,7 @@ require_cmd pg_restore; require_cmd psql; require_cmd sha256sum; require_cmd nod
 [ -f "$BACKUP_FILE.manifest.json" ] || die "manifest SHA-256 obbligatorio: ripristino bloccato."
 [ -n "${TARGET_DATABASE_URL:-}" ] || die "impostare TARGET_DATABASE_URL."
 RUNTIME_ROLE="${RUNTIME_ROLE:-percorso_app}"
-EXPECTED="$(node -e 'const m=require(process.argv[1]); if(!m.sha256||!m.sourceHost||!m.sourceDatabase) process.exit(2); console.log(m.sha256)' "$BACKUP_FILE.manifest.json")" || die "manifest non valido."
+EXPECTED="$(node -e 'const m=require(require("node:path").resolve(process.argv[1])); if(!m.sha256||!m.sourceHost||!m.sourceDatabase) process.exit(2); console.log(m.sha256)' "$BACKUP_FILE.manifest.json")" || die "manifest non valido."
 ACTUAL="$(sha256sum "$BACKUP_FILE" | cut -d' ' -f1)"
 [ "$EXPECTED" = "$ACTUAL" ] || die "checksum non corrispondente."
 load_pg_env "$TARGET_DATABASE_URL"
