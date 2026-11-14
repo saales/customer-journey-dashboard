@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Pool, PoolClient } from "pg";
 import { exportPostgresCustomersCsv, exportPostgresOrganizationJson } from "../src/postgres-export-repository.js";
 function mockPool(rows: unknown[]) {
-  const query = vi.fn(async (_sql: string, _values?: unknown[]) => ({ rows }));
+  const query = vi.fn(async (sql: string, _values?: unknown[]) => ({ rows: sql.includes("COUNT(*)") ? [{ rowCount: rows.length }] : rows }));
   const client = { query, release: vi.fn() } as unknown as PoolClient;
   const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
   return { pool, query };
@@ -43,7 +43,7 @@ describe("exportPostgresCustomersCsv", () => {
     const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
     await expect(exportPostgresCustomersCsv(pool, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"))
       .rejects.toMatchObject({ status: 413 });
-    expect(query).toHaveBeenCalledTimes(3);
+    expect(query).toHaveBeenCalledTimes(4);
   });
   it("esporta i dati organizzativi completi senza includere segreti", async () => {
     const calls: { sql: string; values?: unknown[] }[] = [];
