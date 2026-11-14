@@ -57,7 +57,7 @@ export async function exportPostgresCustomersCsv(
       lines.push([row.id, row.externalId, row.channel, row.createdAt, row.stage, row.occurredAt].map(csvCell).join(";"));
     }
     return { csv: "\uFEFF" + lines.join("\r\n") + "\r\n", rowCount: result.rows.length };
-  });
+  }, { isolationLevel: "REPEATABLE READ" });
 }
 
 
@@ -167,5 +167,5 @@ export async function exportPostgresOrganizationJson(
       })],
     );
     return exported;
-  });
+  }, { isolationLevel: "REPEATABLE READ" });
 }
