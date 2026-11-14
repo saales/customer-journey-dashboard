@@ -15,7 +15,10 @@ describe("recupero password PostgreSQL", () => {
     const client = { query, release: vi.fn() } as unknown as PoolClient;
     const pool = { connect: vi.fn(async () => client) };
     await expect(createPostgresPasswordReset(pool, user.email, "org")).resolves.toBeNull();
-    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith("BEGIN");
+    expect(query).toHaveBeenCalledWith("COMMIT");
+    expect(query).toHaveBeenCalledTimes(3);
+    expect(client.release).toHaveBeenCalledWith(false);
   });
 
   it("memorizza solo l'hash del token e applica una scadenza di 30 minuti", async () => {
@@ -30,6 +33,23 @@ describe("recupero password PostgreSQL", () => {
     expect(insert?.[0]).toContain("INTERVAL '30 minutes'");
     expect(insert?.[1]?.[2]).toMatch(/^[a-f0-9]{64}$/);
     expect(insert?.[1]?.[2]).not.toBe(result?.token);
+    expect(query).toHaveBeenCalledWith("BEGIN");
+    expect(query).toHaveBeenCalledWith("COMMIT");
+    expect(query.mock.calls.some(([sql]) => sql.includes("FOR UPDATE OF u"))).toBe(true);
+  });
+
+  it("esegue rollback se la creazione del token fallisce", async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes("SELECT u.id::text")) return { rows: [user] };
+      if (sql.includes("INSERT INTO password_reset_tokens")) throw new Error("insert failed");
+      return { rows: [], rowCount: 1 };
+    });
+    const client = { query, release: vi.fn() } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) };
+    await expect(createPostgresPasswordReset(pool, user.email, "org")).rejects.toThrow("insert failed");
+    expect(query).toHaveBeenCalledWith("ROLLBACK");
+    expect(query).not.toHaveBeenCalledWith("COMMIT");
+    expect(client.release).toHaveBeenCalledWith(false);
   });
 
   it("rifiuta token malformati prima di aprire una connessione", async () => {
