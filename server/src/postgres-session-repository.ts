@@ -117,9 +117,9 @@ export async function listPostgresAccountSessions(
   return withTenantTransaction(pool, organizationId, async client => {
     const result = await client.query<PostgresSessionSummary>(
       `SELECT id::text AS id,
-              created_at AS "createdAt",
-              last_used_at AS "lastUsedAt",
-              expires_at AS "expiresAt",
+              to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "createdAt",
+              to_char(last_used_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "lastUsedAt",
+              to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expiresAt",
               token_hash = $3 AS current
        FROM sessions
        WHERE organization_id = $1::uuid AND user_id = $2::uuid
