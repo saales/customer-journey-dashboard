@@ -45,6 +45,14 @@ describe("Impostazioni organizzazione", () => {
     expect((name as HTMLInputElement).value).toBe("Azienda Demo S.p.A.");
   });
 
+  it("offre il download JSON dei dati organizzativi", async () => {
+    vi.mocked(api.organization).mockResolvedValue(initialSettings);
+    render(<OrganizationSettings />);
+    const link = await screen.findByRole("link", { name: "Esporta dati organizzazione (JSON)" });
+    expect(link.getAttribute("href")).toBe("/api/export/organization.json");
+    expect(link.getAttribute("download")).toBe("percorso-organizzazione.json");
+  });
+
   it("mostra un errore leggibile se il caricamento fallisce", async () => {
     vi.mocked(api.organization).mockRejectedValue(new Error("Servizio non disponibile"));
     render(<OrganizationSettings />);
