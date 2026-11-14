@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from "pg";
 import { withTenantTransaction } from "./tenant-transaction.js";
+import { PostgresValidationError } from "./validation-error.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -183,10 +184,10 @@ export async function createPostgresCustomer(
   }
   const externalId = input.externalId.trim();
   if (!externalId || externalId.length > 100) {
-    throw new Error("Identificativo cliente mancante o troppo lungo.");
+    throw new PostgresValidationError("Identificativo cliente mancante o troppo lungo.");
   }
   if (!input.channel.trim() || input.channel.length > 100) {
-    throw new Error("Canale non valido.");
+    throw new PostgresValidationError("Canale non valido.");
   }
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   const isDate = (value: string) =>
@@ -194,10 +195,10 @@ export async function createPostgresCustomer(
     !Number.isNaN(Date.parse(value)) &&
     new Date(value).toISOString().slice(0, 10) === value;
   if (!isDate(input.createdAt)) {
-    throw new Error("Data di ingresso non valida.");
+    throw new PostgresValidationError("Data di ingresso non valida.");
   }
   if (!Array.isArray(input.events) || input.events.length > 50) {
-    throw new Error("Elenco eventi non valido.");
+    throw new PostgresValidationError("Elenco eventi non valido.");
   }
 
   return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
@@ -214,18 +215,18 @@ export async function createPostgresCustomer(
     let previousDate = input.createdAt;
     const seen = new Set<string>();
     if (input.events.length === 0 || input.events[0]?.stage !== "visit") {
-      throw new Error("Il percorso deve iniziare con la fase visit.");
+      throw new PostgresValidationError("Il percorso deve iniziare con la fase visit.");
     }
     for (const event of input.events) {
       const position = stagePositions.get(event.stage);
       if (position === undefined || position <= previousPosition || seen.has(event.stage)) {
-        throw new Error("Le fasi devono essere uniche e seguire l'ordine configurato.");
+        throw new PostgresValidationError("Le fasi devono essere uniche e seguire l'ordine configurato.");
       }
       if (!isDate(event.occurredAt) || event.occurredAt < previousDate) {
-        throw new Error("Le date degli eventi non rispettano l'ordine cronologico.");
+        throw new PostgresValidationError("Le date degli eventi non rispettano l'ordine cronologico.");
       }
       if (event.stage === "visit" && event.occurredAt !== input.createdAt) {
-        throw new Error("La fase visit deve coincidere con la data di ingresso.");
+        throw new PostgresValidationError("La fase visit deve coincidere con la data di ingresso.");
       }
       seen.add(event.stage);
       previousPosition = position;
@@ -276,14 +277,14 @@ export async function updatePostgresCustomer(
 ): Promise<UpdatedPostgresCustomer> {
   if (!UUID_RE.test(organizationId)) throw new Error("Identificativo organizzazione non valido.");
   if (actorUserId !== undefined && !UUID_RE.test(actorUserId)) throw new Error("Identificativo attore non valido.");
-  if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new Error("Identificativo cliente non valido.");
-  if (!input.channel.trim() || input.channel.length > 100) throw new Error("Canale non valido.");
+  if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new PostgresValidationError("Identificativo cliente non valido.");
+  if (!input.channel.trim() || input.channel.length > 100) throw new PostgresValidationError("Canale non valido.");
   const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
-  if (!validDate(input.createdAt)) throw new Error("Data di ingresso non valida.");
+  if (!validDate(input.createdAt)) throw new PostgresValidationError("Data di ingresso non valida.");
   if (!Array.isArray(input.events) || input.events.length === 0 || input.events.length > 50 ||
       input.events[0]?.stage !== "visit" || input.events[0]?.occurredAt !== input.createdAt) {
-    throw new Error("Il percorso deve iniziare con la fase visit.");
+    throw new PostgresValidationError("Il percorso deve iniziare con la fase visit.");
   }
 
   return withTenantTransaction(pool, organizationId, async (client) => {
@@ -313,7 +314,7 @@ export async function updatePostgresCustomer(
       if (stage === undefined || position === undefined || position <= previousPosition || seen.has(event.stage) ||
           (!stage.isActive && !inactiveStageWasAlreadyRecorded) ||
           !validDate(event.occurredAt) || event.occurredAt < previousDate) {
-        throw new Error("Le fasi e le date del percorso non sono valide.");
+        throw new PostgresValidationError("Le fasi e le date del percorso non sono valide.");
       }
       seen.add(event.stage); previousPosition = position; previousDate = event.occurredAt;
     }
@@ -346,7 +347,7 @@ export async function deletePostgresCustomer(
 ): Promise<void> {
   if (!UUID_RE.test(organizationId)) throw new Error("Identificativo organizzazione non valido.");
   if (actorUserId !== undefined && !UUID_RE.test(actorUserId)) throw new Error("Identificativo attore non valido.");
-  if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new Error("Identificativo cliente non valido.");
+  if (typeof customerId !== "string" || !CUSTOMER_ID_RE.test(customerId)) throw new PostgresValidationError("Identificativo cliente non valido.");
   await withTenantTransaction(pool,organizationId,async client=>{
     const result=await client.query<{ id: string; channel: string }>(
       "DELETE FROM customers WHERE organization_id=$1::uuid AND id=$2::bigint RETURNING id::text AS id, channel",
