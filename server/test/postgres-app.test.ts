@@ -59,6 +59,14 @@ describe("Runtime HTTP PostgreSQL", () => {
     expect(await response.json()).toEqual({ error: "Accesso richiesto." });
   });
 
+  it("protegge le API di gestione sessioni senza autenticazione", async () => {
+    const base = await startApp();
+    const list = await fetch(`${base}/api/account/sessions`);
+    expect(list.status).toBe(401);
+    const revoke = await fetch(`${base}/api/account/sessions/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`, { method: "DELETE", headers: { Origin: "https://app.example.it" } });
+    expect(revoke.status).toBe(401);
+  });
+
   it("nega la consultazione del registro attività senza sessione valida", async () => {
     const base = await startApp();
     const response = await fetch(`${base}/api/audit`);
