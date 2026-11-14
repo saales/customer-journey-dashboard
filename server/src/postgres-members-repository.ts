@@ -34,7 +34,7 @@ export async function updateOrganizationMember(pool:Pick<Pool,"connect">,org:str
   const changed=await client.query<{userId:string;role:MemberRole;status:MemberStatus;joinedAt:string}>(`UPDATE memberships SET role=$3,status=$4,updated_at=NOW() WHERE organization_id=$1::uuid AND id=$2::uuid RETURNING user_id::text AS "userId",role,status,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "joinedAt"`,[org,membershipId,nextRole,nextStatus]);
   const row=changed.rows[0];if(!row)throw new MemberManagementError(404,"Membro non trovato.");
   const profile=await client.query<{email:string;fullName:string}>('SELECT email,full_name AS "fullName" FROM users WHERE id=$1::uuid',[row.userId]);
-  await client.query(`INSERT INTO audit_logs(organization_id,actor_user_id,action,resource_type,resource_id,details) VALUES($1::uuid,$2::uuid,'membership.updated','membership',$3,jsonb_build_object('previousRole',$4,'role',$5,'previousStatus',$6,'status',$7))`,[org,actor,membershipId,old.role,nextRole,old.status,nextStatus]);
+  await client.query(`INSERT INTO audit_logs(organization_id,actor_user_id,action,resource_type,resource_id,details) VALUES($1::uuid,$2::uuid,'membership.updated','membership',$3,jsonb_build_object('previousRole',$4::text,'role',$5::text,'previousStatus',$6::text,'status',$7::text))`,[org,actor,membershipId,old.role,nextRole,old.status,nextStatus]);
   return {membershipId,userId:row.userId,email:profile.rows[0]?.email??"",fullName:profile.rows[0]?.fullName??"",role:row.role,status:row.status,joinedAt:row.joinedAt};
  });
 }
