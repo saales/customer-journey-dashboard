@@ -7,7 +7,7 @@ import { isIP } from "node:net";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
 import { createPostgresApiRateLimitMiddleware } from "./postgres-api-rate-limit.js";
-import { exportPostgresCustomersCsv, PostgresExportError } from "./postgres-export-repository.js";
+import { exportPostgresCustomersCsv, exportPostgresOrganizationJson, PostgresExportError } from "./postgres-export-repository.js";
 import { listOrganizationMembers, updateOrganizationMember, MemberManagementError } from "./postgres-members-repository.js";
 import { getPostgresChannels, getPostgresMeta, getPostgresSummary, getPostgresTimeseries } from "./postgres-analytics-repository.js";
 import { getPostgresSegmentCustomers, getPostgresSegments, type SegmentDimension } from "./postgres-segmentation-repository.js";
@@ -382,6 +382,20 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         const filters = await parseAnalyticsFilters(req, org);
         res.json(await getPostgresSegmentCustomers(pool, org, filters, dimension as SegmentDimension, id));
       } catch (error) { next(error); }
+    });
+
+  app.get("/api/export/organization.json", authenticated, requireOrganizationPermission("data:export"),
+    async (req, res, next) => {
+      try {
+        const session = req.authenticatedSession!;
+        const result = await exportPostgresOrganizationJson(pool, session.organizationId, session.userId);
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        res.setHeader("Content-Disposition", 'attachment; filename="percorso-organizzazione.json"');
+        res.json(result);
+      } catch (error) {
+        if (error instanceof PostgresExportError) { res.status(error.status).json({ error: error.message }); return; }
+        next(error);
+      }
     });
 
   app.get("/api/export/customers.csv", authenticated, requireOrganizationPermission("data:export"),
