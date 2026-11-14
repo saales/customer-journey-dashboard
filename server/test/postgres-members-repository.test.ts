@@ -32,6 +32,7 @@ describe("Gestione membri organizzazione",()=>{
   const result=await updateOrganizationMember(pool,org,member,actor,{role:"viewer",status:"suspended"});
   expect(result).toMatchObject({membershipId:member,userId:target,email:"user@example.test",role:"viewer",status:"suspended"});
   expect(calls.some(sql=>sql.includes("INSERT INTO audit_logs"))).toBe(true);
+  expect(calls.some(sql=>sql.includes("jsonb_build_object('previousRole',$4::text"))).toBe(true);
  });
  it("valida ruolo e identificativi prima di aprire la connessione",async()=>{
   const connect=vi.fn();
