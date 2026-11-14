@@ -15,9 +15,11 @@ describe("exportPostgresCustomersCsv", () => {
     expect(result.csv.startsWith("\uFEFF")).toBe(true);
     expect(result.csv).toContain('"ID cliente";"Identificativo esterno";"Canale"');
     expect(result.csv).toContain('"12";"cust-12";"Email";"2026-10-01";"lead";"2026-10-02"');
-    const sql = String(mock.query.mock.calls.find(([statement]) => String(statement).includes("FROM customers"))?.[0]);
+    const sql = String(mock.query.mock.calls.find(([statement]) => String(statement).includes("SELECT c.id::text"))?.[0]);
     expect(sql).toContain("c.organization_id = $1::uuid");
-    expect(sql).toContain("LIMIT $2");
+    expect(sql).not.toContain("LIMIT $2");
+    const countSql = String(mock.query.mock.calls.find(([statement]) => String(statement).includes("COUNT(*)"))?.[0]);
+    expect(countSql).toContain("LEFT JOIN events");
     const audit = mock.query.mock.calls.find(([statement]) => String(statement).includes("INSERT INTO audit_logs"));
     expect(audit?.[0]).toContain("'data.exported'");
     expect(audit?.[1]).toEqual([
