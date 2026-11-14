@@ -1,5 +1,6 @@
 
 import { Pool } from "pg";
+import { verifyPostgresPool } from "./postgres-health.js";
 import dotenv from "dotenv";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -31,8 +32,7 @@ if (!connectionString) {
   );
 }
 
-// Pool dedicato a Neon PostgreSQL.
-// SQLite rimane attivo separatamente durante la migrazione.
+// Pool di connessioni PostgreSQL condiviso dal runtime applicativo.
 export const postgresPool = new Pool({
   connectionString,
   max: 5,
@@ -49,17 +49,8 @@ postgresPool.on("error", (error) => {
   );
 });
 
-/**
- * Verifica che il backend riesca a collegarsi a Neon.
- * Non modifica alcun dato.
- */
+/** Verifica la connettività PostgreSQL senza modificare alcun dato. */
 export async function verifyPostgresConnection(): Promise<void> {
-  const client = await postgresPool.connect();
-
-  try {
-    await client.query("SELECT 1");
-    console.log("Connessione a Neon PostgreSQL verificata.");
-  } finally {
-    client.release();
-  }
+  await verifyPostgresPool(postgresPool);
+  console.log("Connessione a Neon PostgreSQL verificata.");
 }

@@ -5,10 +5,37 @@ on:
     branches: [main]
   pull_request:
 
+# Least-privilege token: CI only needs to read repository contents.
+permissions:
+  contents: read
+
+# Avoid wasting runners when a newer commit supersedes an older PR run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-and-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journey_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: journey_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d journey_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         node-version: [20, 22]
     steps:
@@ -18,5 +45,123 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
+
+      # Keep dependency findings visible in PR CI without masking the test/build result.
+      - name: Audit npm dependencies
+        run: |
+          npm audit --json > "$RUNNER_TEMP/npm-audit.json" || true
+          node --input-type=commonjs <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const reportPath = path.join(process.env.RUNNER_TEMP, "npm-audit.json");
+          let report;
+          try {
+            report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          } catch (error) {
+            console.error("Unable to parse npm audit output:", error.message);
+            process.exitCode = 1;
+            process.exit();
+          }
+          if (report.error) {
+            console.error("npm audit failed:", report.error.summary || report.error.message);
+            process.exitCode = 1;
+            process.exit();
+          }
+          const metadata = report.metadata?.vulnerabilities || {};
+          console.log("npm audit summary:", JSON.stringify(metadata));
+          for (const [name, finding] of Object.entries(report.vulnerabilities || {})) {
+            const advisories = (finding.via || [])
+              .filter((item) => typeof item === "object")
+              .map((item) => item.url || item.title || item.name);
+            console.log(
+              `- ${name}: ${finding.severity}; direct=${finding.isDirect}; range=${finding.range}; fixAvailable=${JSON.stringify(finding.fixAvailable)}`
+            );
+            for (const advisory of advisories) console.log(`  advisory: ${advisory}`);
+          }
+          if (Object.keys(report.vulnerabilities || {}).length > 0) {
+            console.error("Dependency audit failed: vulnerabilities remain.");
+            process.exitCode = 1;
+          }
+          NODE
       - run: npm test
       - run: npm run build
+
+      - name: Create non-privileged runtime role
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d journey_test -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE percorso_app LOGIN PASSWORD 'ci-runtime-password' NOINHERIT;"
+      - name: Apply all PostgreSQL migrations
+        run: npm run db:migrate
+      - name: Verify migration history and checksums
+        run: npm run db:migrate -- --check
+      - name: Start PostgreSQL runtime with restricted role
+        env:
+          DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
+          APP_ORIGIN: http://localhost:5173
+          LOGIN_RATE_LIMIT_SECRET: ci-only-secret-with-more-than-32-random-characters
+          PORT: "3001"
+        run: |
+          set -euo pipefail
+          npm start > /tmp/percorso-api.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          health_status="000"
+          for attempt in $(seq 1 30); do
+            health_status="$(curl -sS -o /tmp/percorso-health.json -w '%{http_code}' http://127.0.0.1:3001/api/health || true)"
+            if [ "$health_status" = "200" ]; then break; fi
+            sleep 1
+          done
+          if [ "$health_status" != "200" ]; then cat /tmp/percorso-api.log; exit 1; fi
+          grep -q '"database":"connected"' /tmp/percorso-health.json
+          session_status="$(curl -sS -o /tmp/percorso-session.json -w '%{http_code}' http://127.0.0.1:3001/api/auth/session)"
+          test "$session_status" = "401"
+
+      - name: Install Playwright for browser E2E
+        if: matrix.node-version == 22
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Bootstrap isolated E2E organization
+        if: matrix.node-version == 22
+        env:
+          BOOTSTRAP_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journey_test
+          BOOTSTRAP_CONFIRM_DATABASE: journey_test
+          BOOTSTRAP_ORGANIZATION_NAME: E2E Workspace
+          BOOTSTRAP_ORGANIZATION_SLUG: e2e-workspace
+          BOOTSTRAP_ADMIN_EMAIL: admin@e2e.example
+          BOOTSTRAP_ADMIN_NAME: E2E Administrator
+          BOOTSTRAP_ADMIN_PASSWORD: E2E-admin-password-2026!
+        run: npm run db:bootstrap -w server -- --confirm-empty-database
+      - name: Seed isolated second tenant for API isolation E2E
+        if: matrix.node-version == 22
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d journey_test -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO organizations (name, slug)
+          VALUES ('E2E Second Workspace', 'e2e-second-workspace')
+          RETURNING id AS organization_id \gset
+          INSERT INTO memberships (organization_id, user_id, role, status)
+          SELECT :'organization_id', id, 'admin', 'active'
+          FROM users WHERE LOWER(email) = 'admin@e2e.example';
+          INSERT INTO funnel_stages (organization_id, id, label, position, is_active, is_system)
+          VALUES
+            (:'organization_id', 'visit', 'Visita', 0, TRUE, TRUE),
+            (:'organization_id', 'lead', 'Lead', 1, TRUE, TRUE),
+            (:'organization_id', 'customer', 'Cliente', 2, TRUE, TRUE);
+          WITH seeded_customer AS (
+            INSERT INTO customers (organization_id, external_id, channel, created_at)
+            VALUES (:'organization_id', 'tenant-b-sentinel', 'Advertising', '2025-02-01T00:00:00Z')
+            RETURNING id
+          )
+          INSERT INTO events (organization_id, customer_id, stage_id, occurred_at)
+          SELECT :'organization_id', id, 'visit', '2025-02-01T00:00:00Z' FROM seeded_customer;
+          SQL
+
+      - name: Run browser end-to-end tests
+        if: matrix.node-version == 22
+        env:
+          CI: "true"
+          DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
+          APP_ORIGIN: http://localhost:5173
+          LOGIN_RATE_LIMIT_SECRET: ci-only-secret-with-more-than-32-random-characters
+          PORT: "3001"
+        run: npx playwright test

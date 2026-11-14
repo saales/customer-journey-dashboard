@@ -1,7 +1,7 @@
 
 export interface Meta {
-  minDate: string;
-  maxDate: string;
+  minDate: string | null;
+  maxDate: string | null;
   channels: string[];
 }
 
@@ -54,7 +54,7 @@ export interface CustomerEvent {
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   channel: string;
   createdAt: string;
   events: CustomerEvent[];
@@ -64,6 +64,16 @@ export interface CustomerInput {
   channel: string;
   createdAt: string;
   events: CustomerEvent[];
+}
+
+export interface CustomerPage {
+  data: Customer[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ImportRow {
@@ -76,10 +86,69 @@ export interface ImportRow {
 
 export interface ImportResult {
   message: string;
-  batchId: number;
+  batchId: string | number;
   importedCustomers: number;
   importedRows: number;
   importedEvents: number;
+}
+
+export interface OrganizationSettings {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+}
+
+export interface AccountProfile {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: "admin" | "editor" | "analyst" | "viewer";
+}
+
+export interface AccountSession {
+  id: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
+export interface OrganizationMember {
+  membershipId: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  role: "admin" | "editor" | "analyst" | "viewer";
+  status: "active" | "suspended";
+  joinedAt: string;
+}
+
+export interface OrganizationInvitation {
+  id: string;
+  email: string;
+  role: "admin" | "editor" | "analyst" | "viewer";
+  status: "pending" | "accepted" | "revoked" | "expired";
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+}
+export interface CreatedOrganizationInvitation {
+  invitation: OrganizationInvitation;
+  inviteUrl: string;
+  emailSent: boolean;
+}
+
+export interface AuditEntry {
+  id: string; action: string; resourceType: string | null; resourceId: string | null;
+  actorUserId: string | null; actorName: string | null; actorEmail: string | null;
+  details: Record<string, unknown>; createdAt: string;
+}
+
+export interface AuditPage {
+  data: AuditEntry[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
 export interface Query {
@@ -109,7 +178,7 @@ export interface SegmentAnalysis {
 }
 
 export interface SegmentCustomer {
-  id: number;
+  id: string;
   channel: string;
   createdAt: string;
   stage: string;
@@ -153,7 +222,7 @@ async function get<T>(
 
 async function send<T>(
   path: string,
-  method: "POST" | "PUT" | "DELETE",
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   body?: unknown,
 ): Promise<T> {
   const res = await fetch(`/api/${path}`, {
@@ -175,6 +244,29 @@ async function send<T>(
 }
 
 export const api = {
+  audit: (q: { page: number; limit: number; from?: string; to?: string; actorUserId?: string; action?: string }) =>
+    get<AuditPage>("audit", { page: String(q.page), limit: String(q.limit), from: q.from, to: q.to, actorUserId: q.actorUserId, action: q.action }),
+
+  account: (signal?: AbortSignal) => get<AccountProfile>("account", {}, signal),
+  updateAccount: (fullName: string) => send<AccountProfile>("account", "PATCH", { fullName }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    send<void>("account/password", "POST", { currentPassword, newPassword }),
+  accountSessions: (signal?: AbortSignal) => get<{ sessions: AccountSession[] }>("account/sessions", {}, signal),
+  revokeAccountSession: (id: string) => send<void>(`account/sessions/${id}`, "DELETE"),
+
+  organization: (signal?: AbortSignal) => get<OrganizationSettings>("organization", {}, signal),
+  updateOrganization: (name: string) => send<OrganizationSettings>("organization", "PATCH", { name }),
+
+  members: (signal?: AbortSignal) => get<OrganizationMember[]>("members", {}, signal),
+
+  updateMember: (id: string, data: { role?: OrganizationMember["role"]; status?: OrganizationMember["status"] }) =>
+    send<OrganizationMember>(`members/${id}`, "PATCH", data),
+
+  invitations: (signal?: AbortSignal) => get<OrganizationInvitation[]>("invitations", {}, signal),
+  createInvitation: (data: { email: string; role: OrganizationInvitation["role"]; expiresInDays: number }) =>
+    send<CreatedOrganizationInvitation>("invitations", "POST", data),
+  revokeInvitation: (id: string) => send<void>(`invitations/${id}/revoke`, "POST"),
+
   meta: (signal?: AbortSignal) =>
     get<Meta>("meta", {}, signal),
 
@@ -223,16 +315,20 @@ export const api = {
       signal,
     ),
 
-  customers: (signal?: AbortSignal) =>
-    get<Customer[]>("customers", {}, signal),
+  customers: (page = 1, limit = 50, signal?: AbortSignal) =>
+    get<CustomerPage>(
+      "customers",
+      { page: String(page), limit: String(limit) },
+      signal,
+    ),
 
   createCustomer: (data: CustomerInput) =>
     send<Customer>("customers", "POST", data),
 
-  updateCustomer: (id: number, data: CustomerInput) =>
+  updateCustomer: (id: string, data: CustomerInput) =>
     send<Customer>(`customers/${id}`, "PUT", data),
 
-  deleteCustomer: (id: number) =>
+  deleteCustomer: (id: string) =>
     send<void>(`customers/${id}`, "DELETE"),
 
   importCsv: (fileName: string, rows: ImportRow[]) =>

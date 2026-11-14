@@ -4,26 +4,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/postgres-server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "seed": "tsx src/seed-cli.ts",
+    "start": "node dist/postgres-server.js",
     "test": "vitest run",
-    "db:check": "tsx src/check-postgres.ts"
+    "db:check": "tsx src/check-postgres.ts",
+    "db:inspect": "tsx src/inspect-postgres-schema.ts",
+    "db:migrate": "tsx src/migrate-postgres.ts",
+    "db:bootstrap": "tsx src/bootstrap-postgres.ts",
+    "db:cleanup-login-attempts": "tsx src/cleanup-login-attempts.ts"
   },
   "dependencies": {
-    "better-sqlite3": "12.9.0",
     "dotenv": "^18.0.10",
     "express": "^4.19.2",
     "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.11",
     "@types/express": "^4.17.21",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.23.1",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
-    "vitest": "^3.2.0"
+    "vitest": "^4.1.12"
   }
 }

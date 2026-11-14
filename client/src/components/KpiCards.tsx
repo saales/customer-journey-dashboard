@@ -14,7 +14,7 @@ export function KpiCards({ kpis }: { kpis: Summary["kpis"] }) {
     {
       label: "Visite iniziali",
       value: formatNumber(kpis.visits),
-      description: "Clienti entrati nel funnel nel periodo selezionato",
+      description: "Clienti entrati nel percorso nel periodo selezionato",
       icon: Eye,
       color: "blue",
     },

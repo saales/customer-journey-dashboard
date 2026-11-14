@@ -1,171 +1,120 @@
-# Customer Journey Dashboard
+# Percorso Cliente
 
-Dashboard web per analizzare il **funnel di conversione** e il **customer journey**: dal primo contatto (visita) all'acquisto, passando per contatto, qualificazione e opportunità.
+Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-Il progetto permette di monitorare le performance del percorso di conversione, individuare i punti di abbandono e confrontare l'efficacia dei diversi canali di acquisizione.
+> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–013 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
 
-[![CI](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/saales/customer-journey-dashboard/actions/workflows/ci.yml)
+## Funzioni
 
-> **Dati dimostrativi:** il progetto utilizza dati sintetici, generati automaticamente al primo avvio. Non contiene informazioni reali di clienti o aziende.
+- Dashboard con KPI, funnel, andamento e confronto dei canali.
+- Filtri temporali e per canale.
+- Gestione clienti, eventi e fasi del percorso.
+- Importazione CSV/Excel con validazione server-side.
+- Segmentazione e confronto dei gruppi.
+- Esportazione report CSV, Excel e PDF dal browser.
+- Esportazione CSV clienti dal server, tenant-scoped, protetta da permesso e registrata nell'audit log.
+- Autenticazione, sessioni, ruoli e gestione dei membri.
+- Inviti monouso con scadenza, revoca e accettazione atomica, con invio automatico tramite Resend quando configurato.
+- Recupero password con token monouso hashati, scadenza di 30 minuti, invio email e revoca di tutte le sessioni esistenti.
+- Impostazioni account: modifica del nome, cambio password con verifica della password attuale e revoca di tutte le sessioni.
+- Impostazioni organizzazione: visualizzazione e modifica del nome da parte degli amministratori, con audit log.
+- Audit log, rate limiting persistente e condiviso per login e API, e controlli di sicurezza del runtime.
 
-## Funzionalità
+## Tecnologie
 
-- **Panoramica KPI:** visite iniziali, contatti acquisiti, clienti, tasso di conversione e giorni medi all'acquisto.
-- **Funnel di conversione:** analisi delle cinque fasi del percorso (Visita → Contatto → Qualificato → Opportunità → Cliente), con percentuali di conversione tra le fasi.
-- **Andamento mensile:** visualizzazione dell'evoluzione delle visite e del tasso di conversione.
-- **Confronto tra canali:** analisi delle performance di Organico, Social, Email, Pubblicità e Passaparola.
-- **Filtri interattivi:** selezione del periodo e del canale, con intervalli temporali predefiniti o personalizzati.
-- **Gestione clienti:** inserimento, modifica ed eliminazione dei clienti, con registrazione delle date associate alle diverse fasi del percorso.
-- **Esportazione CSV:** download dei dati relativi a funnel, andamento mensile e confronto tra canali, compatibile con Excel in italiano.
-- **Interfaccia moderna:** navigazione laterale, tema chiaro e scuro e layout adattabile alle diverse dimensioni dello schermo.
-- **Gestione degli stati:** feedback durante il caricamento, segnalazione degli errori e gestione dei periodi senza dati.
-
-## Stack tecnologico
-
-| Livello | Tecnologie |
+| Ambito | Tecnologie |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Recharts, Lucide React |
-| Backend | Node.js, Express, TypeScript |
-| Database | SQLite con better-sqlite3 e query SQL di aggregazione |
-| Test | Vitest, Testing Library |
-| CI | GitHub Actions, test e build su Node.js 20 e 22 |
+| Interfaccia | React, TypeScript, Vite, Recharts |
+| Server | Node.js, Express, TypeScript |
+| Database | PostgreSQL |
+| Driver | node-postgres (pg) |
+| Test | Vitest, Testing Library, PostgreSQL 16 temporaneo |
+| CI | GitHub Actions, Node.js 20 e 22 |
 
-## Struttura del progetto
+## Requisiti
 
-```text
-.
-├── client/
-│   └── src/
-│       ├── components/
-│       │   ├── AppLayout.tsx
-│       │   ├── KpiCards.tsx
-│       │   ├── FunnelChart.tsx
-│       │   ├── TrendChart.tsx
-│       │   ├── ChannelTable.tsx
-│       │   ├── Filters.tsx
-│       │   └── CustomerManagement.tsx
-│       ├── api.ts
-│       ├── useAsync.ts
-│       ├── csv.ts
-│       └── styles.css
-├── server/
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── app.ts
-│   │   ├── db.ts
-│   │   ├── seed.ts
-│   │   ├── seed-cli.ts
-│   │   └── queries.ts
-│   └── test/
-├── docs/
-│   └── ARCHITETTURA.md
-├── package.json
-├── README.md
-└── LICENSE
+- Node.js 20 o successivo
+- npm
+- Un database PostgreSQL
+- Un ruolo proprietario/amministrativo per migrazioni e bootstrap
+- Un ruolo applicativo non proprietario, NOINHERIT e senza privilegi elevati
+
+## Configurazione locale
+
+Copiare `.env.example` in `.env.local` e configurare i valori reali solo nel file locale, escluso dal versionamento:
+
+```dotenv
+DATABASE_URL=postgresql://utente_app:password@host:5432/database?sslmode=require
+APP_ORIGIN=http://localhost:5173
+LOGIN_RATE_LIMIT_SECRET=una-stringa-casuale-di-almeno-32-caratteri
+RESEND_API_KEY= # opzionale
+EMAIL_FROM= # opzionale; configurare insieme a RESEND_API_KEY
+PORT=3001
 ```
 
-Le scelte progettuali, l'analisi per coorte, le query SQL, la validazione e i limiti dell'applicazione sono approfonditi nel documento [Architettura e scelte progettuali](docs/ARCHITETTURA.md).
+Non inserire credenziali o stringhe di connessione nei file versionati, nei ticket o nei log.
 
-## Come funziona l'analisi
+## Migrazioni e bootstrap
 
-Le analisi lavorano per **coorte**: vengono considerati i clienti la cui prima visita ricade nel periodo selezionato e vengono seguiti i relativi eventi lungo il funnel.
+Le migrazioni sono esplicite e non vengono applicate automaticamente all'avvio del server.
 
-Questo approccio permette di confrontare le percentuali di conversione tra periodi e canali, mantenendo coerente il criterio di analisi.
-
-## API
-
-Le API REST consentono di consultare i dati e gestire le anagrafiche dei clienti.
-
-| Metodo e percorso | Descrizione |
-|---|---|
-| `GET /api/health` | Verifica che il server sia attivo |
-| `GET /api/meta` | Recupera l'intervallo di date disponibile e la lista dei canali |
-| `GET /api/summary?from&to&channel` | Recupera KPI e dati del funnel |
-| `GET /api/channels?from&to` | Recupera il confronto tra canali |
-| `GET /api/timeseries?from&to&channel` | Recupera l'andamento mensile |
-| `GET /api/customers` | Recupera l'elenco dei clienti |
-| `POST /api/customers` | Inserisce un nuovo cliente |
-| `PUT /api/customers/:id` | Modifica i dati di un cliente |
-| `DELETE /api/customers/:id` | Elimina un cliente |
-
-I parametri `from` e `to` utilizzano il formato `YYYY-MM-DD`. I valori non validi restituiscono una risposta HTTP `400` con un messaggio descrittivo.
-
-## Come avviarlo
-
-### Requisiti
-
-- Node.js 20 o superiore
-- npm
-
-### Avvio in modalità sviluppo
-
-Dalla cartella principale del progetto:
+1. Verificare l'identità del database e il ruolo amministrativo.
+2. Eseguire il preflight in sola lettura:
 
 ```bash
-npm install
+npm run db:migrate -- --check
+```
+
+3. Solo dopo aver verificato backup, destinazione e piano di ripristino, applicare le migrazioni:
+
+```bash
+npm run db:migrate
+```
+
+4. Per un database vuoto, seguire [docs/BOOTSTRAP_POSTGRESQL.md](docs/BOOTSTRAP_POSTGRESQL.md):
+
+```bash
+npm run db:bootstrap -- --confirm-empty-database
+```
+
+Il bootstrap rifiuta database già popolati. Non usarlo per ricreare tenant esistenti.
+
+## Avvio e verifiche
+
+```bash
+npm ci
 npm run dev
 ```
 
-Il comando avvia contemporaneamente il server API e l'interfaccia web.
-
-Aprire nel browser:
-
-[http://localhost:5173](http://localhost:5173)
-
-Il database SQLite (`journey.db`) viene creato e popolato automaticamente al primo avvio, utilizzando dati sintetici.
-
-### Build e avvio in produzione
-
-Per compilare frontend e backend:
-
-```bash
-npm run build
-```
-
-Per avviare il server:
-
-```bash
-npm start -w server
-```
-
-L'applicazione completa è disponibile all'indirizzo:
-
-[http://localhost:3001](http://localhost:3001)
-
-### Test automatici
-
-Per eseguire i test di entrambi i workspace:
+L'interfaccia è disponibile su [http://localhost:5173](http://localhost:5173); il server HTTP usa la porta 3001.
 
 ```bash
 npm test
+npm run build
 ```
 
-### Generazione manuale dei dati sintetici
+La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Su Node.js 22 esegue test browser Playwright/Chromium per admin, analyst, viewer ed editor, inclusi creazione cliente, configurazione funnel, import/export CSV, inviti, accettazione e verifica permessi. Il test crea anche un secondo tenant e controlla l'isolamento API per clienti, fasi funnel, export e audit: un tenant non può leggere le fasi altrui né modificare clienti o fasi con ID estranei. La copertura cross-tenant completa di tutte le API non è ancora dimostrata. Il database dei test è PostgreSQL temporaneo CI, non il database remoto.
 
-```bash
-npm run seed
-```
+## Sicurezza e rilascio
 
-## Sviluppo del progetto
+- L'organizzazione deriva dalla sessione verificata, non da parametri del browser.
+- Le API e i repository applicano filtri tenant-scoped; le tabelle operative applicano RLS.
+- Il ruolo HTTP non è proprietario, superuser o BYPASSRLS e non eredita privilegi.
+- Le migrazioni sono versionate, verificate tramite checksum e protette da advisory lock.
+- Lo startup controlla lo storico migrazioni e i privilegi; non modifica lo schema.
+- Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
+- Gli inviti e i reset password usano token monouso, memorizzati solo come hash e con scadenza.
+- Il cambio password richiede la password attuale, aggiorna le credenziali in transazione e revoca tutte le sessioni.
+- Le email transazionali usano Resend; configurare `RESEND_API_KEY` e `EMAIL_FROM`. Senza configurazione, gli inviti restano condivisibili manualmente e il recupero password non può inviare istruzioni.
 
-Ho realizzato questo progetto attraverso un percorso progressivo di analisi, progettazione, sviluppo e verifica.
+La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
 
-Durante il lavoro mi sono concentrato sulla comprensione delle logiche del customer journey, sulla modellazione dei dati e sulla realizzazione di un'applicazione capace di rappresentare in modo chiaro le diverse fasi del percorso di conversione.
+Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, ulteriori test cross-tenant per funnel, eventi, importazioni, membri e inviti, monitoraggio, test di carico e staging con dati sintetici. La CI copre già un percorso browser rappresentativo admin/analista, non l'intera matrice di autorizzazione.
 
-Ho lavorato sull'integrazione tra frontend e backend, sulla gestione dei dati tramite database SQLite, sulla progettazione delle API e sulla realizzazione di funzionalità di analisi e gestione dei clienti.
+## Documentazione
 
-Una parte importante del lavoro ha riguardato anche il miglioramento dell'esperienza utente, la leggibilità delle informazioni, la gestione degli errori e la verifica del funzionamento attraverso test automatici.
-
-Il progetto rappresenta un'esperienza pratica di applicazione delle competenze informatiche a un caso d'uso orientato all'analisi dei processi aziendali.
-
-## Possibili sviluppi
-
-- **Integrazione dei dati aziendali:** possibilità di importare dataset tramite CSV.
-- **Analisi comparativa:** confronto tra periodi temporali e performance dei diversi canali.
-- **Approfondimento del funnel:** analisi dei tassi di abbandono e dei punti critici del percorso di conversione.
-- **Evoluzione dell'architettura:** introduzione di autenticazione e database PostgreSQL.
-- **Estensione dei test:** test end-to-end per verificare i principali flussi di utilizzo.
+La cartella `docs/` contiene architettura, modello dati, procedure di bootstrap, distribuzione, migrazioni e registro delle verifiche.
 
 ## Licenza
 
-Licenza MIT. Consulta il file [LICENSE](LICENSE).
+MIT. Consultare [LICENSE](LICENSE).

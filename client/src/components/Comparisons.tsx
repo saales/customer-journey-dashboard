@@ -377,7 +377,7 @@ export function Comparisons({ query }: ComparisonsProps) {
         />
 
         <KpiComparison
-          label="Lead"
+          label="Contatti acquisiti"
           current={currentKpis.leads}
           previous={previousKpis.leads}
         />
@@ -468,25 +468,25 @@ export function Comparisons({ query }: ComparisonsProps) {
       {currentSegmentData && previousSegmentData && (
         <>
           <SegmentComparisonTable
-            title="Confronto segmenti per canale"
+            title="Confronto dei segmenti per canale"
             current={currentSegmentData.channels}
             previous={previousSegmentData.channels}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti per fase funnel"
+            title="Confronto dei segmenti per fase del percorso"
             current={currentSegmentData.stages}
             previous={previousSegmentData.stages}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti per periodo di acquisizione"
+            title="Confronto dei segmenti per periodo di acquisizione"
             current={currentSegmentData.periods}
             previous={previousSegmentData.periods}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti combinati"
+            title="Confronto dei segmenti combinati"
             current={currentSegmentData.combinations}
             previous={previousSegmentData.combinations}
           />

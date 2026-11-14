@@ -26,6 +26,9 @@ interface CsvResult {
   fileName: string;
 }
 
+const MAX_IMPORT_ROWS = 10_000;
+const MAX_EXTERNAL_ID_LENGTH = 100;
+
 const REQUIRED_HEADERS = [
   "externalId",
   "channel",
@@ -68,7 +71,7 @@ function validateRows(
   const validationRows: ValidationRow[] = rows.map((data, index) => {
     const errors: string[] = [];
 
-    const externalId = data.externalId ?? "";
+    const externalId = (data.externalId ?? "").trim();
     const channel = data.channel ?? "";
     const createdAt = data.createdAt ?? "";
     const stage = data.stage ?? "";
@@ -76,6 +79,8 @@ function validateRows(
 
     if (!externalId) {
       errors.push("Identificativo cliente obbligatorio.");
+    } else if (externalId.length > MAX_EXTERNAL_ID_LENGTH) {
+      errors.push(`Identificativo cliente troppo lungo: massimo ${MAX_EXTERNAL_ID_LENGTH} caratteri.`);
     }
 
     if (!channel) {
@@ -122,7 +127,7 @@ function validateRows(
   const customers = new Map<string, ValidationRow[]>();
 
   for (const row of validationRows) {
-    const externalId = row.data.externalId ?? "";
+    const externalId = (row.data.externalId ?? "").trim();
 
     if (!externalId) continue;
 
@@ -272,7 +277,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
           setStagesError(
             err instanceof Error
               ? err.message
-              : "Impossibile caricare le fasi del funnel."
+              : "Impossibile caricare le fasi del percorso."
           );
         }
       } finally {
@@ -348,6 +353,11 @@ export function DataImport({ onDataChange }: DataImportProps) {
 
       if (rows.length === 0) {
         setError("Il file contiene le intestazioni ma nessuna riga di dati.");
+        return;
+      }
+
+      if (rows.length > MAX_IMPORT_ROWS) {
+        setError(`Il file contiene ${rows.length} righe: il limite massimo è ${MAX_IMPORT_ROWS}. Dividi il file in più importazioni.`);
         return;
       }
 
@@ -482,7 +492,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
   const customerGroups = new Map<string, ValidationRow[]>();
 
   for (const row of validationRows) {
-    const externalId = row.data.externalId ?? "";
+    const externalId = (row.data.externalId ?? "").trim();
 
     if (!externalId) continue;
 
@@ -513,7 +523,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
   const validCount = individuallyValidRows.length;
 
   const customersToImport = new Set(
-    importableRows.map((row) => row.data.externalId)
+    importableRows.map((row) => (row.data.externalId ?? "").trim())
   ).size;
 
   const eventsToImport = importableRows.length;
@@ -596,7 +606,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
 
     try {
       const rows = result.rows.map((row) => ({
-        externalId: row.externalId ?? "",
+        externalId: (row.externalId ?? "").trim(),
         channel: row.channel ?? "",
         createdAt: row.createdAt ?? "",
         stage: row.stage ?? "",
@@ -699,7 +709,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
       <div className="card">
         <div className="card-head">
           <div>
-            <h2>Importa dati da CSV o Excel</h2>
+            <h2>Importazione dati da CSV o Excel</h2>
             <p className="hint">
               Carica un file CSV, controlla i dati e correggi
               eventuali errori prima dell'importazione.
@@ -710,13 +720,13 @@ export function DataImport({ onDataChange }: DataImportProps) {
         </div>
 
         {stagesLoading && (
-          <p className="loading">Caricamento delle fasi del funnel…</p>
+          <p className="loading">Caricamento delle fasi del percorso…</p>
         )}
 
         {stagesError && (
           <div className="error" role="alert">
             <AlertCircle size={18} />
-            Impossibile caricare le fasi del funnel: {stagesError}
+            Impossibile caricare le fasi del percorso: {stagesError}
           </div>
         )}
 

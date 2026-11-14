@@ -14,20 +14,36 @@ import { DataImport } from "./components/DataImport";
 import { FunnelSettings } from "./components/FunnelSettings";
 import { Segmentation } from "./components/Segmentation";
 import { Comparisons } from "./components/Comparisons";
+import { MemberManagement } from "./components/MemberManagement";
+import { AuditLog } from "./components/AuditLog";
+import { OrganizationSettings } from "./components/OrganizationSettings";
+import { AccountSettings } from "./components/AccountSettings";
 
-export default function App() {
+interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
+
+export default function App({ onLogout, organizationRole = null }: AppProps = {}) {
   const [preset, setPreset] = useState<Preset>(12);
   const [channel, setChannel] = useState("");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const canWrite = organizationRole === "admin" || organizationRole === "editor";
+  const canExport = organizationRole === "admin" || organizationRole === "editor" || organizationRole === "analyst";
+  const visibleSections = organizationRole === "admin"
+    ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings", "audit"] as const
+    : canWrite
+      ? ["dashboard", "customers", "import", "analytics", "segmentation", "comparisons", "settings"] as const
+      : ["dashboard", "customers", "analytics", "segmentation", "comparisons", "settings"] as const;
 
   const meta = useAsync((s) => api.meta(s), []);
+  const fallbackDate = new Date().toISOString().slice(0, 10);
+  const maxDate = meta.data?.maxDate ?? fallbackDate;
+  const minDate = meta.data?.minDate ?? maxDate;
 
   function handlePreset(next: Preset) {
     if (next === "custom" && meta.data && !customFrom && !customTo) {
       const months = preset === "custom" ? 12 : preset;
-      setCustomFrom(startOfPeriod(meta.data.maxDate, months));
-      setCustomTo(meta.data.maxDate);
+      setCustomFrom(startOfPeriod(maxDate, months));
+      setCustomTo(maxDate);
     }
 
     setPreset(next);
@@ -56,7 +72,7 @@ export default function App() {
       };
     }
 
-    const to = meta.data.maxDate;
+    const to = maxDate;
 
     return {
       from: startOfPeriod(to, preset),
@@ -108,8 +124,8 @@ export default function App() {
       channel={channel}
       from={customFrom}
       to={customTo}
-      minDate={meta.data.minDate}
-      maxDate={meta.data.maxDate}
+      minDate={minDate}
+      maxDate={maxDate}
       onPreset={handlePreset}
       onChannel={setChannel}
       onFrom={setCustomFrom}
@@ -141,11 +157,6 @@ export default function App() {
 
   const dashboardSection = (
     <>
-      <p className="notice">
-        Dati sintetici generati a scopo dimostrativo: nessun dato reale di
-        clienti o aziende.
-      </p>
-
       {statusMessages}
 
       {noData && (
@@ -203,7 +214,7 @@ export default function App() {
   );
 
   const customersSection = (
-    <CustomerManagement onDataChange={refreshDashboard} />
+    <CustomerManagement onDataChange={refreshDashboard} serverExportEnabled={canExport} readOnly={!canWrite} />
   );
 
   const importSection = (
@@ -229,9 +240,13 @@ export default function App() {
     </div>
   );
 
+  const auditSection = organizationRole === "admin" ? <AuditLog /> : null;
+
   const settingsSection = (
     <div>
-      <FunnelSettings onDataChange={refreshDashboard} />
+      <AccountSettings />
+      <FunnelSettings onDataChange={refreshDashboard} readOnly={!canWrite} />
+      {organizationRole === "admin" && <><OrganizationSettings /><MemberManagement /></>}
 
       <div className="card">
         <h2>Preferenze dell'interfaccia</h2>
@@ -245,6 +260,8 @@ export default function App() {
 
   return (
     <AppLayout
+      onLogout={onLogout}
+      visibleSections={[...visibleSections]}
       sections={{
         dashboard: dashboardSection,
         customers: customersSection,
@@ -253,6 +270,7 @@ export default function App() {
         comparisons: comparisonsSection,
         settings: settingsSection,
         import: importSection,
+        audit: auditSection,
       }}
     >
       {dashboardSection}
