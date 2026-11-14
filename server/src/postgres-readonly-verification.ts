@@ -44,6 +44,7 @@ export async function verifyPostgresReadOnly(
   const target: ReadOnlyVerificationReport["target"] = { database:"", user:"", serverVersion:"", ssl:null, pooledEndpoint:null };
   const client: PoolClient = await pool.connect();
   let opened = false;
+  let destroy = false;
   let failure: unknown;
   let identityOk = false;
   try {
@@ -117,8 +118,8 @@ export async function verifyPostgresReadOnly(
     }
   } catch(e) { failure=e; }
   finally {
-    if(opened) try { await client.query("ROLLBACK"); } catch(e) { failure??=e; client.release(true); }
-    if(!failure) client.release(); 
+    if(opened) try { await client.query("ROLLBACK"); } catch(e) { failure??=e; destroy=true; }
+    client.release(destroy);
   }
   if(failure) throw failure;
   if(identityOk){
