@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
-import { issuePostgresSession, revokePostgresSession } from "../src/postgres-session-repository.js";
+import { issuePostgresSession, revokePostgresSession, listPostgresAccountSessions, revokePostgresAccountSession } from "../src/postgres-session-repository.js";
 import { resolvePostgresSession } from "../src/postgres-session-resolver.js";
 
 const connectionString = process.env.DATABASE_URL;
@@ -55,7 +55,12 @@ describe("PostgreSQL session repository", () => {
     await expect(resolvePostgresSession(pool!, issued.token)).resolves.toMatchObject({
       userId, organizationId, role: "admin",
     });
-    await expect(revokePostgresSession(pool!, issued.token)).resolves.toBe(true);
+    const sessions = await listPostgresAccountSessions(pool!, organizationId, userId, issued.token);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({ current: true });
+    expect(sessions[0]?.id).toMatch(/^[0-9a-f-]{36}$/i);
+    await expect(revokePostgresAccountSession(pool!, organizationId, userId, sessions[0]!.id))
+      .resolves.toMatch(/^[a-f0-9]{64}$/);
     await expect(resolvePostgresSession(pool!, issued.token)).resolves.toBeNull();
     await expect(revokePostgresSession(pool!, issued.token)).resolves.toBe(false);
   });
