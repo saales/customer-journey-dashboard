@@ -18,6 +18,8 @@ import {
 } from "./postgres-auth-middleware.js";
 import { createPostgresAuthRouter, isAllowedPostgresAuthOrigin, serializePostgresSessionCookie, clearPostgresSessionCookie } from "./postgres-auth-routes.js";
 import { getPostgresAccountProfile, updatePostgresAccountName, changePostgresAccountPassword, PostgresAccountError } from "./postgres-account-repository.js";
+import { listPostgresAccountSessions, revokePostgresAccountSession } from "./postgres-session-repository.js";
+import { hashSessionToken } from "./postgres-session-resolver.js";
 import { acceptOrganizationInvitation, createOrganizationInvitation, listOrganizationInvitations, revokeOrganizationInvitation, InvitationError } from "./postgres-invitations-repository.js";
 import {
   createPostgresCustomer,
@@ -236,6 +238,34 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       if(error instanceof PostgresAccountError){res.status(error.status).json({error:error.message});return;}
       next(error);
     }
+  });
+  app.get("/api/account/sessions", authenticated, async (req,res,next) => {
+    try {
+      const cookieName = production ? "__Host-percorso_session" : "percorso_session";
+      const cookies = (req.headers.cookie ?? "").split(";").map(part => part.trim());
+      const token = cookies.find(part => part.startsWith(cookieName + "="))?.slice(cookieName.length + 1) ?? "";
+      const sessions = await listPostgresAccountSessions(pool,req.authenticatedSession!.organizationId,
+        req.authenticatedSession!.userId,token);
+      res.json({ sessions });
+    } catch(error) { next(error); }
+  });
+  app.delete("/api/account/sessions/:sessionId", authenticated, async (req,res,next) => {
+    try {
+      const sessionId = req.params.sessionId;
+      if(typeof sessionId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
+        throw new ApiError(400,"Identificativo sessione non valido.");
+      }
+      const session = req.authenticatedSession!;
+      const tokenHash = await revokePostgresAccountSession(pool,session.organizationId,session.userId,sessionId);
+      if(!tokenHash) { res.status(404).json({error:"Sessione non trovata."}); return; }
+      const cookieName = production ? "__Host-percorso_session" : "percorso_session";
+      const currentToken = (req.headers.cookie ?? "").split(";").map(part=>part.trim())
+        .find(part=>part.startsWith(cookieName+"="))?.slice(cookieName.length+1) ?? "";
+      if(currentToken && hashSessionToken(currentToken) === tokenHash) {
+        res.append("Set-Cookie",clearPostgresSessionCookie(production));
+      }
+      res.status(204).send();
+    } catch(error) { if(error instanceof ApiError){res.status(error.status).json({error:error.message});return;} next(error); }
   });
   app.patch("/api/account", authenticated, async (req,res,next) => {
     try {
