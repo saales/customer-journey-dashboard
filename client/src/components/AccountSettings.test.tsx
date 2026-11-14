@@ -6,6 +6,8 @@ import { AccountSettings } from "./AccountSettings";
 vi.mock("../api", () => ({
   api: {
     account: vi.fn(),
+    accountSessions: vi.fn(),
+    revokeAccountSession: vi.fn(),
     updateAccount: vi.fn(),
     changePassword: vi.fn(),
   },
