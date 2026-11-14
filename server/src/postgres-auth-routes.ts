@@ -145,9 +145,9 @@ export async function consumePostgresPasswordResetAttempt(
     throw new Error("Configurazione o indirizzo non valido per il limite recupero password.");
   }
   const normalizedEmail = email.trim().toLowerCase();
-  const ipHash = createHmac("sha256", secret).update("password-reset-ip\\0").update(address).digest("hex");
-  const identityHash = createHmac("sha256", secret).update("password-reset-identity\\0")
-    .update(address).update("\\0").update(normalizedEmail).digest("hex");
+  const ipHash = createHmac("sha256", secret).update("password-reset-ip\ 0").update(address).digest("hex");
+  const identityHash = createHmac("sha256", secret).update("password-reset-identity\ 0")
+    .update(address).update("\ 0").update(normalizedEmail).digest("hex");
   const client: PoolClient = await pool.connect();
   let transaction = false;
   let destroy = false;
