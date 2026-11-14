@@ -106,6 +106,14 @@ export interface AccountProfile {
   role: "admin" | "editor" | "analyst" | "viewer";
 }
 
+export interface AccountSession {
+  id: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
 export interface OrganizationMember {
   membershipId: string;
   userId: string;
@@ -243,6 +251,8 @@ export const api = {
   updateAccount: (fullName: string) => send<AccountProfile>("account", "PATCH", { fullName }),
   changePassword: (currentPassword: string, newPassword: string) =>
     send<void>("account/password", "POST", { currentPassword, newPassword }),
+  accountSessions: (signal?: AbortSignal) => get<{ sessions: AccountSession[] }>("account/sessions", {}, signal),
+  revokeAccountSession: (id: string) => send<void>(`account/sessions/${id}`, "DELETE"),
 
   organization: (signal?: AbortSignal) => get<OrganizationSettings>("organization", {}, signal),
   updateOrganization: (name: string) => send<OrganizationSettings>("organization", "PATCH", { name }),
