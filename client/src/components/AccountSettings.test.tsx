@@ -70,7 +70,7 @@ describe("Impostazioni account", () => {
     fireEvent.click(screen.getByRole("button", { name: "Revoca" }));
     await waitFor(() => expect(api.revokeAccountSession).toHaveBeenCalledWith("session-other"));
     expect(confirm).toHaveBeenCalled();
-    expect(await screen.findByRole("status")).toHaveTextContent("Sessione revocata.");
+    expect((await screen.findByRole("status")).textContent).toContain("Sessione revocata.");
     confirm.mockRestore();
   });
 
