@@ -66,6 +66,12 @@ describe("PostgreSQL session repository", () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({ current: true });
     expect(sessions[0]?.id).toMatch(/^[0-9a-f-]{36}$/i);
+    await expect(listPostgresAccountSessions(pool!, organizationId, "efefefef-efef-4fef-8fef-efefefefefef", issued.token))
+      .resolves.toEqual([]);
+    await expect(revokePostgresAccountSession(pool!, organizationId, "efefefef-efef-4fef-8fef-efefefefefef", sessions[0]!.id))
+      .resolves.toBeNull();
+    await expect(revokePostgresAccountSession(pool!, "abababab-abab-4bab-8bab-abababababab", userId, sessions[0]!.id))
+      .resolves.toBeNull();
     await expect(revokePostgresAccountSession(pool!, organizationId, userId, sessions[0]!.id))
       .resolves.toMatch(/^[a-f0-9]{64}$/);
     await expect(resolvePostgresSession(pool!, issued.token)).resolves.toBeNull();
