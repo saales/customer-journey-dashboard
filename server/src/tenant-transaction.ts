@@ -1,11 +1,12 @@
 import type { Pool, PoolClient } from "pg";
 
+export type TenantTransactionOptions = {
+  isolationLevel?: "READ COMMITTED" | "REPEATABLE READ";
+};
+
 /**
  * Esegue un'unità di lavoro sullo stesso client PostgreSQL, impostando
  * l'organizzazione come parametro locale alla transazione.
- *
- * Il contesto non sopravvive al COMMIT/ROLLBACK e quindi non deve contaminare
- * una successiva richiesta che riutilizzi la stessa connessione del pool.
  *
  * L'organizationId deve provenire dal contesto autenticato lato server,
  * mai direttamente da input del client.
@@ -14,6 +15,7 @@ export async function withTenantTransaction<T>(
   pool: Pick<Pool, "connect">,
   organizationId: string,
   work: (client: PoolClient) => Promise<T>,
+  options: TenantTransactionOptions = {},
 ): Promise<T> {
   if (!organizationId.trim()) {
     throw new Error("Contesto organizzazione mancante.");
@@ -26,6 +28,11 @@ export async function withTenantTransaction<T>(
   try {
     await client.query("BEGIN");
     transactionStarted = true;
+
+    if (options.isolationLevel === "REPEATABLE READ") {
+      // Must be set before the first query that can establish the snapshot.
+      await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+    }
 
     await client.query(
       "SELECT set_config('app.current_organization_id', $1, true)",
