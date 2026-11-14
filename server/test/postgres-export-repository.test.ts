@@ -45,7 +45,7 @@ describe("exportPostgresCustomersCsv", () => {
     const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
     await expect(exportPostgresCustomersCsv(pool, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"))
       .rejects.toMatchObject({ status: 413 });
-    expect(query).toHaveBeenCalledTimes(4);
+    expect(query).toHaveBeenCalledTimes(5);
   });
   it("esporta i dati organizzativi completi senza includere segreti", async () => {
     const calls: { sql: string; values?: unknown[] }[] = [];
