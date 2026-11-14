@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from "pg";
 import { createSessionToken, hashSessionToken } from "./postgres-session-resolver.js";
+import { withTenantTransaction } from "./tenant-transaction.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DEFAULT_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -97,4 +98,59 @@ export async function revokePostgresSession(
   } finally {
     client.release();
   }
+}
+
+
+export interface PostgresSessionSummary {
+  id: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
+/** Lists only sessions belonging to the authenticated user and active tenant. */
+export async function listPostgresAccountSessions(
+  pool: Pick<Pool, "connect">, organizationId: string, userId: string, currentToken: string,
+): Promise<PostgresSessionSummary[]> {
+  const currentHash = hashSessionToken(currentToken);
+  return withTenantTransaction(pool, organizationId, async client => {
+    const result = await client.query<PostgresSessionSummary>(
+      `SELECT id::text AS id,
+              created_at AS "createdAt",
+              last_used_at AS "lastUsedAt",
+              expires_at AS "expiresAt",
+              token_hash = $3 AS current
+       FROM sessions
+       WHERE organization_id = $1::uuid AND user_id = $2::uuid
+         AND expires_at > NOW()
+         AND last_used_at > NOW() - INTERVAL '30 minutes'
+       ORDER BY last_used_at DESC
+       LIMIT 50`,
+      [organizationId, userId, currentHash],
+    );
+    return result.rows;
+  });
+}
+
+/** Revokes a session only within the caller's user and tenant boundary. */
+export async function revokePostgresAccountSession(
+  pool: Pick<Pool, "connect">, organizationId: string, userId: string, sessionId: string,
+): Promise<string | null> {
+  if (!UUID_RE.test(sessionId)) return null;
+  return withTenantTransaction(pool, organizationId, async client => {
+    const result = await client.query<{ tokenHash: string }>(
+      `DELETE FROM sessions
+       WHERE id = $1::uuid AND organization_id = $2::uuid AND user_id = $3::uuid
+       RETURNING token_hash AS "tokenHash"`,
+      [sessionId, organizationId, userId],
+    );
+    if (!result.rows[0]) return null;
+    await client.query(
+      `INSERT INTO audit_logs(organization_id,actor_user_id,action,resource_type,resource_id,details)
+       VALUES($1::uuid,$2::uuid,'account.session_revoked','session',$3::text,'{}'::jsonb)`,
+      [organizationId, userId, sessionId],
+    );
+    return result.rows[0].tokenHash;
+  });
 }
