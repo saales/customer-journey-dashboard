@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Pool, PoolClient } from "pg";
-import { exportPostgresCustomersCsv } from "../src/postgres-export-repository.js";
+import { exportPostgresCustomersCsv, exportPostgresOrganizationJson } from "../src/postgres-export-repository.js";
 function mockPool(rows: unknown[]) {
   const query = vi.fn(async (_sql: string, _values?: unknown[]) => ({ rows }));
   const client = { query, release: vi.fn() } as unknown as PoolClient;
@@ -35,4 +35,52 @@ describe("exportPostgresCustomersCsv", () => {
     expect(result.csv).toContain("'-1");
     expect(mock.query.mock.calls.some(([statement]) => String(statement).includes("INSERT INTO audit_logs"))).toBe(true);
   });
+  it("esporta i dati organizzativi completi senza includere segreti", async () => {
+    const calls: { sql: string; values?: unknown[] }[] = [];
+    const client = {
+      query: vi.fn(async (sql: string, values?: unknown[]) => {
+        calls.push({ sql, values });
+        if (sql.includes("FROM organizations")) return { rows: [{ id: "11111111-1111-4111-8111-111111111111", name: "Azienda Demo", slug: "azienda-demo", createdAt: "2026-01-01T00:00:00Z" }] };
+        if (sql.includes("FROM funnel_stages")) return { rows: [{ id: "visit", label: "Visita", position: 0, isActive: true, isSystem: true }] };
+        if (sql.includes("FROM customers")) return { rows: [
+          { id: "5", externalId: "crm-5", channel: "Email", createdAt: "2026-01-02T00:00:00Z", stage: "visit", occurredAt: "2026-01-02T00:00:00Z" },
+          { id: "5", externalId: "crm-5", channel: "Email", createdAt: "2026-01-02T00:00:00Z", stage: "lead", occurredAt: "2026-01-03T00:00:00Z" },
+        ] };
+        if (sql.includes("FROM import_batches")) return { rows: [{ id: "7", fileName: "import.csv", fingerprint: "safe-fingerprint", customerCount: 1, rowCount: 2, importedBy: null, importedAt: "2026-01-04T00:00:00Z" }] };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    const result = await exportPostgresOrganizationJson(pool, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222");
+    expect(result.organization.name).toBe("Azienda Demo");
+    expect(result.customers).toHaveLength(1);
+    expect(result.customers[0]?.events.map(event => event.stage)).toEqual(["visit", "lead"]);
+    expect(result.importBatches[0]?.fileName).toBe("import.csv");
+    expect(JSON.stringify(result)).not.toMatch(/password_hash|token_hash|secret|session/i);
+    const customerQuery = calls.find(call => call.sql.includes("FROM customers"));
+    expect(customerQuery?.sql).toContain("c.organization_id = $1::uuid");
+    expect(customerQuery?.values?.[0]).toBe("11111111-1111-4111-8111-111111111111");
+    const audit = calls.find(call => call.sql.includes("INSERT INTO audit_logs"));
+    expect(audit?.sql).toContain("'data.exported'");
+    expect(audit?.values?.[2]).toContain('"format":"json"');
+  });
+
+  it("rifiuta esportazioni organizzative oltre il limite di righe", async () => {
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes("FROM organizations")) return { rows: [{ id: "11111111-1111-4111-8111-111111111111", name: "Azienda", slug: "azienda", createdAt: "2026-01-01T00:00:00Z" }] };
+        if (sql.includes("FROM funnel_stages")) return { rows: [] };
+        if (sql.includes("FROM customers")) return { rows: Array.from({ length: 100_001 }, (_, index) => ({
+          id: String(index + 1), externalId: `ext-${index}`, channel: "Email", createdAt: "2026-01-01T00:00:00Z", stage: null, occurredAt: null,
+        })) };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    await expect(exportPostgresOrganizationJson(pool, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"))
+      .rejects.toMatchObject({ status: 413 });
+  });
+
 });
