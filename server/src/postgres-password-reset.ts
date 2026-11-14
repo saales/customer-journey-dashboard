@@ -12,18 +12,27 @@ export async function createPostgresPasswordReset(
   pool: Pick<Pool, "connect">, email: string, organizationSlug: string,
 ): Promise<{ token: string; email: string; fullName: string; organizationId: string } | null> {
   const normalized = email.trim().toLowerCase();
-  const client = await pool.connect();
+  const client: PoolClient = await pool.connect();
+  let transaction = false;
+  let destroy = false;
   try {
+    await client.query("BEGIN");
+    transaction = true;
+    // Lock the user row so concurrent reset requests leave only one valid token.
     const found = await client.query<{ id: string; email: string; fullName: string; organizationId: string }>(
       `SELECT u.id::text AS id, u.email, u.full_name AS "fullName", o.id::text AS "organizationId"
        FROM users u
        JOIN memberships m ON m.user_id=u.id AND m.status='active'
        JOIN organizations o ON o.id=m.organization_id AND o.status='active'
        WHERE LOWER(u.email)=$1 AND o.slug=$2 AND u.status='active'
-       LIMIT 1`, [normalized, organizationSlug],
+       LIMIT 1 FOR UPDATE OF u`, [normalized, organizationSlug],
     );
     const user = found.rows[0];
-    if (!user) return null;
+    if (!user) {
+      await client.query("COMMIT");
+      transaction = false;
+      return null;
+    }
     const token = randomBytes(32).toString("base64url");
     await client.query(
       "DELETE FROM password_reset_tokens WHERE user_id=$1::uuid OR expires_at<=NOW()", [user.id],
@@ -33,9 +42,16 @@ export async function createPostgresPasswordReset(
        VALUES($1::uuid,$2::uuid,$3,NOW()+INTERVAL '30 minutes')`,
       [user.id, user.organizationId, digest(token)],
     );
+    await client.query("COMMIT");
+    transaction = false;
     return { token, email: user.email, fullName: user.fullName, organizationId: user.organizationId };
+  } catch (error) {
+    if (transaction) {
+      try { await client.query("ROLLBACK"); } catch { destroy = true; }
+    }
+    throw error;
   } finally {
-    client.release();
+    client.release(destroy);
   }
 }
 
