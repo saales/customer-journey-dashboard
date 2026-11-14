@@ -17,6 +17,17 @@ export async function exportPostgresCustomersCsv(
     throw new Error("Identificativo attore non valido.");
   }
   return withTenantTransaction(pool, organizationId, async (client: PoolClient) => {
+    const countResult = await client.query<{ rowCount: number }>(
+      `SELECT COUNT(*)::int AS "rowCount"
+       FROM customers c
+       LEFT JOIN events e ON e.organization_id = c.organization_id AND e.customer_id = c.id
+       WHERE c.organization_id = $1::uuid`,
+      [organizationId],
+    );
+    const rowCount = Number(countResult.rows[0]?.rowCount ?? 0);
+    if (rowCount > MAX_EXPORT_ROWS) {
+      throw new PostgresExportError(413, "Esportazione troppo ampia: restringere i dati o suddividerli prima di riprovare.");
+    }
     const result = await client.query<{
       id: string; externalId: string; channel: string; createdAt: string;
       stage: string | null; occurredAt: string | null;
@@ -29,13 +40,9 @@ export async function exportPostgresCustomersCsv(
        FROM customers c
        LEFT JOIN events e ON e.organization_id = c.organization_id AND e.customer_id = c.id
        WHERE c.organization_id = $1::uuid
-       ORDER BY c.id DESC, e.occurred_at ASC NULLS LAST, e.id ASC
-       LIMIT $2`,
-      [organizationId, MAX_EXPORT_ROWS + 1],
+       ORDER BY c.id DESC, e.occurred_at ASC NULLS LAST, e.id ASC`,
+      [organizationId],
     );
-    if (result.rows.length > MAX_EXPORT_ROWS) {
-      throw new PostgresExportError(413, "Esportazione troppo ampia: restringere i dati o suddividerli prima di riprovare.");
-    }
     await client.query(
       `INSERT INTO audit_logs
        (organization_id, actor_user_id, action, resource_type, resource_id, details)
@@ -97,17 +104,24 @@ export async function exportPostgresOrganizationJson(
     );
     const customerResult = await client.query<{
       id: string; externalId: string; channel: string; createdAt: string;
-      stage: string | null; occurredAt: string | null;
     }>(
       `SELECT c.id::text AS id, c.external_id AS "externalId", c.channel,
-              to_char(c.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "createdAt",
-              e.stage_id AS stage,
-              CASE WHEN e.id IS NULL THEN NULL ELSE
-                to_char(e.occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') END AS "occurredAt"
+              to_char(c.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "createdAt"
        FROM customers c
-       LEFT JOIN events e ON e.organization_id = c.organization_id AND e.customer_id = c.id
        WHERE c.organization_id = $1::uuid
-       ORDER BY c.id ASC, e.occurred_at ASC NULLS LAST, e.id ASC
+       ORDER BY c.id ASC
+       LIMIT $2`,
+      [organizationId, MAX_EXPORT_ROWS + 1],
+    );
+    const eventResult = await client.query<{
+      customerId: string; stage: string; occurredAt: string;
+    }>(
+      `SELECT e.customer_id::text AS "customerId", e.stage_id AS stage,
+              to_char(e.occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "occurredAt"
+       FROM events e
+       INNER JOIN customers c ON c.organization_id = e.organization_id AND c.id = e.customer_id
+       WHERE e.organization_id = $1::uuid AND c.organization_id = $1::uuid
+       ORDER BY e.customer_id ASC, e.occurred_at ASC, e.id ASC
        LIMIT $2`,
       [organizationId, MAX_EXPORT_ROWS + 1],
     );
@@ -121,17 +135,17 @@ export async function exportPostgresOrganizationJson(
       [organizationId, MAX_EXPORT_ROWS + 1],
     );
     assertExportLimit(stagesResult.rows.length, "fasi");
-    assertExportLimit(customerResult.rows.length, "clienti ed eventi");
+    assertExportLimit(customerResult.rows.length, "clienti");
+    assertExportLimit(eventResult.rows.length, "eventi");
     assertExportLimit(importResult.rows.length, "importazioni");
 
     const customers = new Map<string, PostgresOrganizationExport["customers"][number]>();
     for (const row of customerResult.rows) {
-      let customer = customers.get(row.id);
-      if (!customer) {
-        customer = { id: row.id, externalId: row.externalId, channel: row.channel, createdAt: row.createdAt, events: [] };
-        customers.set(row.id, customer);
-      }
-      if (row.stage !== null && row.occurredAt !== null) customer.events.push({ stage: row.stage, occurredAt: row.occurredAt });
+      customers.set(row.id, { id: row.id, externalId: row.externalId, channel: row.channel, createdAt: row.createdAt, events: [] });
+    }
+    for (const row of eventResult.rows) {
+      const customer = customers.get(row.customerId);
+      if (customer) customer.events.push({ stage: row.stage, occurredAt: row.occurredAt });
     }
     const exported: PostgresOrganizationExport = {
       schemaVersion: 1,
