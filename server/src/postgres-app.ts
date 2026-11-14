@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
+import { PostgresValidationError } from "./validation-error.js";
 import { createPostgresApiRateLimitMiddleware } from "./postgres-api-rate-limit.js";
 import { exportPostgresCustomersCsv, exportPostgresOrganizationJson, PostgresExportError } from "./postgres-export-repository.js";
 import { listOrganizationMembers, updateOrganizationMember, MemberManagementError } from "./postgres-members-repository.js";
@@ -644,6 +645,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       res.status(400).json({ error: "Il corpo JSON non è valido." });
       return;
     }
+    if (error instanceof PostgresValidationError) { res.status(error.status).json({ error: error.message }); return; }
     if (error instanceof MemberManagementError) { res.status(error.status).json({ error: error.message }); return; }
     if (error instanceof ApiError) {
       res.status(error.status).json({ error: error.message });
