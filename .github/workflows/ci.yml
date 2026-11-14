@@ -46,6 +46,11 @@ jobs:
           cache: npm
       - run: npm ci
 
+      - name: Validate staging script syntax
+        run: |
+          bash -n scripts/staging/*.sh
+          node --check scripts/staging/smoke.mjs
+
       # Keep dependency findings visible in PR CI without masking the test/build result.
       - name: Audit npm dependencies
         run: |
