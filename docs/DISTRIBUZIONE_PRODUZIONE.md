@@ -7,7 +7,6 @@
 - Ruolo owner separato dal ruolo runtime `percorso_app` (NOINHERIT, non superuser, senza BYPASSRLS).
 - `DATABASE_URL`, `APP_ORIGIN` HTTPS e `LOGIN_RATE_LIMIT_SECRET` configurati come secret di ambiente.
 - Per recupero password e inviti automatici: `RESEND_API_KEY` e `EMAIL_FROM` configurati; senza questi valori gli inviti restano condivisibili manualmente e il recupero password non invia email.
-- Per recupero password e inviti automatici: `RESEND_API_KEY` e `EMAIL_FROM` configurati; senza questi valori gli inviti restano condivisibili manualmente e il recupero password non invia email.
 - `TRUSTED_PROXY_IPS` valorizzato con gli IP/CIDR esatti dei reverse proxy fidati; lasciare vuoto solo se il processo riceve direttamente il traffico client.
 - DNS, TLS, reverse proxy e monitoraggio pronti.
 
