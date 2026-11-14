@@ -40,9 +40,11 @@ export async function exportPostgresCustomersCsv(
        FROM customers c
        LEFT JOIN events e ON e.organization_id = c.organization_id AND e.customer_id = c.id
        WHERE c.organization_id = $1::uuid
-       ORDER BY c.id DESC, e.occurred_at ASC NULLS LAST, e.id ASC`,
-      [organizationId],
+       ORDER BY c.id DESC, e.occurred_at ASC NULLS LAST, e.id ASC
+       LIMIT $2`,
+      [organizationId, MAX_EXPORT_ROWS + 1],
     );
+    assertExportLimit(result.rows.length, "clienti ed eventi");
     await client.query(
       `INSERT INTO audit_logs
        (organization_id, actor_user_id, action, resource_type, resource_id, details)
