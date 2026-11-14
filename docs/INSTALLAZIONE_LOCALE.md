@@ -100,7 +100,10 @@ Il server controlla all'avvio lo storico migrazioni e la sicurezza del ruolo; se
 ```bash
 npm test
 npm run build
+npm run db:verify-readonly -w server -- --expect-database percorso_local --allow-no-ssl
 ```
+
+Il verificatore read-only controlla identità del database, TLS, tabelle, policy RLS e relativi predicati tenant, privilegi del ruolo runtime e checksum delle migrazioni. In locale `--allow-no-ssl` trasforma l'assenza di TLS in avviso; per staging/produzione non usare questa opzione. Il comando non applica migrazioni e non legge righe applicative.
 
 I test d'integrazione PostgreSQL richiedono un database di test dedicato configurato secondo le variabili lette da `server/test/helpers/http-test-environment.ts`. Non puntare mai i test a un database contenente dati reali.
 
