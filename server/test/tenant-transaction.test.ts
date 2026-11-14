@@ -162,4 +162,21 @@ describe("withTenantTransaction", () => {
     expect(mock.release).toHaveBeenCalledWith(true);
   });
 
+  it("imposta REPEATABLE READ prima del contesto tenant e del lavoro", async () => {
+    const mock = createPoolMock();
+    const work = vi.fn().mockResolvedValue("snapshot");
+
+    await expect(
+      withTenantTransaction(mock.pool, "org-a", work, { isolationLevel: "REPEATABLE READ" }),
+    ).resolves.toBe("snapshot");
+
+    expect(mock.query.mock.calls).toEqual([
+      ["BEGIN"],
+      ["SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"],
+      ["SELECT set_config('app.current_organization_id', $1, true)", ["org-a"]],
+      ["COMMIT"],
+    ]);
+    expect(work).toHaveBeenCalledWith(mock.client);
+  });
+
 });
