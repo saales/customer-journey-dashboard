@@ -84,6 +84,26 @@ describe("exportPostgresCustomersCsv", () => {
     expect(audit?.values?.[2]).toContain('"format":"json"');
   });
 
+  it("rifiuta il JSON se un singolo cliente supera il limite di eventi", async () => {
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes("FROM organizations")) return { rows: [{ id: "11111111-1111-4111-8111-111111111111", name: "Azienda", slug: "azienda", createdAt: "2026-01-01T00:00:00Z" }] };
+        if (sql.includes("FROM funnel_stages")) return { rows: [] };
+        if (sql.includes("FROM customers")) return { rows: [
+          { id: "1", externalId: "crm-1", channel: "Email", createdAt: "2026-01-01T00:00:00Z" },
+        ] };
+        if (sql.includes("FROM events")) return { rows: Array.from({ length: 100_001 }, (_, index) => ({
+          customerId: "1", stage: "visit", occurredAt: `2026-01-01T00:00:${String(index % 60).padStart(2, "0")}Z`,
+        })) };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    await expect(exportPostgresOrganizationJson(pool, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"))
+      .rejects.toMatchObject({ status: 413 });
+  });
+
   it("rifiuta esportazioni organizzative oltre il limite di righe", async () => {
     const client = {
       query: vi.fn(async (sql: string) => {
