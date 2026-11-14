@@ -99,6 +99,8 @@ jobs:
         run: npm run db:migrate
       - name: Verify migration history and checksums
         run: npm run db:migrate -- --check
+      - name: Verify effective tenant RLS policies
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/staging/verify-rls-policy-shapes.sql
       - name: Start PostgreSQL runtime with restricted role
         env:
           DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
