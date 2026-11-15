@@ -283,7 +283,7 @@ export function createPostgresAuthRouter(
         const reset = await createPostgresPasswordReset(pool, body.email, body.organizationSlug);
         if (reset) {
           const link = new URL("/", req.get("Origin")!);
-          link.searchParams.set("reset", reset.token);
+          link.hash = new URLSearchParams({ reset: reset.token }).toString();
           const safeName = reset.fullName.replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));
           try {
             await sendPostgresTransactionalEmail({
