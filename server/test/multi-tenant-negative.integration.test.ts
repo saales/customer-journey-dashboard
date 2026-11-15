@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import type { PoolClient } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createHttpTestEnvironment, integrationDatabaseUrl, type HttpTestEnvironment,
@@ -93,6 +94,18 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     }
   });
 
+  async function withTenant<T>(organizationId: string, work: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await env.runtimePool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.current_organization_id', $1, true)", [organizationId]);
+      return await work(client);
+    } finally {
+      await client.query("ROLLBACK").catch(() => undefined);
+      client.release();
+    }
+  }
+
   const importRow = (externalId: string, overrides: Partial<{
     channel: string; createdAt: string; stage: string; occurredAt: string;
   }> = {}) => ({
@@ -175,6 +188,28 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     const memberships = await env.adminPool.query("SELECT id FROM memberships WHERE organization_id=$1 AND user_id IN (SELECT id FROM users WHERE email IN ('expired-invite@example.test','revoked-invite@example.test'))", [a().id]);
     expect(users.rowCount).toBe(0);
     expect(memberships.rowCount).toBe(0);
+  });
+  it("con contesto A RLS nasconde, non aggiorna e non cancella righe di B", async () => {
+    const before = await env.adminPool.query("SELECT channel FROM customers WHERE organization_id=$1 AND id=$2", [b().id, b().customerIds[0]]);
+    await withTenant(a().id, async (client) => {
+      expect((await client.query("SELECT id FROM customers WHERE organization_id=$1", [b().id])).rowCount).toBe(0);
+      expect((await client.query("UPDATE customers SET channel='Email' WHERE organization_id=$1 RETURNING id", [b().id])).rowCount).toBe(0);
+      expect((await client.query("DELETE FROM events WHERE organization_id=$1 RETURNING id", [b().id])).rowCount).toBe(0);
+    });
+    const after = await env.adminPool.query("SELECT channel FROM customers WHERE organization_id=$1 AND id=$2", [b().id, b().customerIds[0]]);
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("con contesto A la policy WITH CHECK rifiuta INSERT nel tenant B", async () => {
+    await expect(withTenant(a().id, (client) => client.query(
+      "INSERT INTO customers (organization_id,external_id,channel,created_at) VALUES ($1,'rls-cross-tenant-probe','Email',NOW())", [b().id],
+    ))).rejects.toMatchObject({ code: "42501" });
+  });
+
+  it("la FK composita impedisce a un evento di A di referenziare un cliente di B", async () => {
+    await expect(withTenant(a().id, (client) => client.query(
+      "INSERT INTO events (organization_id,customer_id,stage_id,occurred_at) VALUES ($1,$2::bigint,'visit',NOW())", [a().id, b().customerIds[0]],
+    ))).rejects.toMatchObject({ code: "23503" });
   });
   it("il ruolo runtime senza contesto tenant non legge righe e non può modificare dati di B", async () => {
     const visible = await env.runtimePool.query("SELECT id FROM customers");
