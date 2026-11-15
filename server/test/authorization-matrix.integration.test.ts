@@ -55,4 +55,44 @@ describe.skipIf(!dbUrl)("Matrice autorizzazioni HTTP per ruolo",()=>{
     expect(response.text).not.toContain("only-b-2");
     expect(response.text).not.toContain("tenant-b");
   });
+
+  it("isola letture di clienti, funnel, membri e audit e ignora l'organizzazione fornita dal client nell'import",async()=>{
+    const tenantB=env.tenants.B;
+    const tenantA=env.tenants.A;
+    const position=await env.adminPool.query<{next:number}>(
+      "SELECT COALESCE(MAX(position),-1)::int+1 AS next FROM funnel_stages WHERE organization_id=$1",
+      [tenantB.id],
+    );
+    await env.adminPool.query(
+      "INSERT INTO funnel_stages(organization_id,id,label,position,is_active,is_system) VALUES($1,'tenant_b_only','Solo Tenant B',$2,TRUE,FALSE)",
+      [tenantB.id,position.rows[0]!.next],
+    );
+    await env.adminPool.query(
+      "INSERT INTO audit_logs(organization_id,actor_user_id,action,resource_type,resource_id,details) VALUES($1,$2,'customer.created','customer','tenant-b-audit-sentinel',$3::jsonb)",
+      [tenantB.id,tenantB.users.admin.id,JSON.stringify({marker:"tenant-b-audit-sentinel"})],
+    );
+
+    const customers=await env.request("GET","/api/customers",{token:tenantA.users.admin.token});
+    const stages=await env.request("GET","/api/funnel-stages",{token:tenantA.users.admin.token});
+    const members=await env.request("GET","/api/members",{token:tenantA.users.admin.token});
+    const audit=await env.request("GET","/api/audit",{token:tenantA.users.admin.token});
+    expect(customers.text).not.toContain("only-b-2");
+    expect(stages.text).not.toContain("Solo Tenant B");
+    expect(members.text).not.toContain("admin.b@example.test");
+    expect(audit.text).not.toContain("tenant-b-audit-sentinel");
+
+    const imported=await env.request("POST","/api/import",{
+      token:tenantA.users.admin.token,
+      body:{
+        fileName:"tenant-b-target.csv",
+        organizationId:tenantB.id,
+        rows:[{externalId:"cross-org-import-probe",channel:"Email",createdAt:"2026-01-15",stage:"visit",occurredAt:"2026-01-15"}],
+      },
+    });
+    expect(imported.status).toBe(201);
+    const counts=await env.adminPool.query<{organizationId:string;count:string}>(
+      "SELECT organization_id::text AS \"organizationId\",COUNT(*)::text AS count FROM customers WHERE external_id='cross-org-import-probe' GROUP BY organization_id",
+    );
+    expect(counts.rows).toEqual([{organizationId:tenantA.id,count:"1"}]);
+  });
 });
