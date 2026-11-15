@@ -7,7 +7,7 @@
 - Base: `recovery/checkpoint-12-postgres`
 - Database applicativo: PostgreSQL
 - Database remoto/Neon: non verificato in questa attività; nessuna migrazione, scrittura o modifica remota eseguita
-- Ultimo commit di codice verificato: `d2a7125be3805da833069d8e0df6c15a20d2d300`
+- Ultimo commit con CI completa verificata: `f4b2d6cbc8d1c3c7e503b20168c27438669df080` (successivo aggiornamento di documentazione in PR; CI del nuovo head in corso al momento dell'aggiornamento)
 
 ## CI verificata
 
@@ -15,7 +15,7 @@ Run [43699864674](https://github.com/saales/customer-journey-dashboard/actions/r
 
 | Controllo | Risultato |
 |---|---:|
-| Test server | 37 file, 171 test superati |
+| Test server | 41 file, 192 test superati |
 | Test client | 11 file, 41 test superati |
 | Playwright/Chromium su Node.js 22 | 1 test E2E superato |
 | npm audit | 0 vulnerabilità segnalate |
@@ -46,6 +46,8 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 - Ruoli e permessi organizzativi, membership, audit e isolamento tenant.
 - Import, CSV e export JSON tenant-scoped.
 - Backup/restore staging con manifest SHA-256 e controlli di destinazione.
+- CLI amministrativa per anteprima/cancellazione tenant con conferme esplicite; test di anteprima, cancellazione, isolamento, utente condiviso, ruolo runtime e rollback.
+- Test d'integrazione del ciclo di vita HTTP delle sessioni e del rate limit API configurabile.
 - Smoke test staging e controlli RLS.
 - Controlli di validazione e regressione frontend/API.
 
@@ -58,7 +60,7 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 5. Eseguire test di carico, osservabilità, allarmi, rotazione log e verifica dei limiti di connessione PostgreSQL.
 6. Documentare rollback applicativo e piano di ripristino compatibile con le migrazioni.
 7. Completare revisione privacy/contrattuale e definire onboarding, supporto, prezzi, piani e fatturazione se il servizio viene venduto come SaaS.
-8. Progettare ed eventualmente implementare una procedura sicura di cancellazione tenant. Nel ramo non è presente un comando dedicato con guardrail certificati: non effettuare cancellazioni manuali su ambienti reali.
+8. La procedura CLI di cancellazione tenant è stata recuperata e rafforzata con lock transazionale, conferma database/slug e conferma operatore del backup; sono stati aggiunti test d'integrazione. Restano da revisionare i casi limite e da provare esclusivamente su database usa-e-getta prima di considerarla operativa. Non eseguire cancellazioni su ambienti reali.
 
 ## Decisione
 
