@@ -19,6 +19,7 @@ Questo documento definisce le condizioni da soddisfare prima di promuovere Perco
 - [ ] Verifica RLS su tutte le tabelle tenant: RLS abilitata, policy attese presenti e predicati USING/WITH CHECK coerenti.
 - [ ] Ruolo runtime non proprietario, NOINHERIT, senza SUPERUSER/BYPASSRLS/CREATEDB/CREATEROLE e senza privilegi distruttivi non necessari.
 - [ ] Sessioni: scadenza, revoca, logout, rotazione e cambio password verificati.
+- [ ] MFA o SSO per gli account privilegiati attivato oppure rischio residuo formalmente valutato e accettato prima del pilot.
 - [ ] Nessun dato sensibile nei log o nelle risposte d'errore.
 
 ## C. Database e recupero
