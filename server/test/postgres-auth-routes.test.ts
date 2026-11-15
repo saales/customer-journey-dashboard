@@ -77,6 +77,26 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
     expect(query).toHaveBeenCalledWith(expect.stringContaining("updated_at < NOW() - INTERVAL '30 days'"));
   });
 
+  it("applica il limite di recupero alla stessa email da IP differenti", async () => {
+    const values: unknown[][] = [];
+    const query = vi.fn(async (sql: string, params?: unknown[]) => {
+      if (sql.includes("RETURNING attempts <= $2")) {
+        values.push(params ?? []);
+        return { rows: [{ allowed: true }], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+    const client = { query, release: vi.fn() } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    await consumePostgresPasswordResetAttempt(pool, "s".repeat(40), "203.0.113.10", " USER@example.test ");
+    const firstEmailBucket = values[1]?.[0];
+    const firstIpBucket = values[0]?.[0];
+    values.length = 0;
+    await consumePostgresPasswordResetAttempt(pool, "s".repeat(40), "203.0.113.99", "user@example.test");
+    expect(values[1]?.[0]).toBe(firstEmailBucket);
+    expect(values[0]?.[0]).not.toBe(firstIpBucket);
+  });
+
   it("blocca il recupero password quando il bucket email è esaurito", async () => {
     const query = vi.fn(async (sql: string, params?: unknown[]) => {
       if (sql.includes("RETURNING attempts <= $2")) {
@@ -104,10 +124,11 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
     const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
     await consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.10", " USER@example.test ");
     const firstAccountBucket = values[2]?.[0];
+    const firstIpBucket = values[0]?.[0];
     values.length = 0;
     await consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.99", "user@example.test");
     expect(values[2]?.[0]).toBe(firstAccountBucket);
-    expect(values[0]?.[0]).not.toBe(values[0]?.[0] === firstAccountBucket ? firstAccountBucket : values[0]?.[0]);
+    expect(values[0]?.[0]).not.toBe(firstIpBucket);
   });
 
   it("blocca tutte le email quando il bucket IP supera il limite", async () => {
