@@ -8,17 +8,18 @@ const KEY_LENGTH = 64;
 const SALT_LENGTH = 16;
 const SCRYPT_N = 32_768;
 const SCRYPT_R = 8;
-const SCRYPT_P = 1;
+const SCRYPT_P = 3;
+const SUPPORTED_SCRYPT_P = [1, SCRYPT_P] as const;
 const MAXMEM = 64 * 1024 * 1024;
 const FORMAT = "scrypt";
 
-function deriveKey(password: string, salt: Buffer): Promise<Buffer> {
+function deriveKey(password: string, salt: Buffer, parallelization = SCRYPT_P): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     scryptCallback(
       password,
       salt,
       KEY_LENGTH,
-      { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: MAXMEM },
+      { N: SCRYPT_N, r: SCRYPT_R, p: parallelization, maxmem: MAXMEM },
       (error, derivedKey) => error ? reject(error) : resolve(derivedKey as Buffer),
     );
   });
@@ -44,10 +45,12 @@ export async function verifyPassword(password: string, encoded: string): Promise
     return false;
   }
   const parts = encoded.split("$");
+  const encodedParallelization = Number(parts[3]);
   if (parts.length !== 6 || parts[0] !== FORMAT ||
       parts[1] !== String(SCRYPT_N) ||
       parts[2] !== String(SCRYPT_R) ||
-      parts[3] !== String(SCRYPT_P)) {
+      !SUPPORTED_SCRYPT_P.includes(encodedParallelization as (typeof SUPPORTED_SCRYPT_P)[number]) ||
+      parts[3] !== String(encodedParallelization)) {
     return false;
   }
 
@@ -61,6 +64,18 @@ export async function verifyPassword(password: string, encoded: string): Promise
   }
   if (salt.length !== SALT_LENGTH || expected.length !== KEY_LENGTH) return false;
 
-  const actual = await deriveKey(password, salt);
+  const actual = await deriveKey(password, salt, encodedParallelization);
   return timingSafeEqual(actual, expected);
+}
+
+
+/** True when a verified legacy hash should be upgraded on the next successful authentication. */
+export function needsPasswordRehash(encoded: string): boolean {
+  if (typeof encoded !== "string" || encoded.length > 256) return false;
+  const parts = encoded.split("$");
+  if (parts.length !== 6 || parts[0] !== FORMAT ||
+      parts[1] !== String(SCRYPT_N) || parts[2] !== String(SCRYPT_R)) return false;
+  const parallelization = Number(parts[3]);
+  return SUPPORTED_SCRYPT_P.includes(parallelization as (typeof SUPPORTED_SCRYPT_P)[number]) &&
+    parts[3] === String(parallelization) && parallelization !== SCRYPT_P;
 }
