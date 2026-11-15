@@ -80,3 +80,14 @@ Prima di un rilascio commerciale sono ancora necessari:
 - revisione indipendente di sicurezza e valutazione privacy/contrattuale.
 
 Nessuna operazione remota, migrazione su Neon o deploy è implicata dal superamento della CI. Il gate vincolante è `docs/GATE_RILASCIO.md`.
+
+
+## Autenticazione, credenziali e sessioni
+
+Le password sono memorizzate con scrypt, salt casuale da 16 byte e derivazione da 64 byte. Le nuove credenziali usano `N=32768`, `r=8`, `p=3`. Gli hash legacy `p=1` restano verificabili e vengono aggiornati al parametro corrente al successivo accesso riuscito o accettazione di un invito, senza richiedere un reset forzato.
+
+Per ridurre l'enumerazione degli account tramite tempi di risposta, un'identità non trovata esegue una verifica scrypt fittizia. Il login applica limiti per IP, coppia IP/email e account; il recupero password applica limiti per IP e indirizzo email. I token di invito e recupero sono monouso, persistiti solo come hash e consegnati nei frammenti URL; il client li rimuove dalla barra indirizzi dopo averli acquisiti e mantiene la compatibilità con i vecchi link query.
+
+La verifica della password e la creazione della sessione sono separate nel tempo: per evitare che una password appena sostituita consenta una sessione tardiva, il repository blocca la riga utente, ricontrolla l'hash esatto verificato e, se necessario, aggiorna l'hash legacy e inserisce la sessione nella stessa transazione. Un reset o cambio password concorrente si serializza rispetto a questa operazione.
+
+In produzione lo startup verifica tramite `pg_stat_ssl` che la connessione PostgreSQL effettiva sia cifrata con TLS; in caso contrario il processo non si avvia. La pulizia dei bucket di rate limiting e dei token di recupero scaduti è disponibile tramite `npm run db:cleanup-login-attempts` e deve essere schedulata giornalmente. Prima del pilot è richiesto anche un controllo esplicito su MFA/SSO per gli account privilegiati, come indicato nel gate di rilascio.
