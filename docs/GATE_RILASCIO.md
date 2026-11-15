@@ -31,6 +31,21 @@ Questo documento definisce le condizioni da soddisfare prima di promuovere Perco
 - [ ] RPO/RTO definiti e prova di ripristino documentata.
 - [ ] Procedura di cancellazione tenant testata solo su fixture/database sacrificabile, con doppia conferma e ricevuta.
 
+### Procedura controllata di cancellazione tenant
+
+La cancellazione è un'operazione amministrativa irreversibile. Il comando CLI usa `TENANT_ADMIN_DATABASE_URL` con il ruolo proprietario; non va mai eseguito con le credenziali del runtime HTTP.
+
+1. Creare un backup con manifest e checksum.
+2. Ripristinare il backup su un database isolato e verificare che sia leggibile.
+3. Eseguire prima l'anteprima, senza `--execute`:
+   `npm run db:delete-tenant -- --slug <slug> --confirm-database <database>`
+4. Verificare database, slug e conteggi dell'anteprima; archiviare l'output.
+5. Solo dopo la prova di ripristino, l'operatore può eseguire:
+   `npm run db:delete-tenant -- --slug <slug> --confirm-database <database> --execute --confirm-slug <slug> --confirm-backup`
+6. Archiviare la ricevuta JSON della cancellazione nel registro evidenze. La ricevuta include i conteggi, gli utenti eliminati e quelli conservati.
+
+`--confirm-backup` è una conferma esplicita dell'operatore: il programma non certifica né verifica automaticamente l'esistenza o la validità del backup. La procedura non è stata autorizzata né eseguita su Neon o produzione.
+
 ## D. Esercizio e infrastruttura
 
 - [ ] Ambiente staging separato da produzione.
