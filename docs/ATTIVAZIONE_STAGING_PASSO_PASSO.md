@@ -93,6 +93,34 @@ Non inviare password, URL completi, chiavi API, certificati privati o dati perso
 10. Eseguire backup e restore reali, verificare health check, log, allarmi e limiti sotto carico.
 11. Registrare tutte le evidenze e chiudere i gap privacy/contrattuali prima di un pilot con dati reali.
 
+### File credenziali locale per lo smoke test
+
+Dopo aver creato in staging il tenant principale con i quattro account (admin, editor, analyst, viewer) e un secondo tenant con un account admin, preparare localmente `credentials.json` con questa struttura:
+
+```json
+{
+  "organizationSlug": "tenant-principale",
+  "users": {
+    "admin": { "email": "admin@example.test", "password": "PASSWORD_LOCALE" },
+    "editor": { "email": "editor@example.test", "password": "PASSWORD_LOCALE" },
+    "analyst": { "email": "analyst@example.test", "password": "PASSWORD_LOCALE" },
+    "viewer": { "email": "viewer@example.test", "password": "PASSWORD_LOCALE" }
+  },
+  "otherTenant": {
+    "organizationSlug": "tenant-secondario",
+    "admin": { "email": "admin-secondario@example.test", "password": "PASSWORD_LOCALE" }
+  }
+}
+```
+
+Usare password di test dedicate, non riutilizzare credenziali personali. Il file deve restare fuori da Git e avere permessi locali restrittivi. Lo smoke test si esegue dalla root del repository:
+
+```bash
+STAGING_URL=https://staging.example.it scripts/staging/run-smoke.sh --credentials ./credentials.json --seed --evidence-dir ./evidence
+```
+
+Il flag `--seed` importa dati sintetici nel tenant principale. Le evidenze JSON non devono contenere segreti; prima di condividerle verificare che non includano dati personali.
+
 ## Regole di sicurezza
 
 - Non eseguire bootstrap, migrazioni, cancellazioni tenant o restore su produzione durante la preparazione dello staging.
