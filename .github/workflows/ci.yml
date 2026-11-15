@@ -1,3 +1,4 @@
+# Integration suite includes tenant-scoped import and invitation regression coverage.
 name: CI
 
 on:
