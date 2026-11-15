@@ -73,6 +73,69 @@ describe.skipIf(!dbUrl)("Matrice autorizzazioni HTTP per ruolo",()=>{
     expect(response.text).not.toContain("tenant-b");
   });
 
+  it("un amministratore non può modificare la membership di un altro tenant",async()=>{
+    const target=env.tenants.B.users.viewer.membershipId;
+    const before=await env.adminPool.query<{role:string;status:string;organizationId:string}>(
+      "SELECT role,status,organization_id::text AS \"organizationId\" FROM memberships WHERE id=$1",[target],
+    );
+    const response=await env.request("PATCH",`/api/members/${target}`,{
+      token:env.tenants.A.users.admin.token,body:{role:"analyst",status:"suspended"},
+    });
+    expect(response.status).toBe(404);
+    const after=await env.adminPool.query<{role:string;status:string;organizationId:string}>(
+      "SELECT role,status,organization_id::text AS \"organizationId\" FROM memberships WHERE id=$1",[target],
+    );
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("un tenant non può elencare né revocare gli inviti di un altro tenant",async()=>{
+    const email="cross-tenant-invitation@example.test";
+    const created=await env.request<{invitation:{id:string}}> ("POST","/api/invitations",{
+      token:env.tenants.A.users.admin.token,body:{email,role:"editor"},
+    });
+    expect(created.status).toBe(201);
+    const invitationId=created.body.invitation.id;
+    const listB=await env.request("GET","/api/invitations",{token:env.tenants.B.users.admin.token});
+    expect(listB.status).toBe(200);
+    expect(listB.text).not.toContain(email);
+    const revokeB=await env.request("POST",`/api/invitations/${invitationId}/revoke`,{
+      token:env.tenants.B.users.admin.token,
+    });
+    expect(revokeB.status).toBe(404);
+    const state=await env.adminPool.query<{revokedAt:Date|null}>(
+      "SELECT revoked_at AS \"revokedAt\" FROM invitations WHERE id=$1",[invitationId],
+    );
+    expect(state.rows[0]?.revokedAt).toBeNull();
+    const revokeA=await env.request("POST",`/api/invitations/${invitationId}/revoke`,{
+      token:env.tenants.A.users.admin.token,
+    });
+    expect(revokeA.status).toBe(204);
+  });
+
+  it("un'importazione con fase esistente solo nel tenant B è rifiutata senza scritture",async()=>{
+    const tenantB=env.tenants.B,tenantA=env.tenants.A;
+    const position=await env.adminPool.query<{next:number}>(
+      "SELECT COALESCE(MAX(position),-1)::int+1 AS next FROM funnel_stages WHERE organization_id=$1",[tenantB.id],
+    );
+    await env.adminPool.query(
+      "INSERT INTO funnel_stages(organization_id,id,label,position,is_active,is_system) VALUES($1,'private_b_stage','Fase privata B',$2,TRUE,FALSE)",
+      [tenantB.id,position.rows[0]!.next],
+    );
+    const externalId="invalid-cross-tenant-stage-probe";
+    const response=await env.request("POST","/api/import",{
+      token:tenantA.users.admin.token,
+      body:{fileName:"foreign-stage.csv",rows:[{
+        externalId,channel:"Email",createdAt:"2026-01-15",stage:"private_b_stage",occurredAt:"2026-01-15",
+      }]},
+    });
+    expect(response.status).toBe(400);
+    const persisted=await env.adminPool.query(
+      "SELECT organization_id::text AS org FROM customers WHERE external_id=$1",[externalId],
+    );
+    expect(persisted.rowCount).toBe(0);
+    expect((await env.adminPool.query("SELECT COUNT(*)::int n FROM import_batches WHERE organization_id=$1 AND file_name='foreign-stage.csv'",[tenantA.id])).rows[0]?.n).toBe(0);
+  });
+
   it("isola letture di clienti, funnel, membri e audit e ignora l'organizzazione fornita dal client nell'import",async()=>{
     const tenantB=env.tenants.B;
     const tenantA=env.tenants.A;
