@@ -43,7 +43,7 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
       rateLimitSecret: "x".repeat(40), production: false,
     })).toThrow("Le origini web devono essere URL di origine esatti.");
   });
-  it("applica limiti distinti per indirizzo IP e coppia IP/email", async () => {
+  it("applica limiti per IP, coppia IP/email e account indipendentemente dall’IP", async () => {
     const insertValues: unknown[][] = [];
     const query = vi.fn(async (sql: string, values?: unknown[]) => {
       if (sql.includes("RETURNING attempts <= $2")) { insertValues.push(values ?? []); return { rows: [{ allowed: true }], rowCount: 1 }; }
@@ -52,13 +52,13 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
     const client = { query, release: vi.fn() } as unknown as PoolClient;
     const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
     await expect(consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.10", "user@example.test")).resolves.toBe(true);
-    expect(insertValues).toHaveLength(2);
-    expect(insertValues.map(values => values[1])).toEqual([60, 10]);
-    expect(insertValues[0]?.[0]).not.toBe(insertValues[1]?.[0]);
+    expect(insertValues).toHaveLength(3);
+    expect(insertValues.map(values => values[1])).toEqual([60, 10, 30]);
+    expect(new Set(insertValues.map(values => values[0])).size).toBe(3);
     expect(query).toHaveBeenCalledWith(expect.stringContaining("updated_at < NOW() - INTERVAL '30 days'"));
   });
 
-  it("limita il recupero password a 3 richieste per IP/email e 30 per IP", async () => {
+  it("limita il recupero password a 3 richieste per email e 30 per IP", async () => {
     const values: unknown[][] = [];
     const query = vi.fn(async (sql: string, params?: unknown[]) => {
       if (sql.includes("RETURNING attempts <= $2")) {
@@ -77,7 +77,7 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
     expect(query).toHaveBeenCalledWith(expect.stringContaining("updated_at < NOW() - INTERVAL '30 days'"));
   });
 
-  it("blocca il recupero password quando il bucket IP/email è esaurito", async () => {
+  it("blocca il recupero password quando il bucket email è esaurito", async () => {
     const query = vi.fn(async (sql: string, params?: unknown[]) => {
       if (sql.includes("RETURNING attempts <= $2")) {
         return { rows: [{ allowed: params?.[1] !== 3 }], rowCount: 1 };
@@ -91,6 +91,25 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
     expect(query).toHaveBeenCalledWith("COMMIT");
   });
 
+  it("applica lo stesso limite account anche da indirizzi IP differenti", async () => {
+    const values: unknown[][] = [];
+    const query = vi.fn(async (sql: string, params?: unknown[]) => {
+      if (sql.includes("RETURNING attempts <= $2")) {
+        values.push(params ?? []);
+        return { rows: [{ allowed: true }], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+    const client = { query, release: vi.fn() } as unknown as PoolClient;
+    const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
+    await consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.10", " USER@example.test ");
+    const firstAccountBucket = values[2]?.[0];
+    values.length = 0;
+    await consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.99", "user@example.test");
+    expect(values[2]?.[0]).toBe(firstAccountBucket);
+    expect(values[0]?.[0]).not.toBe(values[0]?.[0] === firstAccountBucket ? firstAccountBucket : values[0]?.[0]);
+  });
+
   it("blocca tutte le email quando il bucket IP supera il limite", async () => {
     let bucket = 0;
     const query = vi.fn(async (sql: string) => {
@@ -100,6 +119,6 @@ describe("Configurazione e protezione delle rotte di accesso PostgreSQL", () => 
     const client = { query, release: vi.fn() } as unknown as PoolClient;
     const pool = { connect: vi.fn(async () => client) } as unknown as Pick<Pool, "connect">;
     await expect(consumePostgresLoginAttempt(pool, "s".repeat(40), "203.0.113.10", "other@example.test")).resolves.toBe(false);
-    expect(bucket).toBe(2);
+    expect(bucket).toBe(3);
   });
 });
