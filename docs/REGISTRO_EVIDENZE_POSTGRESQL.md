@@ -94,3 +94,12 @@ Questi test sono stati ricostruiti prendendo come riferimento i casi nello ZIP, 
 - Correzione del test in `server/test/multi-tenant-negative.integration.test.ts`: usa gli ID dei fixture A/B che la route restituisce realmente, invece degli `externalId` che non sono esposti dalla risposta.
 - Commit correttivo: `10bd6892e75ecede3bde897dea1a3c40e4608c1c`.
 - Al momento dell'aggiornamento non è ancora visibile un run CI associato al commit correttivo. Il gate CI resta quindi aperto.
+
+
+## Ulteriore recupero test export — 15 novembre 2026
+
+Nel commit `93e189dd896e7dda9abc6d482bbd0117c2db57f2` è stata ampliata la suite `server/test/export-json.integration.test.ts` con due test di integrazione del repository:
+- snapshot `REPEATABLE READ`: scritture committate da un'altra connessione durante l'export non devono comparire nello snapshot corrente, mentre devono essere visibili in un export successivo;
+- rollback su limite superato: nessun audit di export deve essere scritto e nessuna connessione deve restare in stato `idle in transaction`.
+
+I test usano il database temporaneo e i fixture creati appositamente; non sono ancora verificati da una run CI sul commit. Le prove con volumi di 100.000 righe e gli altri casi limite originali non sono ancora stati migrati integralmente.
