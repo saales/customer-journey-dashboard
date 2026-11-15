@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import { CHANNELS, type Filters } from "./types.js";
 import { withTenantTransaction } from "./tenant-transaction.js";
+import { PostgresValidationError } from "./validation-error.js";
 
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
@@ -82,8 +83,8 @@ export async function getPostgresSegmentCustomers(
  pool:Pick<Pool,"connect">,org:string,f:Filters,dimension:SegmentDimension,segmentId:string,
 ):Promise<SegmentCustomer[]>{
  assertInput(org,f);
- if(!["channel","stage","period","combination"].includes(dimension)) throw new Error("Dimensione del segmento non valida.");
- if(typeof segmentId!=="string"||!segmentId.trim()||segmentId.length>255) throw new Error("Identificativo del segmento non valido.");
+ if(!["channel","stage","period","combination"].includes(dimension)) throw new PostgresValidationError("Dimensione del segmento non valida.");
+ if(typeof segmentId!=="string"||!segmentId.trim()||segmentId.length>255) throw new PostgresValidationError("Identificativo del segmento non valido.");
  const customers=await latestCustomers(pool,org,f);
  switch(dimension){
   case "channel":return customers.filter(c=>c.channel===segmentId);

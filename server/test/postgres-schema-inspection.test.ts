@@ -68,6 +68,27 @@ describe("inspectPostgresSchema", () => {
     expect(statements.some((sql) => /\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(sql))).toBe(false);
   });
 
+  it("esegue le query in sequenza sul client PostgreSQL condiviso", async () => {
+    const mock = createClientMock();
+    const original = mock.query.getMockImplementation();
+    if (!original) throw new Error("Mock query non disponibile");
+    let active = 0;
+    let maximumActive = 0;
+    mock.query.mockImplementation(async (sql: string) => {
+      active += 1;
+      maximumActive = Math.max(maximumActive, active);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return await original(sql);
+      } finally {
+        active -= 1;
+      }
+    });
+
+    await inspectPostgresSchema(mock.client);
+    expect(maximumActive).toBe(1);
+  });
+
   it("propaga un errore di lettura e completa il rollback", async () => {
     const mock = createClientMock();
     const failure = new Error("catalog unavailable");

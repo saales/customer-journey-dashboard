@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  assertPostgresTlsConnection,
   assertSafePostgresRuntimeRole,
   inspectPostgresRuntimeRole,
 } from "../src/postgres-runtime-preflight.js";
@@ -21,6 +22,18 @@ const goodTables = ["customers", "events", "funnel_stages", "import_batches", "a
   .map((tableName) => ({ tableName, ownerName: "percorso_owner", rowSecurity: true }));
 
 describe("Preflight sicurezza ruolo PostgreSQL", () => {
+  it("accetta solo connessioni PostgreSQL cifrate con TLS", async () => {
+    const encrypted = { query: vi.fn(async () => ({ rows: [{ ssl: true }] })) };
+    await expect(assertPostgresTlsConnection(encrypted as never)).resolves.toBeUndefined();
+
+    const plaintext = { query: vi.fn(async () => ({ rows: [{ ssl: false }] })) };
+    await expect(assertPostgresTlsConnection(plaintext as never)).rejects.toThrow("deve usare TLS");
+
+    const unknown = { query: vi.fn(async () => ({ rows: [] })) };
+    await expect(assertPostgresTlsConnection(unknown as never)).rejects.toThrow("deve usare TLS");
+  });
+
+
   it("accetta un ruolo applicativo separato con RLS attivo", async () => {
     const pool = makePool(goodRole, goodTables);
     const result = await inspectPostgresRuntimeRole(pool as never);

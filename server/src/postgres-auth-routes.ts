@@ -79,9 +79,15 @@ export function clearPostgresSessionCookie(production: boolean): string {
   return `${name}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${production ? "; Secure" : ""}`;
 }
 
-function loginRateLimitKey(secret: string, scope: "ip" | "identity", address: string, email?: string): string {
-  const hmac = createHmac("sha256", secret).update(scope).update("\0").update(address);
-  if (scope === "identity") hmac.update("\0").update((email ?? "").trim().toLowerCase());
+function loginRateLimitKey(
+  secret: string,
+  scope: "ip" | "ip_identity" | "identity",
+  address: string,
+  email?: string,
+): string {
+  const hmac = createHmac("sha256", secret).update(scope).update("\0");
+  if (scope !== "identity") hmac.update(address);
+  if (scope !== "ip") hmac.update("\0").update((email ?? "").trim().toLowerCase());
   return hmac.digest("hex");
 }
 
@@ -109,6 +115,7 @@ export async function consumePostgresLoginAttempt(
   pool: Pick<Pool, "connect">, secret: string, address: string, email: string,
 ): Promise<boolean> {
   const ipHash = loginRateLimitKey(secret, "ip", address);
+  const ipIdentityHash = loginRateLimitKey(secret, "ip_identity", address, email);
   const identityHash = loginRateLimitKey(secret, "identity", address, email);
   const client: PoolClient = await pool.connect();
   let transaction = false;
@@ -124,10 +131,13 @@ export async function consumePostgresLoginAttempt(
     DELETE FROM login_attempt_limits AS limits USING stale
     WHERE limits.key_hash = stale.key_hash`);
     const ipAllowed = await consumeLoginBucket(client, ipHash, MAX_IP_LOGIN_ATTEMPTS);
-    const identityAllowed = await consumeLoginBucket(client, identityHash, MAX_LOGIN_ATTEMPTS);
+    const ipIdentityAllowed = await consumeLoginBucket(client, ipIdentityHash, MAX_LOGIN_ATTEMPTS);
+    // A separate email-only bucket prevents distributed clients from bypassing
+    // the account-level ceiling by rotating source IP addresses.
+    const identityAllowed = await consumeLoginBucket(client, identityHash, 30);
     await client.query("COMMIT");
     transaction = false;
-    return ipAllowed && identityAllowed;
+    return ipAllowed && ipIdentityAllowed && identityAllowed;
   } catch (error) {
     if (transaction) {
       try { await client.query("ROLLBACK"); } catch { destroy = true; }
@@ -137,7 +147,7 @@ export async function consumePostgresLoginAttempt(
     client.release(destroy);
   }
 }
-/** Limite separato per il recupero password: 3 richieste per coppia IP/email e 30 per IP ogni 15 minuti. */
+/** Limite recupero password: 3 richieste per email indipendentemente dall'IP e 30 per IP ogni 15 minuti. */
 export async function consumePostgresPasswordResetAttempt(
   pool: Pick<Pool, "connect">, secret: string, address: string, email: string,
 ): Promise<boolean> {
@@ -147,7 +157,7 @@ export async function consumePostgresPasswordResetAttempt(
   const normalizedEmail = email.trim().toLowerCase();
   const ipHash = createHmac("sha256", secret).update("password-reset-ip\0").update(address).digest("hex");
   const identityHash = createHmac("sha256", secret).update("password-reset-identity\0")
-    .update(address).update("\0").update(normalizedEmail).digest("hex");
+    .update(normalizedEmail).digest("hex");
   const client: PoolClient = await pool.connect();
   let transaction = false;
   let destroy = false;
@@ -176,10 +186,11 @@ async function resetLoginAttempts(
   address: string,
   email: string,
 ): Promise<void> {
-  const keyHash = loginRateLimitKey(secret, "identity", address, email);
+  const identityHash = loginRateLimitKey(secret, "identity", address, email);
+  const ipIdentityHash = loginRateLimitKey(secret, "ip_identity", address, email);
   const client = await pool.connect();
   try {
-    await client.query("DELETE FROM login_attempt_limits WHERE key_hash = $1", [keyHash]);
+    await client.query("DELETE FROM login_attempt_limits WHERE key_hash = ANY($1::text[])", [[identityHash, ipIdentityHash]]);
   } finally {
     client.release();
   }
@@ -272,7 +283,7 @@ export function createPostgresAuthRouter(
         const reset = await createPostgresPasswordReset(pool, body.email, body.organizationSlug);
         if (reset) {
           const link = new URL("/", req.get("Origin")!);
-          link.searchParams.set("reset", reset.token);
+          link.hash = new URLSearchParams({ reset: reset.token }).toString();
           const safeName = reset.fullName.replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));
           try {
             await sendPostgresTransactionalEmail({

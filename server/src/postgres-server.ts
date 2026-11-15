@@ -1,7 +1,9 @@
 import { createPostgresApp } from "./postgres-app.js";
 import { postgresPool } from "./postgres.js";
 import { loadPostgresMigrations, planPostgresMigrations } from "./postgres-migrations.js";
-import { assertSafePostgresRuntimeRole } from "./postgres-runtime-preflight.js";
+import { assertPostgresTlsConnection, assertSafePostgresRuntimeRole } from "./postgres-runtime-preflight.js";
+import { requireRuntimeEnvironment } from "./runtime-environment.js";
+import { readIntegerEnvironment } from "./runtime-config.js";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -10,6 +12,7 @@ function requiredEnvironment(name: string): string {
 }
 
 async function main(): Promise<void> {
+  const runtimeEnvironment = requireRuntimeEnvironment(process.env.NODE_ENV);
   const allowedOrigins = requiredEnvironment("APP_ORIGIN")
     .split(",")
     .map((origin) => origin.trim())
@@ -24,6 +27,11 @@ async function main(): Promise<void> {
     throw new Error("Configurare insieme RESEND_API_KEY ed EMAIL_FROM, oppure lasciare entrambi vuoti.");
   }
 
+  // In produzione rifiuta connessioni PostgreSQL non cifrate.
+  if (runtimeEnvironment === "production") {
+    await assertPostgresTlsConnection(postgresPool);
+  }
+
   // Startup read-only: non applica mai migrazioni o modifica dati remoti.
   const migrations = await loadPostgresMigrations();
   const plan = await planPostgresMigrations(postgresPool, migrations);
@@ -36,10 +44,11 @@ async function main(): Promise<void> {
 
   await assertSafePostgresRuntimeRole(postgresPool);
 
-  const production = process.env.NODE_ENV === "production";
+  const production = runtimeEnvironment === "production";
   const app = createPostgresApp(postgresPool, {
     allowedOrigins,
     rateLimitSecret,
+    apiRateLimit: readIntegerEnvironment(process.env, "API_RATE_LIMIT_MAX", 1200, 1, 100_000),
     production,
     trustedProxyIps: (process.env.TRUSTED_PROXY_IPS ?? "").split(",").map((value) => value.trim()).filter(Boolean),
     emailApiKey: process.env.RESEND_API_KEY,

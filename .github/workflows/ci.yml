@@ -1,3 +1,4 @@
+# Integration suite includes tenant-scoped import and invitation regression coverage.
 name: CI
 
 on:
@@ -46,6 +47,11 @@ jobs:
           cache: npm
       - run: npm ci
 
+      - name: Validate staging script syntax
+        run: |
+          bash -n scripts/staging/*.sh
+          node --check scripts/staging/smoke.mjs
+
       # Keep dependency findings visible in PR CI without masking the test/build result.
       - name: Audit npm dependencies
         run: |
@@ -83,7 +89,10 @@ jobs:
             process.exitCode = 1;
           }
           NODE
-      - run: npm test
+      - name: Run tests
+        env:
+          NODE_ENV: test
+        run: npm test
       - run: npm run build
 
       - name: Create non-privileged runtime role
@@ -94,8 +103,11 @@ jobs:
         run: npm run db:migrate
       - name: Verify migration history and checksums
         run: npm run db:migrate -- --check
+      - name: Verify effective tenant RLS policies
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/staging/verify-rls-policy-shapes.sql
       - name: Start PostgreSQL runtime with restricted role
         env:
+          NODE_ENV: test
           DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
           APP_ORIGIN: http://localhost:5173
           LOGIN_RATE_LIMIT_SECRET: ci-only-secret-with-more-than-32-random-characters
@@ -159,6 +171,7 @@ jobs:
       - name: Run browser end-to-end tests
         if: matrix.node-version == 22
         env:
+          NODE_ENV: test
           CI: "true"
           DATABASE_URL: postgresql://percorso_app:ci-runtime-password@localhost:5432/journey_test
           APP_ORIGIN: http://localhost:5173

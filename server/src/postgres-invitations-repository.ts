@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
-import { hashPassword, verifyPassword } from "./password-hashing.js";
+import { hashPassword, needsPasswordRehash, verifyPassword } from "./password-hashing.js";
 import { createPostgresSessionInTransaction, type IssuedPostgresSession } from "./postgres-session-repository.js";
 import { withTenantTransaction } from "./tenant-transaction.js";
 
@@ -142,16 +142,26 @@ export async function acceptOrganizationInvitation(
   if(!locked.rowCount)throw new InvitationError(400,"Invito non valido, scaduto o già utilizzato.");
   const found=await client.query<{id:string;passwordHash:string;status:string}>(
    `SELECT id::text AS id,password_hash AS "passwordHash",status
-    FROM users WHERE LOWER(email)=$1 LIMIT 1`,[invite.email.toLowerCase()]);
+    FROM users WHERE LOWER(email)=$1 LIMIT 1 FOR SHARE`,[invite.email.toLowerCase()]);
   let userId:string;
+  let userPasswordHash:string;
   if(found.rows[0]){
    const user=found.rows[0];
    if(user.status!=="active"||!(await verifyPassword(input.password,user.passwordHash)))
     throw new InvitationError(401,"Non è stato possibile verificare l'account esistente.");
    userId=user.id;
+   userPasswordHash=user.passwordHash;
+   if(needsPasswordRehash(user.passwordHash)){
+    userPasswordHash=await hashPassword(input.password);
+    const upgraded=await client.query(
+     "UPDATE users SET password_hash=$2,updated_at=NOW() WHERE id=$1::uuid AND password_hash=$3",
+     [userId,userPasswordHash,user.passwordHash]);
+    if(upgraded.rowCount!==1)throw new InvitationError(401,"Non è stato possibile verificare l'account esistente.");
+   }
   }else{
    // Il lookup usa SELECT soltanto: il ruolo runtime non deve poter aggiornare gli utenti.\n   // Il vincolo UNIQUE sull’email arbitra le creazioni concorrenti; la collisione viene gestita sotto.\n   // Verifica prima il token: non consumare CPU con scrypt per richieste anonime non valide.
    const newPasswordHash=await hashPassword(input.password);
+   userPasswordHash=newPasswordHash;
    const created=await client.query<{id:string}>(
     `INSERT INTO users(email,password_hash,full_name,status,email_verified_at)
      VALUES($1,$2,$3,'active',NULL) RETURNING id::text AS id`,
@@ -180,7 +190,7 @@ export async function acceptOrganizationInvitation(
     VALUES($1::uuid,$2::uuid,'membership.invitation_accepted','invitation',$3::text,
       jsonb_build_object('role',$4::text))`,
    [invite.organizationId,userId,invite.id,invite.role]);
-  const session=await createPostgresSessionInTransaction(client,userId,invite.organizationId);
+  const session=await createPostgresSessionInTransaction(client,userId,invite.organizationId,undefined,userPasswordHash);
   await client.query("COMMIT");transaction=false;
   return {session,organizationSlug:invite.organizationSlug};
  }catch(error){

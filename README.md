@@ -34,6 +34,7 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 ## Requisiti
 
 - Node.js 20 o successivo
+- `NODE_ENV` esplicita: `development` in locale, `production` nel deployment
 - npm
 - Un database PostgreSQL
 - Un ruolo proprietario/amministrativo per migrazioni e bootstrap
@@ -93,7 +94,7 @@ npm test
 npm run build
 ```
 
-La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Su Node.js 22 esegue test browser Playwright/Chromium per admin, analyst, viewer ed editor, inclusi creazione cliente, configurazione funnel, import/export CSV, inviti, accettazione e verifica permessi. Il test crea anche un secondo tenant e controlla l'isolamento API per clienti, fasi funnel, export e audit: un tenant non può leggere le fasi altrui né modificare clienti o fasi con ID estranei. La copertura cross-tenant completa di tutte le API non è ancora dimostrata. Il database dei test è PostgreSQL temporaneo CI, non il database remoto.
+La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica checksum e avvia il server con il ruolo applicativo limitato. Su Node.js 22 esegue test browser Playwright/Chromium per admin, analyst, viewer ed editor, inclusi creazione cliente, configurazione funnel, import/export CSV, inviti, accettazione e verifica permessi. Il test crea anche un secondo tenant e controlla l'isolamento API per clienti, fasi funnel, export e audit: un tenant non può leggere le fasi altrui né modificare clienti o fasi con ID estranei. È stata aggiunta una matrice HTTP per i quattro ruoli sulle principali route di lettura, export, import, funnel, audit e membri, oltre a regressioni cross-tenant su modifica/cancellazione clienti ed export JSON. La copertura cross-tenant completa di tutte le API e di tutte le operazioni amministrative non è ancora dimostrata. Il database dei test è PostgreSQL temporaneo CI, non il database remoto.
 
 ## Sicurezza e rilascio
 
@@ -113,7 +114,7 @@ Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prov
 
 ## Documentazione
 
-La cartella `docs/` contiene architettura, modello dati, procedure di bootstrap, distribuzione, migrazioni e registro delle verifiche.
+La cartella `docs/` contiene architettura, modello dati, procedure di bootstrap, [installazione locale](docs/INSTALLAZIONE_LOCALE.md), [attivazione staging passo passo](docs/ATTIVAZIONE_STAGING_PASSO_PASSO.md), [gate obbligatori di rilascio](docs/GATE_RILASCIO.md), migrazioni e registro delle verifiche.
 
 ## Licenza
 

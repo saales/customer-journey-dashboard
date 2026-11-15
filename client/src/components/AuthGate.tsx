@@ -16,8 +16,14 @@ async function readSession(): Promise<{ response: Response; session?: AuthSessio
 export function AuthGate({ children }: AuthGateProps) {
   const [state, setState] = useState<AuthState>("loading");
   const [role, setRole] = useState<AuthSession["role"] | null>(null);
-  const [inviteToken, setInviteToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
-  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("reset") ?? "");
+  const [inviteToken, setInviteToken] = useState(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    return fragment.get("token") ?? new URLSearchParams(window.location.search).get("token") ?? "";
+  });
+  const [resetToken, setResetToken] = useState(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    return fragment.get("reset") ?? new URLSearchParams(window.location.search).get("reset") ?? "";
+  });
   const [resetEmail, setResetEmail] = useState("");
   const [resetOrganization, setResetOrganization] = useState("");
   const [resetPassword, setResetPassword] = useState("");
@@ -46,6 +52,26 @@ export function AuthGate({ children }: AuthGateProps) {
       setState("error");
     }
   }
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    let changed = false;
+    for (const key of ["token", "reset"]) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.delete(key);
+        changed = true;
+      }
+      if (fragment.has(key)) {
+        fragment.delete(key);
+        changed = true;
+      }
+    }
+    if (changed) {
+      url.hash = fragment.size ? fragment.toString() : "";
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, []);
 
   useEffect(() => { if (!inviteToken && !resetToken) void checkSession(); }, [inviteToken, resetToken]);
 

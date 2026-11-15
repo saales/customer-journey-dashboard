@@ -9,3 +9,10 @@ docs/Screenshot*.png
 docs/Autoformazione_React_Native_e_React.pdf
 .neon
 .env.local
+# Credenziali e artefatti di collaudo/backup (mai versionare dati o segreti)
+.env.staging
+credentials*.json
+/backups/
+/evidence/
+*.dump
+*.dump.manifest.json

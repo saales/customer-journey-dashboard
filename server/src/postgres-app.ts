@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
 import { CHANNELS } from "./types.js";
+import { PostgresValidationError } from "./validation-error.js";
 import { createPostgresApiRateLimitMiddleware } from "./postgres-api-rate-limit.js";
 import { exportPostgresCustomersCsv, exportPostgresOrganizationJson, PostgresExportError } from "./postgres-export-repository.js";
 import { listOrganizationMembers, updateOrganizationMember, MemberManagementError } from "./postgres-members-repository.js";
@@ -39,6 +40,7 @@ import {
 export interface PostgresAppOptions {
   allowedOrigins: string[];
   rateLimitSecret: string;
+  apiRateLimit?: number;
   production?: boolean;
   trustedProxyIps?: string[];
   emailApiKey?: string;
@@ -170,7 +172,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
   });
 
   // Limite persistente e condiviso prima del parsing dei body e di ogni route API.
-  app.use("/api", createPostgresApiRateLimitMiddleware(pool, options.rateLimitSecret));
+  app.use("/api", createPostgresApiRateLimitMiddleware(pool, options.rateLimitSecret, options.apiRateLimit));
 
   // Importazioni: limite dedicato; tutte le altre API hanno un limite più restrittivo.
   app.use("/api/import", express.json({ limit: "12mb" }));
@@ -644,6 +646,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
       res.status(400).json({ error: "Il corpo JSON non è valido." });
       return;
     }
+    if (error instanceof PostgresValidationError) { res.status(error.status).json({ error: error.message }); return; }
     if (error instanceof MemberManagementError) { res.status(error.status).json({ error: error.message }); return; }
     if (error instanceof ApiError) {
       res.status(error.status).json({ error: error.message });

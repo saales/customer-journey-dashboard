@@ -273,6 +273,25 @@ export function Comparisons({ query }: ComparisonsProps) {
     [previousQuery],
   );
 
+  // Tutti gli Hook sono chiamati prima dei return anticipati, anche durante loading/errore.
+  const channelRows = useMemo(() => {
+    const currentByChannel = new Map(
+      (currentChannels.data ?? []).map((row) => [row.channel, row]),
+    );
+    const previousByChannel = new Map(
+      (previousChannels.data ?? []).map((row) => [row.channel, row]),
+    );
+    const allChannels = new Set([
+      ...currentByChannel.keys(),
+      ...previousByChannel.keys(),
+    ]);
+    return Array.from(allChannels).map((channel) => ({
+      channel,
+      current: currentByChannel.get(channel),
+      previous: previousByChannel.get(channel),
+    }));
+  }, [currentChannels.data, previousChannels.data]);
+
   if (!query || !previousQuery) {
     return (
       <div className="card empty">
@@ -323,29 +342,6 @@ export function Comparisons({ query }: ComparisonsProps) {
   const currentKpis = current.kpis;
   const previousKpis = previous.kpis;
 
-  const currentChannelRows = currentChannels.data ?? [];
-  const previousChannelRows = previousChannels.data ?? [];
-
-  const channelRows = useMemo(() => {
-    const currentByChannel = new Map(
-      currentChannelRows.map((row) => [row.channel, row]),
-    );
-
-    const previousByChannel = new Map(
-      previousChannelRows.map((row) => [row.channel, row]),
-    );
-
-    const allChannels = new Set([
-      ...currentByChannel.keys(),
-      ...previousByChannel.keys(),
-    ]);
-
-    return Array.from(allChannels).map((channel) => ({
-      channel,
-      current: currentByChannel.get(channel),
-      previous: previousByChannel.get(channel),
-    }));
-  }, [currentChannelRows, previousChannelRows]);
 
   const currentSegmentData = currentSegments.data;
   const previousSegmentData = previousSegments.data;
