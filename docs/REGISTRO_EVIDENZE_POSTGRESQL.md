@@ -132,3 +132,17 @@ La run `43707939611` ha rilevato un errore nell'asserzione del nuovo test: il fi
 La run `43708284398` sul commit `ccab40f37b20efb58bec3b280d0b52a2f6f19214` è completata con successo. Node.js 20 e Node.js 22: 43 file server / 233 test passati e 11 file client / 41 test passati per ciascuna versione; audit npm con 0 vulnerabilità; build superata; migrazioni PostgreSQL, checksum, ruolo runtime ristretto e verifiche RLS superati. Node.js 22 ha inoltre completato con successo il test browser Playwright (1 test). La run comprende i test HTTP import e inviti e i nuovi controlli RLS per contesto A, policy WITH CHECK e FK composita. [Run CI 43708284398](https://github.com/saales/customer-journey-dashboard/actions/runs/43708284398).
 
 Questa evidenza è CI su database temporaneo e fixture sintetici; non sostituisce il collaudo remoto staging, il backup/restore reale, i test di consegna email o le verifiche operative prima del rilascio.
+
+
+## Verifica CI del nuovo head — 15 novembre 2026
+
+La PR #3 punta al commit `b3db3943d3df97e58e0df84afdc9c1019be5aa6f`. La run [43744176994](https://github.com/saales/customer-journey-dashboard/actions/runs/43744176994) è completata con successo su entrambi i job:
+
+- Node.js 20: 43 file server / 240 test passati; 11 file client / 41 test passati; build superata; `npm audit` con 0 vulnerabilità.
+- Node.js 22: gli stessi 43 file server / 240 test e 11 file client / 41 test passati; build superata; `npm audit` con 0 vulnerabilità; Playwright/Chromium: 1 test browser superato.
+- Entrambi i job hanno completato la creazione del ruolo runtime limitato, applicazione delle migrazioni PostgreSQL, verifica storico/checksum e controlli effettivi delle policy RLS.
+- I test aggiunti e inclusi in questa run coprono accettazione dell'invito B con organizzazione/ruolo determinati dal token, invito a un indirizzo già membro di un altro tenant senza disclosure, isolamento analytics/segmenti/audit, export JSON con snapshot coerente durante scritture concorrenti, confine di 100.000 record esportabili per risorsa e rollback/rilascio connessioni quando il limite viene superato.
+
+Conteggio attuale delle dichiarazioni `it(...)` nelle due suite sul branch: 25 in `multi-tenant-negative.integration.test.ts` e 10 in `export-json.integration.test.ts`. Questi numeri descrivono le dichiarazioni presenti nel branch, non il numero totale dei test dell'intero progetto. Rispetto alle suite originali nello ZIP (34 e 17 dichiarazioni rispettivamente), il recupero è ancora selettivo: la CI verde non dimostra equivalenza di copertura con lo ZIP.
+
+La CI utilizza PostgreSQL temporaneo e fixture sintetici. Non dimostra il comportamento su Neon o su staging reale, né backup/restore effettivi, consegna email, carico, monitoraggio, rollback operativo o conformità privacy/contrattuale. La PR resta draft e non merged; nessun deploy o intervento sul database remoto è stato eseguito.
