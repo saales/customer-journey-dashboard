@@ -3,6 +3,7 @@ import { postgresPool } from "./postgres.js";
 import { loadPostgresMigrations, planPostgresMigrations } from "./postgres-migrations.js";
 import { assertSafePostgresRuntimeRole } from "./postgres-runtime-preflight.js";
 import { requireRuntimeEnvironment } from "./runtime-environment.js";
+import { readIntegerEnvironment } from "./runtime-config.js";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
   const app = createPostgresApp(postgresPool, {
     allowedOrigins,
     rateLimitSecret,
+    apiRateLimit: readIntegerEnvironment(process.env, "API_RATE_LIMIT_MAX", 1200, 1, 100_000),
     production,
     trustedProxyIps: (process.env.TRUSTED_PROXY_IPS ?? "").split(",").map((value) => value.trim()).filter(Boolean),
     emailApiKey: process.env.RESEND_API_KEY,
