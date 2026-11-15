@@ -1,4 +1,5 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
+import * as passwordHashing from "../src/password-hashing.js";
 import { Pool } from "pg";
 import { authenticatePostgresCredentials } from "../src/postgres-authentication.js";
 import { hashPassword } from "../src/password-hashing.js";
@@ -73,6 +74,26 @@ describe("PostgreSQL credential authentication", () => {
       pool!, "missing@example.com", "wrong-password-123", "acme",
     )).resolves.toBeNull();
     await expect(revokePostgresSession(pool!, issued!.token)).resolves.toBe(true);
+  });
+
+  it("performs a dummy scrypt verification when the account is unknown", async () => {
+    const verification = vi.spyOn(passwordHashing, "verifyPassword").mockResolvedValue(false);
+    const client = {
+      query: vi.fn(async () => ({ rows: [], rowCount: 0 })),
+      release: vi.fn(),
+    };
+    const invalidPool = { connect: vi.fn(async () => client) };
+    try {
+      await expect(authenticatePostgresCredentials(
+        invalidPool, "missing@example.com", "wrong-password-123", "acme",
+      )).resolves.toBeNull();
+      expect(verification).toHaveBeenCalledWith(
+        "wrong-password-123",
+        expect.stringMatching(/^scrypt\\$32768\\$8\\$1\\$/),
+      );
+    } finally {
+      verification.mockRestore();
+    }
   });
 
   it("rejects malformed credential input before opening a connection", async () => {
