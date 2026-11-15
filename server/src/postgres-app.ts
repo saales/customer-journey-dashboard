@@ -40,6 +40,7 @@ import {
 export interface PostgresAppOptions {
   allowedOrigins: string[];
   rateLimitSecret: string;
+  apiRateLimit?: number;
   production?: boolean;
   trustedProxyIps?: string[];
   emailApiKey?: string;
@@ -171,7 +172,7 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
   });
 
   // Limite persistente e condiviso prima del parsing dei body e di ogni route API.
-  app.use("/api", createPostgresApiRateLimitMiddleware(pool, options.rateLimitSecret));
+  app.use("/api", createPostgresApiRateLimitMiddleware(pool, options.rateLimitSecret, options.apiRateLimit));
 
   // Importazioni: limite dedicato; tutte le altre API hanno un limite più restrittivo.
   app.use("/api/import", express.json({ limit: "12mb" }));
