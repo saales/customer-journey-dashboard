@@ -81,6 +81,52 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     }
   });
 
+  const importRow = (externalId: string, overrides: Partial<{
+    channel: string; createdAt: string; stage: string; occurredAt: string;
+  }> = {}) => ({
+    externalId, channel: "Email", createdAt: "2026-06-01", stage: "visit", occurredAt: "2026-06-01",
+    ...overrides,
+  });
+
+  it("externalId e fingerprint di import sono isolati per tenant", async () => {
+    const sharedRows = [importRow("only-b-2")];
+    const firstA = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "tenant-scope.csv", rows: sharedRows } });
+    expect(firstA.status).toBe(201);
+    const sameContentB = await env.request("POST", "/api/import", { token: adminB(), body: { fileName: "tenant-scope.csv", rows: sharedRows } });
+    expect(sameContentB.status).toBe(201);
+    const duplicateA = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "renamed.csv", rows: sharedRows } });
+    expect(duplicateA.status).toBe(409);
+    const owners = await env.adminPool.query("SELECT organization_id::text AS org FROM customers WHERE external_id='only-b-2' ORDER BY organization_id");
+    expect(owners.rows.map(row => row.org).sort()).toEqual([a().id, b().id].sort());
+  });
+
+  it("una fase presente solo in B è rifiutata nell'import di A senza scritture", async () => {
+    await env.adminPool.query("INSERT INTO funnel_stages (organization_id,id,label,position,is_active,is_system) VALUES ($1,'b-private-stage','Solo B',5,TRUE,FALSE)", [b().id]);
+    const before = await env.adminPool.query("SELECT (SELECT COUNT(*)::int FROM customers WHERE organization_id=$1) AS customers, (SELECT COUNT(*)::int FROM events WHERE organization_id=$1) AS events, (SELECT COUNT(*)::int FROM import_batches WHERE organization_id=$1) AS batches, (SELECT COUNT(*)::int FROM audit_logs WHERE organization_id=$1) AS audits", [a().id]);
+    const response = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "foreign-stage.csv", rows: [importRow("foreign-stage-probe"), importRow("foreign-stage-probe", { stage: "b-private-stage", occurredAt: "2026-06-02" })] } });
+    expect(response.status).toBe(400);
+    const after = await env.adminPool.query("SELECT (SELECT COUNT(*)::int FROM customers WHERE organization_id=$1) AS customers, (SELECT COUNT(*)::int FROM events WHERE organization_id=$1) AS events, (SELECT COUNT(*)::int FROM import_batches WHERE organization_id=$1) AS batches, (SELECT COUNT(*)::int FROM audit_logs WHERE organization_id=$1) AS audits", [a().id]);
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("un conflitto a metà import esegue rollback di clienti, eventi, batch e audit", async () => {
+    const before = await env.adminPool.query("SELECT (SELECT COUNT(*)::int FROM customers WHERE organization_id=$1) AS customers, (SELECT COUNT(*)::int FROM events WHERE organization_id=$1) AS events, (SELECT COUNT(*)::int FROM import_batches WHERE organization_id=$1) AS batches, (SELECT COUNT(*)::int FROM audit_logs WHERE organization_id=$1) AS audits", [a().id]);
+    const response = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "atomic-rollback.csv", rows: [importRow("rollback-new-before-conflict", { createdAt: "2026-07-01", occurredAt: "2026-07-01" }), importRow("shared-ext-1", { createdAt: "2026-07-02", occurredAt: "2026-07-02" })] } });
+    expect(response.status).toBe(409);
+    const leaked = await env.adminPool.query("SELECT id FROM customers WHERE organization_id=$1 AND external_id='rollback-new-before-conflict'", [a().id]);
+    expect(leaked.rowCount).toBe(0);
+    const after = await env.adminPool.query("SELECT (SELECT COUNT(*)::int FROM customers WHERE organization_id=$1) AS customers, (SELECT COUNT(*)::int FROM events WHERE organization_id=$1) AS events, (SELECT COUNT(*)::int FROM import_batches WHERE organization_id=$1) AS batches, (SELECT COUNT(*)::int FROM audit_logs WHERE organization_id=$1) AS audits", [a().id]);
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("oltre 10.000 righe di import è rifiutato senza scritture", async () => {
+    const before = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM customers WHERE organization_id=$1", [a().id]);
+    const rows = Array.from({ length: 10_001 }, (_, index) => importRow("too-many-" + index));
+    const response = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "over-limit.csv", rows } });
+    expect(response.status).toBe(400);
+    const after = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM customers WHERE organization_id=$1", [a().id]);
+    expect(after.rows).toEqual(before.rows);
+  });
   it("il ruolo runtime senza contesto tenant non legge righe e non può modificare dati di B", async () => {
     const visible = await env.runtimePool.query("SELECT id FROM customers");
     expect(visible.rows).toEqual([]);
