@@ -110,3 +110,8 @@ I test usano il database temporaneo e i fixture creati appositamente; non sono a
 ## Estensione test multi-tenant — 15 novembre 2026
 
 Nel commit `6fe2c8c406c9766bc4862d3caa70998cd35c2559` sono stati aggiunti alla suite HTTP test per: elenco membri limitato al tenant A; PATCH verso membership/userId del tenant B con controllo di integrità; divieto di auto-demozione dell'amministratore; attributi del ruolo runtime non privilegiato; RLS senza contesto tenant su sei tabelle. La regex di controllo email è stata corretta nel commit `483184c2e244bdcc9699ebceac1fef9905ffec8c`. Questi nuovi test non sono ancora coperti dalla run verde 43706482217 e richiedono una nuova CI sul head aggiornato.
+
+
+## CI per i test multi-tenant aggiunti — 15 novembre 2026
+
+È stata avviata la run `43706996610` (run number 507) sul commit `a2b0e46fb37a09f12b9a495b76663f2b1546d920`, che contiene il nuovo head con i test multi-tenant. Entrambi i job Node.js 20 e 22 risultano avviati; al momento della registrazione stanno inizializzando i container e non hanno ancora eseguito i test. Esito da verificare: [GitHub Actions 43706996610](https://github.com/saales/customer-journey-dashboard/actions/runs/43706996610).
