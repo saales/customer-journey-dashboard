@@ -71,6 +71,10 @@ export async function deleteTenant(
     await client.query("BEGIN");
     await client.query("SET LOCAL lock_timeout = '5s'");
     const plan = await loadPlan(client, slug, options.expectedDatabase, true);
+    const tenantUsers = await client.query<{ count: number }>(
+      "SELECT COUNT(DISTINCT user_id)::int AS count FROM memberships WHERE organization_id=$1",
+      [plan.organizationId],
+    );
     const candidates = await client.query<{ id: string }>(
       `SELECT u.id::text AS id FROM users u
        WHERE EXISTS (SELECT 1 FROM memberships m WHERE m.user_id=u.id AND m.organization_id=$1)
@@ -92,7 +96,7 @@ export async function deleteTenant(
       }
     }
     await client.query("COMMIT");
-    return { ...plan, executedAtUtc: new Date().toISOString(), deletedUsers: deleted, keptUsers: candidates.rows.length - deleted };
+    return { ...plan, executedAtUtc: new Date().toISOString(), deletedUsers: deleted, keptUsers: tenantUsers.rows[0]!.count - deleted };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
     throw error;
