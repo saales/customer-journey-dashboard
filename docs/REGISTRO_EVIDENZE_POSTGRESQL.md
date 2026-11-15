@@ -77,3 +77,12 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 Il codice e i test automatici del commit head indicato sono verdi su Node.js 20 e 22; il browser E2E è stato eseguito sul job Node.js 22. Questo risultato non dimostra che il prodotto sia pronto al 100% per il mercato: staging reale, email, backup/restore, carico, monitoraggio, copertura completa delle API e aspetti commerciali/privacy non sono ancora certificati.
 
 La PR deve restare draft e non va unita né distribuita finché i gate in `docs/GATE_RILASCIO.md` non sono completati con evidenze verificabili.
+
+
+## Recupero test dallo ZIP — 15 novembre 2026
+
+Sono state aggiunte al ramo due suite d'integrazione riscritte/adattate all'helper HTTP attuale:
+- `server/test/multi-tenant-negative.integration.test.ts`: test HTTP cross-tenant su letture, update/delete, import con organizationId manipolato, RLS/ruolo runtime, viewer e identità con sessioni in due tenant.
+- `server/test/export-json.integration.test.ts`: test HTTP su matrice ruoli, autenticazione, intestazioni e schema, contenuti secret-free e tenant-scoped, audit e ordinamento eventi.
+
+Questi test sono stati ricostruiti prendendo come riferimento i casi nello ZIP, non copiati integralmente. La loro esecuzione sulla CI del nuovo head è ancora da verificare; non conteggiarli come superati finché il relativo run GitHub Actions non è completato.
