@@ -115,10 +115,12 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
       const responseB = await env.request("GET", "/api/customers", { token: tokenB });
       expect(responseA.status).toBe(200);
       expect(responseB.status).toBe(200);
-      expect(responseA.text).toContain("only-a-2");
-      expect(responseA.text).not.toContain("only-b-2");
-      expect(responseB.text).toContain("only-b-2");
-      expect(responseB.text).not.toContain("only-a-2");
+      // La route restituisce gli ID numerici, non externalId: confrontiamo gli ID
+      // dei fixture creati per ciascun tenant.
+      expect(responseA.text).toContain(`"id":"${a().customerIds[1]}"`);
+      expect(responseA.text).not.toContain(`"id":"${b().customerIds[1]}"`);
+      expect(responseB.text).toContain(`"id":"${b().customerIds[1]}"`);
+      expect(responseB.text).not.toContain(`"id":"${a().customerIds[1]}"`);
     } finally {
       await env.adminPool.query("DELETE FROM memberships WHERE id=$1", [secondMembership.rows[0]!.id]);
     }
