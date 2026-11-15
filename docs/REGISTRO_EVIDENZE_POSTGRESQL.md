@@ -5,36 +5,46 @@
 - Ramo: `integration/staging-additions-hardening`
 - Pull request: [#3](https://github.com/saales/customer-journey-dashboard/pull/3), aperta, draft e non unita
 - Base: `recovery/checkpoint-12-postgres`
+- Head verificato: `0c145413803dae9fd161cba742ac7a405c5237f8`
 - Database applicativo: PostgreSQL
 - Database remoto/Neon: non verificato in questa attività; nessuna migrazione, scrittura o modifica remota eseguita
-- Ultimo commit con CI completa verificata: `4a480f868dc9800e7cafd94292f3352ae1e269c7` (la CI del commit successivo, che aggiunge ulteriori test negativi, è in attesa di esito)
 
 ## CI verificata
 
-Run [43699864674](https://github.com/saales/customer-journey-dashboard/actions/runs/43699864674), commit `d2a7125be3805da833069d8e0df6c15a20d2d300`, conclusa con successo su Node.js 20 e 22.
+Run [43704074591](https://github.com/saales/customer-journey-dashboard/actions/runs/43704074591), sul commit head indicato, conclusa con successo su Node.js 20 e 22.
 
-| Controllo | Risultato |
-|---|---:|
-| Test server | 41 file, 192 test superati |
-| Test client | 11 file, 41 test superati |
-| Playwright/Chromium su Node.js 22 | 1 test E2E superato |
-| npm audit | 0 vulnerabilità segnalate |
-| Build client e server | Superata |
-| Migrazioni PostgreSQL 001–013 | Superate su database temporaneo |
-| Verifica storico/checksum migrazioni | Superata |
-| Verifica policy RLS effettive | Superata |
-| Avvio con ruolo runtime limitato | Superato |
+| Controllo | Node.js 20 | Node.js 22 |
+|---|---:|---:|
+| Test server | 41 file, 195 test superati | 41 file, 195 test superati |
+| Test client | 11 file, 41 test superati | 11 file, 41 test superati |
+| Playwright/Chromium | Saltato per configurazione CI | 1 test E2E superato |
+| npm audit | 0 vulnerabilità | 0 vulnerabilità |
+| Build client e server | Superata | Superata |
+| Migrazioni PostgreSQL 001–013 | Superate su database temporaneo | Superate su database temporaneo |
+| Verifica storico/checksum migrazioni | Superata | Superata |
+| Verifica policy RLS effettive | Superata | Superata |
+| Avvio con ruolo runtime limitato | Superato | Superato |
 
-La CI usa un PostgreSQL temporaneo e dati sintetici. Non verifica il database remoto e non costituisce prova di deploy o collaudo commerciale.
+La CI usa PostgreSQL temporaneo e dati sintetici. Non verifica il database remoto e non costituisce prova di deploy o collaudo commerciale. Il test E2E browser viene eseguito soltanto sul job Node.js 22.
+
+## Confronto con lo ZIP consegnato
+
+Lo ZIP più recente contiene 192 file; il tree del ramo GitHub head ne contiene 178. Le differenze non sono tutte regressioni: il ramo ha aggiunto guide e strumenti di staging e ha consolidato documenti duplicati. Tuttavia, nello ZIP sono presenti due suite d'integrazione che non risultano nel ramo:
+
+- `server/test/multi-tenant-negative.integration.test.ts`: 34 casi, inclusi test di isolamento su eventi/clienti, KPI e segmenti, externalId, importazioni, membri, inviti, RLS, vincoli FK, audit e ruolo runtime.
+- `server/test/export-json.integration.test.ts`: 17 casi, inclusi permessi, intestazioni, audit, contenuto privo di segreti, schema/ordinamento, limiti di 100.000 righe e snapshot coerente con scritture concorrenti.
+
+Nel ramo sono presenti `authorization-matrix.integration.test.ts` e `postgres-export-repository.test.ts`, che coprono una parte di questi aspetti, ma non costituiscono una sostituzione dimostrata dell'intera copertura delle due suite. Il ripristino o la migrazione selettiva di questi test è un'attività aperta prima di considerare completa la copertura cross-tenant/export.
 
 ## Copertura di sicurezza e autorizzazioni
 
-- Matrice HTTP sui ruoli admin, editor, analyst e viewer estesa alle principali route analytics, clienti, funnel, import/export, account, organizzazione, membri, inviti e audit.
+- Matrice HTTP sui ruoli admin, editor, analyst e viewer per le principali route analytics, clienti, funnel, import/export, account, organizzazione, membri, inviti e audit.
 - Test negativi cross-tenant su modifica e cancellazione clienti.
 - Verifica che letture clienti, fasi funnel, membri e audit del tenant A non espongano dati del tenant B.
 - Verifica export JSON isolato per organizzazione.
 - Test di importazione con `organizationId` ostile nel payload: il server associa i record all'organizzazione della sessione, non a quella dichiarata dal client.
 - Verifica RLS e policy tenant-scoped sulla base temporanea della CI.
+- Test della cancellazione tenant: anteprima read-only, cancellazione transazionale, isolamento degli altri tenant, utente condiviso, attesa di scritture concorrenti, rifiuto del ruolo runtime e rollback in caso di errore.
 
 La matrice copre le route elencate nei test, non ogni combinazione di input, stato e operazione di tutte le API. La copertura cross-tenant completa resta un gate aperto.
 
@@ -46,7 +56,7 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 - Ruoli e permessi organizzativi, membership, audit e isolamento tenant.
 - Import, CSV e export JSON tenant-scoped.
 - Backup/restore staging con manifest SHA-256 e controlli di destinazione.
-- CLI amministrativa per anteprima/cancellazione tenant con conferme esplicite; test di anteprima, cancellazione, isolamento, utente condiviso, ruolo runtime e rollback.
+- CLI amministrativa per anteprima/cancellazione tenant con conferme esplicite; `--confirm-backup` è una dichiarazione dell'operatore e non una verifica automatica del backup.
 - Test d'integrazione del ciclo di vita HTTP delle sessioni e del rate limit API configurabile.
 - Smoke test staging e controlli RLS.
 - Controlli di validazione e regressione frontend/API.
@@ -56,14 +66,14 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 1. Eseguire il collaudo su uno staging reale, separato dalla produzione, con TLS, reverse proxy, cookie Secure e segreti configurati nel secret manager.
 2. Eseguire e archiviare una prova di backup e restore su database isolato; definire RPO/RTO.
 3. Verificare consegna reale di email invito e recupero password con dominio e provider configurati.
-4. Completare la matrice di autorizzazioni e i test cross-tenant per tutte le API, incluse le azioni amministrative e i casi limite.
+4. Ripristinare o migrare selettivamente le due suite presenti nello ZIP e completare la matrice di autorizzazioni/casi limite per tutte le API.
 5. Eseguire test di carico, osservabilità, allarmi, rotazione log e verifica dei limiti di connessione PostgreSQL.
 6. Documentare rollback applicativo e piano di ripristino compatibile con le migrazioni.
 7. Completare revisione privacy/contrattuale e definire onboarding, supporto, prezzi, piani e fatturazione se il servizio viene venduto come SaaS.
-8. La procedura CLI di cancellazione tenant è stata recuperata e rafforzata con lock transazionale, conferma database/slug e conferma operatore del backup; sono stati aggiunti test d'integrazione. Restano da revisionare i casi limite e da provare esclusivamente su database usa-e-getta prima di considerarla operativa. Non eseguire cancellazioni su ambienti reali.
+8. Revisionare i casi limite della cancellazione tenant e provarla esclusivamente su database usa-e-getta prima di considerarla operativa. Non eseguire cancellazioni su ambienti reali.
 
 ## Decisione
 
-Il codice e i test automatici del commit indicato sono verdi. Questo risultato non dimostra che il prodotto sia pronto al 100% per il mercato: staging reale, email, backup/restore, carico, monitoraggio, copertura completa delle API e aspetti commerciali/privacy non sono ancora certificati.
+Il codice e i test automatici del commit head indicato sono verdi su Node.js 20 e 22; il browser E2E è stato eseguito sul job Node.js 22. Questo risultato non dimostra che il prodotto sia pronto al 100% per il mercato: staging reale, email, backup/restore, carico, monitoraggio, copertura completa delle API e aspetti commerciali/privacy non sono ancora certificati.
 
 La PR deve restare draft e non va unita né distribuita finché i gate in `docs/GATE_RILASCIO.md` non sono completati con evidenze verificabili.
