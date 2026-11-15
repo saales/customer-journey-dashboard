@@ -114,7 +114,7 @@ Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prov
 
 ## Documentazione
 
-La cartella `docs/` contiene architettura, modello dati, procedure di bootstrap, [installazione locale](docs/INSTALLAZIONE_LOCALE.md), [gate obbligatori di rilascio](docs/GATE_RILASCIO.md), migrazioni e registro delle verifiche.
+La cartella `docs/` contiene architettura, modello dati, procedure di bootstrap, [installazione locale](docs/INSTALLAZIONE_LOCALE.md), [attivazione staging passo passo](docs/ATTIVAZIONE_STAGING_PASSO_PASSO.md), [gate obbligatori di rilascio](docs/GATE_RILASCIO.md), migrazioni e registro delle verifiche.
 
 ## Licenza
 
