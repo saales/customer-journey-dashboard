@@ -115,3 +115,8 @@ Nel commit `6fe2c8c406c9766bc4862d3caa70998cd35c2559` sono stati aggiunti alla s
 ## CI per i test multi-tenant aggiunti — 15 novembre 2026
 
 È stata avviata la run `43706996610` (run number 507) sul commit `a2b0e46fb37a09f12b9a495b76663f2b1546d920`, che contiene il nuovo head con i test multi-tenant. Entrambi i job Node.js 20 e 22 risultano avviati; al momento della registrazione stanno inizializzando i container e non hanno ancora eseguito i test. Esito da verificare: [GitHub Actions 43706996610](https://github.com/saales/customer-journey-dashboard/actions/runs/43706996610).
+
+
+## Test aggiuntivi import e inviti — 15 novembre 2026
+
+Nel commit `53adce916be03f0cd60ded6edaf847d859c130e1` sono stati aggiunti test HTTP per: fingerprint anti-duplicato tenant-scoped e riuso dello stesso externalId tra tenant; rifiuto di una fase funnel disponibile solo nell'altro tenant senza scritture; rollback atomico su collisione cliente a metà import; limite di 10.000 righe. Nel commit `22afb0a6f61fade5e525a9943b093a31497ef201` sono stati aggiunti test per isolamento dell'elenco inviti, impossibilità di revocare inviti cross-tenant e rifiuto di inviti scaduti/revocati senza creazione di utenti o membership. Questi test sono aggiunte successive alla run verde 43707129653: devono ancora essere eseguiti da CI sul nuovo head.
