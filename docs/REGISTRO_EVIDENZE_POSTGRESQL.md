@@ -74,7 +74,9 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 
 ## Decisione
 
-I run verdi precedenti (Node.js 20 e 22, browser E2E su Node.js 22) riguardano commit antecedenti all'ultimo recupero dei test dallo ZIP e non certificano il nuovo head. Il run 43705654748 sul commit b0370ff ha fallito in entrambi i job Node.js perché un nuovo test multi-tenant cercava externalId nella risposta HTTP, mentre la route restituisce gli ID numerici; 213 test server sono passati e 1 è fallito, mentre i 41 test client sono passati. Il test è stato corretto nel commit 10bd689, ma la CI per questo commit non risulta ancora disponibile. Non dichiarare verdi i test del nuovo head finché un run corrispondente non termina con successo.
+La run CI `43706482217` sul commit `3bab4d201f89c9d04a10729ecb0c1c5e6771a0ae` è completata con entrambi i job verdi: Node.js 20 e 22 hanno superato test, build, audit dipendenze, migrazioni PostgreSQL, checksum e verifiche RLS; sul job Node.js 22 è passato anche il test browser Playwright. Il precedente run `43705654748` sul commit `b0370ff` era fallito per l'asserzione errata su externalId, corretta successivamente. Questa run verde include i due test di snapshot concorrente e rollback export introdotti nel commit `93e189d`, ma NON include i test multi-tenant aggiunti dopo sul commit `6fe2c8c` e la correzione regex del commit `483184c`. Per questi ultimi il gate CI resta da ripetere.
+
+La run CI usa database PostgreSQL temporanei e dati sintetici: non è un collaudo su Neon/staging remoto e non prova backup/restore, consegna email o comportamento in produzione.
 
 La PR deve restare draft e non va unita né distribuita finché i gate in `docs/GATE_RILASCIO.md` non sono completati con evidenze verificabili.
 
@@ -103,3 +105,8 @@ Nel commit `93e189dd896e7dda9abc6d482bbd0117c2db57f2` è stata ampliata la suite
 - rollback su limite superato: nessun audit di export deve essere scritto e nessuna connessione deve restare in stato `idle in transaction`.
 
 I test usano il database temporaneo e i fixture creati appositamente; non sono ancora verificati da una run CI sul commit. Le prove con volumi di 100.000 righe e gli altri casi limite originali non sono ancora stati migrati integralmente.
+
+
+## Estensione test multi-tenant — 15 novembre 2026
+
+Nel commit `6fe2c8c406c9766bc4862d3caa70998cd35c2559` sono stati aggiunti alla suite HTTP test per: elenco membri limitato al tenant A; PATCH verso membership/userId del tenant B con controllo di integrità; divieto di auto-demozione dell'amministratore; attributi del ruolo runtime non privilegiato; RLS senza contesto tenant su sei tabelle. La regex di controllo email è stata corretta nel commit `483184c2e244bdcc9699ebceac1fef9905ffec8c`. Questi nuovi test non sono ancora coperti dalla run verde 43706482217 e richiedono una nuova CI sul head aggiornato.
