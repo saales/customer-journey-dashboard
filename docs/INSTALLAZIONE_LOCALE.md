@@ -5,6 +5,7 @@ Questa procedura prepara un'istanza di sviluppo/dimostrazione su un singolo comp
 ## 1. Prerequisiti
 
 - Node.js 20 o 22 LTS e npm.
+- `NODE_ENV=development` in locale; usare esclusivamente `NODE_ENV=production` in staging/produzione.
 - PostgreSQL 16 in esecuzione sul computer.
 - Git.
 - Accesso al repository GitHub.
@@ -52,6 +53,8 @@ Su Windows PowerShell:
 ```powershell
 Copy-Item .env.example .env.local
 ```
+
+Impostare `NODE_ENV=development` per lo sviluppo locale. Per staging e produzione impostare esplicitamente `NODE_ENV=production`: il server rifiuta l’avvio se la variabile manca o contiene un valore non supportato, così le protezioni HTTPS e cookie Secure non dipendono da un default implicito.
 
 Per applicare le migrazioni, impostare temporaneamente `DATABASE_URL` con il ruolo amministrativo e il database locale. Usare inoltre `BOOTSTRAP_DATABASE_URL` e `BOOTSTRAP_CONFIRM_DATABASE` per il bootstrap iniziale, insieme a nome organizzazione, slug, email amministratore e password iniziale. Questi valori devono rimanere solo in `.env.local`, mai in Git.
 
