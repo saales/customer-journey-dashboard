@@ -146,3 +146,18 @@ La PR #3 punta al commit `b3db3943d3df97e58e0df84afdc9c1019be5aa6f`. La run [437
 Conteggio attuale delle dichiarazioni `it(...)` nelle due suite sul branch: 25 in `multi-tenant-negative.integration.test.ts` e 10 in `export-json.integration.test.ts`. Questi numeri descrivono le dichiarazioni presenti nel branch, non il numero totale dei test dell'intero progetto. Rispetto alle suite originali nello ZIP (34 e 17 dichiarazioni rispettivamente), il recupero è ancora selettivo: la CI verde non dimostra equivalenza di copertura con lo ZIP.
 
 La CI utilizza PostgreSQL temporaneo e fixture sintetici. Non dimostra il comportamento su Neon o su staging reale, né backup/restore effettivi, consegna email, carico, monitoraggio, rollback operativo o conformità privacy/contrattuale. La PR resta draft e non merged; nessun deploy o intervento sul database remoto è stato eseguito.
+
+
+## Hardening autenticazione e preflight TLS — CI 43746466226
+
+La run [43746466226](https://github.com/saales/customer-journey-dashboard/actions/runs/43746466226) sul commit `136261251cef94a931f615146635ce741608ebf2` è completata con successo su Node.js 20 e 22. Per ciascuna versione: 43 file server / 244 test server passati, 11 file client / 41 test client passati, build superata, `npm audit` con 0 vulnerabilità note, migrazioni/checksum/RLS e avvio del runtime con ruolo limitato superati; Playwright su Node 22: 1 test browser superato.
+
+Modifiche incluse: limite login anche per account indipendentemente dall'IP; limite recupero password per email; token monouso di invito/reset trasferiti nei frammenti URL e rimossi dalla barra indirizzi, mantenendo compatibilità con i link query legacy; controllo TLS all'avvio in produzione; verifica scrypt fittizia per ridurre enumerazione account tramite timing.
+
+## Ispezione PostgreSQL sequenziale — CI 43746713179
+
+La run [43746713179](https://github.com/saales/customer-journey-dashboard/actions/runs/43746713179) sul commit `ab7fb7a78bd593f9f69ef070925c7c5146fdce46` è completata con successo su Node.js 20 e 22. Per ciascuna versione: 43 file server / 245 test server passati, 11 file client / 41 test client passati, build superata, `npm audit` con 0 vulnerabilità note, migrazioni/checksum/RLS e runtime ristretto superati; Playwright su Node 22: 1 test browser superato.
+
+È stata resa sequenziale l'ispezione dei cataloghi PostgreSQL, che in precedenza accodava query concorrenti sullo stesso `PoolClient` e generava un avviso di deprecazione del driver. Il nuovo test verifica che non vi siano query sovrapposte. Restano avvisi di deprecazione `punycode` e `url.parse()` provenienti da dipendenze; non risultano vulnerabilità note nell'audit npm.
+
+Queste verifiche sono eseguite in CI su PostgreSQL temporaneo e fixture sintetici. Non attestano staging remoto, backup/restore reale, test indipendente di penetrazione, configurazione operativa o sicurezza assoluta. La PR resta draft/non merged e non è stato eseguito alcun deploy.
