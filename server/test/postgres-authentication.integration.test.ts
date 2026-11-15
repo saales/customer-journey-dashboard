@@ -85,7 +85,7 @@ describe("PostgreSQL credential authentication", () => {
     const invalidPool = { connect: vi.fn(async () => client) };
     try {
       await expect(authenticatePostgresCredentials(
-        invalidPool, "missing@example.com", "wrong-password-123", "acme",
+        invalidPool as never, "missing@example.com", "wrong-password-123", "acme",
       )).resolves.toBeNull();
       expect(verification).toHaveBeenCalledWith(
         "wrong-password-123",
