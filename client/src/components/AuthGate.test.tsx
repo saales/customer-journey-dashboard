@@ -62,7 +62,7 @@ describe("Accesso PostgreSQL dal browser", () => {
   });
 
   it("accetta un invito monouso e verifica la sessione appena creata", async () => {
-    window.history.replaceState({}, "", `/?token=${"A".repeat(43)}`);
+    window.history.replaceState({}, "", `/#token=${"A".repeat(43)}`);
     const requests: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input); requests.push(url);
@@ -116,7 +116,7 @@ describe("Accesso PostgreSQL dal browser", () => {
   });
 
   it("completa il reset password con token e torna al login", async () => {
-    window.history.replaceState({}, "", `/?reset=${"R".repeat(43)}`);
+    window.history.replaceState({}, "", `/#reset=${"R".repeat(43)}`);
     const requests: Array<{ url: string; body?: unknown }> = [];
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
