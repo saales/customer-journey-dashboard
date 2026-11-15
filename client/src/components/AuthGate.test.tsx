@@ -72,6 +72,7 @@ describe("Accesso PostgreSQL dal browser", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<AuthGate>{(_logout, role) => <p>Ruolo: {role}</p>}</AuthGate>);
+    expect(window.location.hash).toBe("");
     fireEvent.change(await screen.findByLabelText("Nome e cognome"), { target: { value: "Nuovo utente" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Password-Invito-2026" } });
     fireEvent.change(screen.getByLabelText("Conferma password"), { target: { value: "Password-Invito-2026" } });
@@ -131,6 +132,7 @@ describe("Accesso PostgreSQL dal browser", () => {
     }));
 
     render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
+    expect(window.location.hash).toBe("");
     fireEvent.change(await screen.findByLabelText("Nuova password"), { target: { value: "Nuova-password-sicura-2026!" } });
     fireEvent.change(screen.getByLabelText("Conferma password"), { target: { value: "Nuova-password-sicura-2026!" } });
     fireEvent.click(screen.getByRole("button", { name: "Aggiorna password" }));
