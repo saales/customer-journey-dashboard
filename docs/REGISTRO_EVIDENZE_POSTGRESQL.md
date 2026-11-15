@@ -120,11 +120,11 @@ Restano necessari la copertura cross-tenant di tutte le API, il collaudo su stag
 
 ## Stato corrente del ramo di integrazione — 15 novembre 2026
 
-- Head del ramo al momento dell'aggiornamento: `5155d65af98f6ee27bf5a6c2a8d8adff97249a98`.
+- Head del ramo al momento dell'aggiornamento: `d758261e041ac357eec3460cd32e13871755317b`.
 - CI verde più recente confermata: run [43639310940](https://github.com/saales/customer-journey-dashboard/actions/runs/43639310940), commit `7a28657c9dc6e94e6cdd820b57cba02b975e5d89`, Node.js 20 e 22.
 - Le modifiche successive hanno introdotto la modalità runtime esplicita, test HTTP della matrice ruoli e regressioni cross-tenant, oltre alla pulizia della documentazione.
 - La CI sul commit intermedio `608e99acb0e3194fefc17f4544596e96c0445e16` ha eseguito 169 test server con successo ma ha fallito un nuovo test perché il payload di aggiornamento cliente del test non rispettava il contratto API (HTTP 400 invece del 404 atteso). Il payload è stato corretto nel commit `0dbf2ae408609c2e35475219fe6e3dd4d6926130`.
-- La CI sul commit intermedio `c582fa4a96e0afcb37fb6d76595ac264e74ec65b` è fallita sullo stesso test prima della correzione. Non è disponibile un'esecuzione CI completata sul head corrente `5155d65af98f6ee27bf5a6c2a8d8adff97249a98`.
+- La CI sul commit intermedio `c582fa4a96e0afcb37fb6d76595ac264e74ec65b` è fallita sullo stesso test prima della correzione. Non è disponibile un'esecuzione CI completata sul head corrente `d758261e041ac357eec3460cd32e13871755317b`.
 - I documenti di architettura duplicati e la guida specifica per tesi sono stati rimossi; il documento canonico è `docs/ARCHITETTURA_POSTGRESQL.md`.
 - La procedura di cancellazione tenant non è implementata nel ramo e non va simulata con comandi manuali su database reali.
 - Nessuna query, scrittura, migrazione, backup o deploy è stato eseguito su Neon o produzione.
