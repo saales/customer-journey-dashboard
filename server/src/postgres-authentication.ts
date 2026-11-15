@@ -2,6 +2,11 @@ import type { Pool, PoolClient } from "pg";
 import { verifyPassword } from "./password-hashing.js";
 import { issuePostgresSession, type IssuedPostgresSession } from "./postgres-session-repository.js";
 
+// A fixed dummy hash makes unknown-account login attempts pay the same scrypt
+// cost as a known account with a wrong password, reducing timing-based enumeration.
+const DUMMY_PASSWORD_HASH =
+  "scrypt$32768$8$1$nypNbIseP1BxkqS2yNDi9A$_-BiuFn8yIlUwZL_jc5LL-Yo6RMy0cgRi9M3wRBCf_LMT_hQS_QFsSn4VuI1UU1J7TkIkHzpsXjLjDf-lO8WqQ";
+
 /**
  * Authenticates a user against one explicitly selected organization.
  * Unknown users, wrong passwords, inactive accounts and inactive/missing
@@ -49,9 +54,11 @@ export async function authenticatePostgresCredentials(
     client.release();
   }
 
-  if (!credential || !(await verifyPassword(password, credential.passwordHash))) {
+  if (!credential) {
+    await verifyPassword(password, DUMMY_PASSWORD_HASH);
     return null;
   }
+  if (!(await verifyPassword(password, credential.passwordHash))) return null;
 
   return issuePostgresSession(pool, credential.userId, credential.organizationId);
 }
