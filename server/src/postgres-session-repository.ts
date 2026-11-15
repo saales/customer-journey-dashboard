@@ -39,6 +39,12 @@ export async function createPostgresSessionInTransaction(
   }
 
   const { token, tokenHash } = createSessionToken();
+  const passwordHashCondition = expectedPasswordHash === undefined
+    ? ""
+    : "AND u.password_hash = $5";
+  const parameters = expectedPasswordHash === undefined
+    ? [userId, organizationId, tokenHash, ttlMs]
+    : [userId, organizationId, tokenHash, ttlMs, expectedPasswordHash];
   const result = await client.query<{ expiresAt: string }>(
     `INSERT INTO sessions (user_id, organization_id, token_hash, expires_at)
      SELECT u.id, o.id, $3, NOW() + ($4 * INTERVAL '1 millisecond')
@@ -52,9 +58,9 @@ export async function createPostgresSessionInTransaction(
       AND o.status = 'active'
      WHERE u.id = $1::uuid
        AND u.status = 'active'
-       AND ($5::text IS NULL OR u.password_hash = $5)
+       ${passwordHashCondition}
      RETURNING to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expiresAt"`,
-    [userId, organizationId, tokenHash, ttlMs, expectedPasswordHash ?? null],
+    parameters,
   );
   if (result.rowCount !== 1 || !result.rows[0]) {
     throw new PostgresSessionIssueError();
