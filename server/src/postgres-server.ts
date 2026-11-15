@@ -1,7 +1,7 @@
 import { createPostgresApp } from "./postgres-app.js";
 import { postgresPool } from "./postgres.js";
 import { loadPostgresMigrations, planPostgresMigrations } from "./postgres-migrations.js";
-import { assertSafePostgresRuntimeRole } from "./postgres-runtime-preflight.js";
+import { assertPostgresTlsConnection, assertSafePostgresRuntimeRole } from "./postgres-runtime-preflight.js";
 import { requireRuntimeEnvironment } from "./runtime-environment.js";
 import { readIntegerEnvironment } from "./runtime-config.js";
 
@@ -25,6 +25,11 @@ async function main(): Promise<void> {
   const emailFrom = process.env.EMAIL_FROM?.trim() || undefined;
   if (Boolean(emailApiKey) !== Boolean(emailFrom)) {
     throw new Error("Configurare insieme RESEND_API_KEY ed EMAIL_FROM, oppure lasciare entrambi vuoti.");
+  }
+
+  // In produzione rifiuta connessioni PostgreSQL non cifrate.
+  if (runtimeEnvironment === "production") {
+    await assertPostgresTlsConnection(postgresPool);
   }
 
   // Startup read-only: non applica mai migrazioni o modifica dati remoti.
