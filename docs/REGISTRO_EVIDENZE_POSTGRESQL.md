@@ -125,3 +125,10 @@ Nel commit `53adce916be03f0cd60ded6edaf847d859c130e1` sono stati aggiunti test H
 ## Correzione test import — CI 43707939611
 
 La run `43707939611` ha rilevato un errore nell'asserzione del nuovo test: il fixture tenant B contiene già `only-b-2`, quindi il tentativo di reimportare lo stesso externalId nello stesso tenant deve essere rifiutato (409), non accettato. Il test è stato corretto separando due proprietà: riuso dello stesso externalId tra tenant (ammesso) e fingerprint identico tra tenant (ammesso una volta per ciascun tenant, poi 409 nel tenant che lo ha già importato). Il job Node.js 20 ha riportato 232 test passati e 1 fallito; il job Node.js 22 era ancora in corso al momento dell'aggiornamento ed è stato interrotto dall'aggiornamento del branch. Nuova CI necessaria sul nuovo head.
+
+
+## CI verde — import, inviti e RLS approfondito — 15 novembre 2026
+
+La run `43708284398` sul commit `ccab40f37b20efb58bec3b280d0b52a2f6f19214` è completata con successo. Node.js 20 e Node.js 22: 43 file server / 233 test passati e 11 file client / 41 test passati per ciascuna versione; audit npm con 0 vulnerabilità; build superata; migrazioni PostgreSQL, checksum, ruolo runtime ristretto e verifiche RLS superati. Node.js 22 ha inoltre completato con successo il test browser Playwright (1 test). La run comprende i test HTTP import e inviti e i nuovi controlli RLS per contesto A, policy WITH CHECK e FK composita. [Run CI 43708284398](https://github.com/saales/customer-journey-dashboard/actions/runs/43708284398).
+
+Questa evidenza è CI su database temporaneo e fixture sintetici; non sostituisce il collaudo remoto staging, il backup/restore reale, i test di consegna email o le verifiche operative prima del rilascio.
