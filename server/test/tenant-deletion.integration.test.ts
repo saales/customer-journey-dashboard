@@ -60,6 +60,34 @@ describe.skipIf(!dbUrl)("Cancellazione tenant con protezioni transazionali", () 
     expect(await tenantRows(env.tenants.B.id)).toEqual(beforeB);
   });
 
+  it("attende le scritture concorrenti sul tenant prima di calcolare i conteggi", async () => {
+    const t = await makeTenant("concorrenza");
+    const writer = await env.adminPool.connect();
+    try {
+      await writer.query("BEGIN");
+      await writer.query(
+        "INSERT INTO customers (organization_id, external_id, channel, created_at) VALUES ($1,'concurrent-write','Email',NOW())",
+        [t.org],
+      );
+      const deletion = deleteTenant(env.adminPool, "concorrenza", {
+        expectedDatabase: env.databaseName, confirmSlug: "concorrenza",
+      });
+      // La cancellazione deve attendere il commit che detiene il lock FK sull'organizzazione.
+      const finishedEarly = await Promise.race([
+        deletion.then(() => true),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 100)),
+      ]);
+      expect(finishedEarly).toBe(false);
+      await writer.query("COMMIT");
+      const receipt = await deletion;
+      expect(receipt.counts.customers).toBe(2);
+      expect(await tenantRows(t.org)).toEqual({ c: 0, e: 0, s: 0, a: 0, o: 0 });
+    } finally {
+      await writer.query("ROLLBACK").catch(() => undefined);
+      writer.release();
+    }
+  });
+
   it("preserva un utente con membership in un altro tenant", async () => {
     const t = await makeTenant("condiviso");
     await env.adminPool.query("INSERT INTO memberships (organization_id, user_id, role) VALUES ($1,$2,'viewer')", [env.tenants.B.id, t.user]);
