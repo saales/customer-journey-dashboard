@@ -69,7 +69,7 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
         rows: [{ externalId: "hostile-org-id", channel: "Email", createdAt: "2026-11-01", stage: "visit", occurredAt: "2026-11-01", organizationId: b().id }],
       },
     });
-    expect([201, 400]).toContain(response.status);
+    expect(response.status).toBe(201);
     const afterA = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM customers WHERE organization_id=$1", [a().id]);
     const afterB = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM customers WHERE organization_id=$1", [b().id]);
     if (response.status === 201) {
