@@ -121,7 +121,7 @@ Restano necessari la copertura cross-tenant di tutte le API, il collaudo su stag
 ## Stato corrente del ramo di integrazione — 15 novembre 2026
 
 - Head del ramo al momento dell'aggiornamento: `d758261e041ac357eec3460cd32e13871755317b`.
-- CI verde più recente confermata: run [43697634600](https://github.com/saales/customer-journey-dashboard/actions/runs/43697634600), commit `00dfb4fdc461ee39e7c7608fc66eea52ca92c3a4`, Node.js 20 e 22.
+- CI verde più recente confermata: run [43698587489](https://github.com/saales/customer-journey-dashboard/actions/runs/43698587489), commit `645239ba5093baa583ed851c07f52a7881354e52`, Node.js 20 e 22.
 - Le modifiche successive hanno introdotto la modalità runtime esplicita, test HTTP della matrice ruoli e regressioni cross-tenant, oltre alla pulizia della documentazione.
 - La CI sul commit intermedio `608e99acb0e3194fefc17f4544596e96c0445e16` ha eseguito 169 test server con successo ma ha fallito un nuovo test perché il payload di aggiornamento cliente del test non rispettava il contratto API (HTTP 400 invece del 404 atteso). Il payload è stato corretto nel commit `0dbf2ae408609c2e35475219fe6e3dd4d6926130`.
 - La CI sul commit intermedio `c582fa4a96e0afcb37fb6d76595ac264e74ec65b` è fallita sullo stesso test prima della correzione. Non è disponibile un'esecuzione CI completata sul head corrente `d758261e041ac357eec3460cd32e13871755317b`.
