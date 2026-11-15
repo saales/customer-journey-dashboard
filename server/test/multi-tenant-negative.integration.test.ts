@@ -111,7 +111,7 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     expect(response.body.map(member => member.userId).sort()).toEqual(
       Object.values(a().users).map(user => user.id).sort(),
     );
-    expect(response.text).not.toMatch(/\\.b@example\\.test/);
+    expect(response.text).not.toMatch(/\.b@example\.test/);
   });
 
   it("PATCH da A verso membership o userId di B restituisce 404 e lascia B invariato", async () => {
