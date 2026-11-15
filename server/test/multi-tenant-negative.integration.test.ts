@@ -321,9 +321,11 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     );
     expect(response.status).toBe(200);
     expect(response.body.map(member => member.userId).sort()).toEqual(
-      Object.values(a().users).map(user => user.id).sort(),
+      [...Object.values(a().users).map(user => user.id), b().users.admin.id].sort(),
     );
-    expect(response.text).not.toMatch(/\.b@example\.test/);
+    expect(response.text).not.toContain(b().users.editor.email);
+    expect(response.text).not.toContain(b().users.analyst.email);
+    expect(response.text).not.toContain(b().users.viewer.email);
   });
 
   it("PATCH da A verso membership o userId di B restituisce 404 e lascia B invariato", async () => {
