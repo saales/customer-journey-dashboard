@@ -2,10 +2,10 @@
 
 ## Stato del ramo
 
-Ramo: `recovery/checkpoint-12-postgres`  
-Pull request: [#1](https://github.com/saales/customer-journey-dashboard/pull/1), aperta e in bozza  
+Ramo di integrazione: `integration/staging-additions-hardening`  
+Pull request: [#3](https://github.com/saales/customer-journey-dashboard/pull/3), aperta, draft e non unita  
 Database applicativo: PostgreSQL  
-Stato database remoto: non verificato in questa attività.
+Stato database remoto: non verificato; nessuna migrazione o modifica remota eseguita.
 
 ## Evidenze codice
 
@@ -13,7 +13,7 @@ Stato database remoto: non verificato in questa attività.
 |---|---|
 | Runtime unico | `server/src/postgres-server.ts`; script standard root e server |
 | Pool | `server/src/postgres.ts` |
-| Migrazioni | `server/migrations/001`–`010` |
+| Migrazioni | `server/migrations/001`–`013` |
 | Runner | `server/src/postgres-migrations.ts` |
 | Preflight | `server/src/postgres-runtime-preflight.ts` |
 | Autenticazione | `postgres-authentication.ts`, `postgres-auth-*`, `postgres-session-*` |
@@ -39,7 +39,7 @@ Stato database remoto: non verificato in questa attività.
 
 ## Limiti prima del rilascio
 
-Restano necessari il completamento della matrice browser per tutti i ruoli e dei casi cross-tenant, test di carico, prova backup/restore, verifica database remoto, staging, osservabilità e invio email automatico/recupero account. Il percorso browser admin/analista rappresentativo è stato superato nella CI descritta sotto. Fino ad allora il prodotto non va presentato come pronto per dati aziendali reali o vendita.
+Restano necessari la copertura cross-tenant di tutte le API, il collaudo su staging, una prova reale di consegna email, backup/restore, test di carico, verifica del database remoto, osservabilità e piano di rollback. Il percorso browser automatizzato e la matrice HTTP parziale non dimostrano ancora il funzionamento completo del prodotto in un ambiente commerciale. Fino ad allora non usare dati aziendali reali né presentare il prodotto come pronto per la vendita.
 
 ## Manutenzione sicurezza — aggiornamento
 
@@ -116,3 +116,15 @@ Restano necessari il completamento della matrice browser per tutti i ruoli e dei
 - Il test RLS PostgreSQL ora inserisce un evento audit valido nel tenant A e dimostra che il ruolo runtime lo vede nel tenant A ma non nel tenant B; non si limita più a verificare una tabella audit vuota.
 - CI [43513998940](https://github.com/saales/customer-journey-dashboard/actions/runs/43513998940), commit `78432080f9d6b59c3960817e38392e0e3c4e09ec`: Node.js 20 e 22 verdi; 33 file test server con 142 test, 10 file test client con 37 test, build, audit dipendenze, migrazioni 001–013/checksum, avvio runtime con ruolo limitato e Playwright/Chromium.
 - Nessuna verifica o scrittura su Neon, nessun deploy e nessun invio reale email.
+
+
+## Stato corrente del ramo di integrazione — 15 novembre 2026
+
+- Head del ramo al momento dell'aggiornamento: `5155d65af98f6ee27bf5a6c2a8d8adff97249a98`.
+- CI verde più recente confermata: run [43639310940](https://github.com/saales/customer-journey-dashboard/actions/runs/43639310940), commit `7a28657c9dc6e94e6cdd820b57cba02b975e5d89`, Node.js 20 e 22.
+- Le modifiche successive hanno introdotto la modalità runtime esplicita, test HTTP della matrice ruoli e regressioni cross-tenant, oltre alla pulizia della documentazione.
+- La CI sul commit intermedio `608e99acb0e3194fefc17f4544596e96c0445e16` ha eseguito 169 test server con successo ma ha fallito un nuovo test perché il payload di aggiornamento cliente del test non rispettava il contratto API (HTTP 400 invece del 404 atteso). Il payload è stato corretto nel commit `0dbf2ae408609c2e35475219fe6e3dd4d6926130`.
+- La CI sul commit intermedio `c582fa4a96e0afcb37fb6d76595ac264e74ec65b` è fallita sullo stesso test prima della correzione. Non è disponibile un'esecuzione CI completata sul head corrente `5155d65af98f6ee27bf5a6c2a8d8adff97249a98`.
+- I documenti di architettura duplicati e la guida specifica per tesi sono stati rimossi; il documento canonico è `docs/ARCHITETTURA_POSTGRESQL.md`.
+- La procedura di cancellazione tenant non è implementata nel ramo e non va simulata con comandi manuali su database reali.
+- Nessuna query, scrittura, migrazione, backup o deploy è stato eseguito su Neon o produzione.
