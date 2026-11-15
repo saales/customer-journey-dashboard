@@ -38,6 +38,6 @@ describe.skipIf(!dbUrl)("Limite API configurabile", () => {
       if (last.status !== 429) await last.arrayBuffer();
     }
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
-    expect(last!.headers.get("retry-after")).toMatch(/^\\d+$/);
+    expect(last!.headers.get("retry-after")).toMatch(/^\d+$/);
   });
 });
