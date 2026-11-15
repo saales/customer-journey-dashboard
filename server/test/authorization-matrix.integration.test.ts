@@ -38,7 +38,7 @@ describe.skipIf(!dbUrl)("Matrice autorizzazioni HTTP per ruolo",()=>{
   it("impedisce a un amministratore di un tenant di modificare o cancellare clienti di un altro tenant",async()=>{
     const foreignCustomerId=env.tenants.B.customerIds[0]!;
     const token=env.tenants.A.users.admin.token;
-    const update=await env.request("PUT",`/api/customers/${foreignCustomerId}`,{token,body:{channel:"Direct",createdAt:"2026-01-10",events:[{stage:"visit",occurredAt:"2026-01-10"}]}});
+    const update=await env.request("PUT",`/api/customers/${foreignCustomerId}`,{token,body:{channel:"Email",createdAt:"2026-01-10",events:[]}});
     const deletion=await env.request("DELETE",`/api/customers/${foreignCustomerId}`,{token});
     expect(update.status).toBe(404);
     expect(deletion.status).toBe(404);
