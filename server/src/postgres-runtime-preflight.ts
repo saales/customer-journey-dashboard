@@ -198,6 +198,18 @@ export async function inspectPostgresRuntimeRole(
   };
 }
 
+/** Fails closed when a production PostgreSQL connection is not encrypted with TLS. */
+export async function assertPostgresTlsConnection(
+  pool: Pick<Pool, "query">,
+): Promise<void> {
+  const result = await pool.query<{ ssl: boolean | null }>(
+    "SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()",
+  );
+  if (result.rows[0]?.ssl !== true) {
+    throw new Error("La connessione PostgreSQL del runtime deve usare TLS.");
+  }
+}
+
 export async function assertSafePostgresRuntimeRole(
   pool: Pick<Pool, "query">,
 ): Promise<void> {
