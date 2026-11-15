@@ -63,6 +63,8 @@ Impostare nel secret manager dell'hosting queste variabili. I valori segreti van
 | `RESEND_API_KEY` | Chiave Resend, se email attive |
 | `EMAIL_FROM` | Mittente verificato Resend, se email attive |
 
+Il server verifica all'avvio che la connessione PostgreSQL del runtime sia effettivamente cifrata con TLS e rifiuta l'avvio in caso contrario.
+
 Non inserire `BOOTSTRAP_DATABASE_URL` nel runtime HTTP. Le variabili `BOOTSTRAP_*` sono temporanee e servono solo al comando iniziale, poi vanno rimosse.
 
 ### Passo 6 — comunicare i soli dati non segreti (titolare)
@@ -91,7 +93,8 @@ Non inviare password, URL completi, chiavi API, certificati privati o dati perso
 8. Eseguire `scripts/staging/run-smoke.sh` con i parametri richiesti dalla relativa guida e verificare login, ruoli, CSRF, isolamento tenant, export e logout.
 9. Provare inviti e recupero password con caselle email controllate.
 10. Eseguire backup e restore reali, verificare health check, log, allarmi e limiti sotto carico.
-11. Registrare tutte le evidenze e chiudere i gap privacy/contrattuali prima di un pilot con dati reali.
+11. Pianificare un job giornaliero con `npm run db:cleanup-login-attempts`: elimina in batch i vecchi bucket di rate limiting login/API e i token di recupero password scaduti. Eseguirlo con il ruolo runtime, tramite systemd timer o scheduler equivalente, custodendo le variabili d'ambiente in un secret manager e monitorando il codice di uscita.
+12. Registrare tutte le evidenze e chiudere i gap privacy/contrattuali prima di un pilot con dati reali.
 
 ### File credenziali locale per lo smoke test
 
