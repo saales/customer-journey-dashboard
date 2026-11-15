@@ -7,7 +7,7 @@
 - Base: `recovery/checkpoint-12-postgres`
 - Database applicativo: PostgreSQL
 - Database remoto/Neon: non verificato in questa attività; nessuna migrazione, scrittura o modifica remota eseguita
-- Ultimo commit con CI completa verificata: `f4b2d6cbc8d1c3c7e503b20168c27438669df080` (successivo aggiornamento di documentazione in PR; CI del nuovo head in corso al momento dell'aggiornamento)
+- Ultimo commit con CI completa verificata: `4a480f868dc9800e7cafd94292f3352ae1e269c7` (la CI del commit successivo, che aggiunge ulteriori test negativi, è in attesa di esito)
 
 ## CI verificata
 
