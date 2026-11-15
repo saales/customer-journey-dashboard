@@ -161,3 +161,23 @@ La run [43746713179](https://github.com/saales/customer-journey-dashboard/action
 È stata resa sequenziale l'ispezione dei cataloghi PostgreSQL, che in precedenza accodava query concorrenti sullo stesso `PoolClient` e generava un avviso di deprecazione del driver. Il nuovo test verifica che non vi siano query sovrapposte. Restano avvisi di deprecazione `punycode` e `url.parse()` provenienti da dipendenze; non risultano vulnerabilità note nell'audit npm.
 
 Queste verifiche sono eseguite in CI su PostgreSQL temporaneo e fixture sintetici. Non attestano staging remoto, backup/restore reale, test indipendente di penetrazione, configurazione operativa o sicurezza assoluta. La PR resta draft/non merged e non è stato eseguito alcun deploy.
+
+
+## Hardening credenziali e sessioni — CI 43747401019
+
+La run [43747401019](https://github.com/saales/customer-journey-dashboard/actions/runs/43747401019) sul commit `07b7a511c8446664a4098013eeec6b6d27f6ef30` è completata con successo su Node.js 20 e 22.
+
+Per ciascuna versione: 43 file server / 246 test passati; 11 file client / 41 test passati; build superata; `npm audit` con 0 vulnerabilità note; migrazioni/checksum PostgreSQL, policy RLS effettive e avvio del runtime con ruolo limitato superati. Node.js 22 ha superato anche Playwright/Chromium (1 test browser).
+
+Modifiche incluse:
+- scrypt per nuove password con `N=32768, r=8, p=3`; verifica compatibile con hash legacy `p=1` e aggiornamento automatico al login riuscito o accettazione invito;
+- verifica scrypt fittizia per account inesistenti;
+- session issuance con lock e controllo dell'hash esatto verificato, con aggiornamento hash e inserimento sessione nella stessa transazione;
+- verifica TLS sulla connessione PostgreSQL effettiva all'avvio in produzione;
+- limiti di tentativi per account/email oltre che per IP;
+- token monouso nei frammenti URL, pulizia della barra indirizzi e compatibilità legacy;
+- ispezione schema PostgreSQL sequenziale sullo stesso client.
+
+Il log CI non mostra più l'avviso relativo a query concorrenti sullo stesso `PoolClient`. Restano warning di deprecazione `punycode` e `url.parse()` provenienti da dipendenze, senza vulnerabilità note segnalate da `npm audit`.
+
+La verifica resta limitata a CI, PostgreSQL temporaneo e fixture sintetici. Non attesta staging remoto, backup/restore reale, email, test di carico, monitoraggio, rollback operativo o penetration test indipendente. MFA/SSO per gli account privilegiati resta un gate prima del pilot.
