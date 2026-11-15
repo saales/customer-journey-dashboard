@@ -89,7 +89,7 @@ describe("PostgreSQL credential authentication", () => {
       )).resolves.toBeNull();
       expect(verification).toHaveBeenCalledWith(
         "wrong-password-123",
-        expect.stringMatching(/^scrypt\\$32768\\$8\\$1\\$/),
+        expect.stringMatching(/^scrypt\$32768\$8\$1\$/),
       );
     } finally {
       verification.mockRestore();
