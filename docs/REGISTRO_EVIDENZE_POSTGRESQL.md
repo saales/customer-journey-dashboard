@@ -74,7 +74,7 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 
 ## Decisione
 
-Il codice e i test automatici del commit head indicato sono verdi su Node.js 20 e 22; il browser E2E è stato eseguito sul job Node.js 22. Questo risultato non dimostra che il prodotto sia pronto al 100% per il mercato: staging reale, email, backup/restore, carico, monitoraggio, copertura completa delle API e aspetti commerciali/privacy non sono ancora certificati.
+I run verdi precedenti (Node.js 20 e 22, browser E2E su Node.js 22) riguardano commit antecedenti all'ultimo recupero dei test dallo ZIP e non certificano il nuovo head. Il run 43705654748 sul commit b0370ff ha fallito in entrambi i job Node.js perché un nuovo test multi-tenant cercava externalId nella risposta HTTP, mentre la route restituisce gli ID numerici; 213 test server sono passati e 1 è fallito, mentre i 41 test client sono passati. Il test è stato corretto nel commit 10bd689, ma la CI per questo commit non risulta ancora disponibile. Non dichiarare verdi i test del nuovo head finché un run corrispondente non termina con successo.
 
 La PR deve restare draft e non va unita né distribuita finché i gate in `docs/GATE_RILASCIO.md` non sono completati con evidenze verificabili.
 
@@ -86,3 +86,11 @@ Sono stati aggiunti al ramo due file di test d'integrazione con una prima selezi
 - `server/test/export-json.integration.test.ts`: test HTTP su matrice ruoli, autenticazione, intestazioni e schema, contenuti secret-free e tenant-scoped, audit e ordinamento eventi.
 
 Questi test sono stati ricostruiti prendendo come riferimento i casi nello ZIP, non copiati integralmente; restano da migrare gli altri casi limite delle suite originali. La loro esecuzione sulla CI del nuovo head è ancora da verificare; non conteggiarli come superati finché il relativo run GitHub Actions non è completato.
+
+
+## Verifica CI successiva — 15 novembre 2026
+
+- Run `43705654748`, commit `b0370ff6058f2113f0ed1d2d77f6ca2c03ddc0ea`: fallito su Node.js 20 e 22 per l'asserzione errata descritta sopra; non risultano errori nel test export JSON aggiunto.
+- Correzione del test in `server/test/multi-tenant-negative.integration.test.ts`: usa gli ID dei fixture A/B che la route restituisce realmente, invece degli `externalId` che non sono esposti dalla risposta.
+- Commit correttivo: `10bd6892e75ecede3bde897dea1a3c40e4608c1c`.
+- Al momento dell'aggiornamento non è ancora visibile un run CI associato al commit correttivo. Il gate CI resta quindi aperto.
