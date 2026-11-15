@@ -8,6 +8,7 @@ import {
 const dbUrl = integrationDatabaseUrl();
 let env: HttpTestEnvironment;
 let bInviteId: string;
+let bInviteToken: string;
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
 beforeAll(async () => {
@@ -19,6 +20,7 @@ beforeAll(async () => {
     [env.tenants.B.id, sha256(token), env.tenants.B.users.admin.id],
   );
   bInviteId = invite.rows[0]!.id;
+  bInviteToken = token;
 }, 60_000);
 afterAll(async () => { await env?.close(); });
 
@@ -189,6 +191,86 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     expect(users.rowCount).toBe(0);
     expect(memberships.rowCount).toBe(0);
   });
+
+  it("l'accettazione del token B assegna solo organizzazione e ruolo dell'invito", async () => {
+    const response = await env.request("POST", "/api/invitations/accept", {
+      body: {
+        token: bInviteToken,
+        fullName: "Utente invitato B",
+        password: "Password-invito-2026!",
+        organizationId: a().id,
+        role: "admin",
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ organizationSlug: "tenant-b" });
+    const user = await env.adminPool.query<{ id: string }>(
+      "SELECT id::text AS id FROM users WHERE email='pending-b@example.test'",
+    );
+    expect(user.rowCount).toBe(1);
+    const memberships = await env.adminPool.query(
+      "SELECT organization_id::text AS organization_id, role FROM memberships WHERE user_id=$1",
+      [user.rows[0]!.id],
+    );
+    expect(memberships.rows).toEqual([{ organization_id: b().id, role: "viewer" }]);
+  });
+
+  it("invita in A un indirizzo già membro di B senza rivelare dati di B e verifica la password esistente", async () => {
+    const created = await env.request("POST", "/api/invitations", {
+      token: adminA(),
+      body: { email: b().users.admin.email, role: "viewer", expiresInDays: 7 },
+    });
+    expect(created.status).toBe(201);
+    expect(created.text).not.toContain(b().id);
+    expect(created.text).not.toContain(b().users.admin.membershipId);
+    const token = new URL((created.body as { inviteUrl: string }).inviteUrl).searchParams.get("token");
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+    const wrongPassword = await env.request("POST", "/api/invitations/accept", {
+      body: { token, fullName: "Nome ignorato", password: "Password-errata-2026!", role: "admin", organizationId: b().id },
+    });
+    expect(wrongPassword.status).toBe(401);
+    const correctPassword = await env.request("POST", "/api/invitations/accept", {
+      body: { token, fullName: "Nome ignorato", password: "Password-di-test-2026!", role: "admin", organizationId: b().id },
+    });
+    expect(correctPassword.status).toBe(200);
+    expect(correctPassword.body).toMatchObject({ organizationSlug: "tenant-a" });
+    const membership = await env.adminPool.query(
+      "SELECT role FROM memberships WHERE organization_id=$1 AND user_id=$2",
+      [a().id, b().users.admin.id],
+    );
+    expect(membership.rows).toEqual([{ role: "viewer" }]);
+  });
+
+  it("analytics, segmenti e audit di A non espongono record esclusivi di B", async () => {
+    const customer = await env.adminPool.query<{ id: string }>(
+      "INSERT INTO customers (organization_id,external_id,channel,created_at) VALUES ($1,'b-private-referral','Referral','2026-08-01') RETURNING id::text AS id",
+      [b().id],
+    );
+    await env.adminPool.query(
+      "INSERT INTO events (organization_id,customer_id,stage_id,occurred_at) VALUES ($1,$2::bigint,'visit','2026-08-01')",
+      [b().id, customer.rows[0]!.id],
+    );
+    await env.adminPool.query(
+      "INSERT INTO audit_logs (organization_id,actor_user_id,action,resource_type,resource_id,details) VALUES ($1,$2,'tenant-b-private-probe','test','private-b-marker','{}'::jsonb)",
+      [b().id, b().users.admin.id],
+    );
+    const [channels, segments, audit] = await Promise.all([
+      env.request("GET", "/api/channels?from=2026-01-01&to=2026-12-31", { token: adminA() }),
+      env.request("GET", "/api/segments?from=2026-01-01&to=2026-12-31", { token: adminA() }),
+      env.request("GET", "/api/audit", { token: adminA() }),
+    ]);
+    for (const response of [channels, segments, audit]) {
+      expect(response.status).toBe(200);
+      expect(response.text).not.toContain("b-private-referral");
+      expect(response.text).not.toContain("tenant-b-private-probe");
+      expect(response.text).not.toContain("private-b-marker");
+      expect(response.text).not.toContain(b().id);
+    }
+    expect(channels.text).not.toContain('"channel":"Referral"');
+    expect(segments.text).not.toContain('"label":"Referral"');
+  });
+
   it("con contesto A RLS nasconde, non aggiorna e non cancella righe di B", async () => {
     const before = await env.adminPool.query("SELECT channel FROM customers WHERE organization_id=$1 AND id=$2", [b().id, b().customerIds[0]]);
     await withTenant(a().id, async (client) => {
