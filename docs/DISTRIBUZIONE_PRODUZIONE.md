@@ -5,6 +5,7 @@
 - Database PostgreSQL di produzione identificato e accessibile.
 - Backup verificato e prova di ripristino completata.
 - Ruolo owner separato dal ruolo runtime `percorso_app` (NOINHERIT, non superuser, senza BYPASSRLS).
+- `NODE_ENV=production` esplicita (obbligatoria: il server rifiuta valori mancanti o non supportati).
 - `DATABASE_URL`, `APP_ORIGIN` HTTPS e `LOGIN_RATE_LIMIT_SECRET` configurati come secret di ambiente.
 - Per recupero password e inviti automatici: `RESEND_API_KEY` e `EMAIL_FROM` configurati; senza questi valori gli inviti restano condivisibili manualmente e il recupero password non invia email.
 - `TRUSTED_PROXY_IPS` valorizzato con gli IP/CIDR esatti dei reverse proxy fidati; lasciare vuoto solo se il processo riceve direttamente il traffico client.
@@ -22,7 +23,7 @@ La build produce il frontend statico in `client/dist`; il processo Node avvia es
 6. Verificare che le migrazioni applicate e i checksum coincidano con il ramo rilasciato.
 7. Se esistono migrazioni pendenti, verificare backup, piano di rollback e approvazione prima di `npm run db:migrate`.
 8. Eseguire il bootstrap solo su database vuoto e con credenziali amministrative separate.
-9. Configurare il server con il ruolo runtime e avviare `npm start`. Lo startup ripete il controllo read-only e si arresta se il ruolo/schema non sono sicuri.
+9. Configurare il servizio con `NODE_ENV=production` e il ruolo runtime, quindi avviare `npm start`. Lo startup ripete il controllo read-only e si arresta se il ruolo/schema non sono sicuri.
 10. Verificare `/api/health`, login, sessione, permessi, inviti, clienti, import, funnel, export e isolamento cross-tenant.
 11. Abilitare il traffico solo dopo smoke test e controlli di osservabilità.
 
