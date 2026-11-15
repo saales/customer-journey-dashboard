@@ -34,6 +34,7 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 ## Requisiti
 
 - Node.js 20 o successivo
+- `NODE_ENV` esplicita: `development` in locale, `production` nel deployment
 - npm
 - Un database PostgreSQL
 - Un ruolo proprietario/amministrativo per migrazioni e bootstrap
