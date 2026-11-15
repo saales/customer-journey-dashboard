@@ -120,3 +120,8 @@ Nel commit `6fe2c8c406c9766bc4862d3caa70998cd35c2559` sono stati aggiunti alla s
 ## Test aggiuntivi import e inviti — 15 novembre 2026
 
 Nel commit `53adce916be03f0cd60ded6edaf847d859c130e1` sono stati aggiunti test HTTP per: fingerprint anti-duplicato tenant-scoped e riuso dello stesso externalId tra tenant; rifiuto di una fase funnel disponibile solo nell'altro tenant senza scritture; rollback atomico su collisione cliente a metà import; limite di 10.000 righe. Nel commit `22afb0a6f61fade5e525a9943b093a31497ef201` sono stati aggiunti test per isolamento dell'elenco inviti, impossibilità di revocare inviti cross-tenant e rifiuto di inviti scaduti/revocati senza creazione di utenti o membership. Questi test sono aggiunte successive alla run verde 43707129653: devono ancora essere eseguiti da CI sul nuovo head.
+
+
+## Correzione test import — CI 43707939611
+
+La run `43707939611` ha rilevato un errore nell'asserzione del nuovo test: il fixture tenant B contiene già `only-b-2`, quindi il tentativo di reimportare lo stesso externalId nello stesso tenant deve essere rifiutato (409), non accettato. Il test è stato corretto separando due proprietà: riuso dello stesso externalId tra tenant (ammesso) e fingerprint identico tra tenant (ammesso una volta per ciascun tenant, poi 409 nel tenant che lo ha già importato). Il job Node.js 20 ha riportato 232 test passati e 1 fallito; il job Node.js 22 era ancora in corso al momento dell'aggiornamento ed è stato interrotto dall'aggiornamento del branch. Nuova CI necessaria sul nuovo head.
