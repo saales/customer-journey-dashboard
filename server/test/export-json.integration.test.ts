@@ -171,6 +171,26 @@ describe.skipIf(!dbUrl)("Export JSON — snapshot concorrente REPEATABLE READ", 
     } finally { await org.drop(); }
   },60_000);
 
+
+  it("accetta esattamente 100.000 record esportabili per risorsa", async () => {
+    const org = await makeExportOrg("export-exact-limit");
+    try {
+      await env.adminPool.query(
+        "INSERT INTO import_batches (organization_id,fingerprint,file_name,customer_count,row_count) SELECT $1,md5(g::text),'boundary.csv',0,0 FROM generate_series(1,100000) g",
+        [org.id],
+      );
+      const exported = await exportPostgresOrganizationJson(env.runtimePool, org.id, org.userId);
+      expect(exported.importBatches).toHaveLength(100_000);
+      const audit = await env.adminPool.query(
+        "SELECT COUNT(*)::int AS n FROM audit_logs WHERE organization_id=$1 AND action='data.exported'",
+        [org.id],
+      );
+      expect(audit.rows[0]!.n).toBe(1);
+    } finally {
+      await org.drop();
+    }
+  }, 120_000);
+
   it("un errore a metà export esegue rollback e non lascia connessioni in transazione", async () => {
     const org = await makeExportOrg("snapshot-rollback");
     try {
