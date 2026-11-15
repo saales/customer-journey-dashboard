@@ -101,15 +101,20 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
   });
 
   it("externalId e fingerprint di import sono isolati per tenant", async () => {
-    const sharedRows = [importRow("only-b-2")];
-    const firstA = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "tenant-scope.csv", rows: sharedRows } });
-    expect(firstA.status).toBe(201);
-    const sameContentB = await env.request("POST", "/api/import", { token: adminB(), body: { fileName: "tenant-scope.csv", rows: sharedRows } });
-    expect(sameContentB.status).toBe(201);
-    const duplicateA = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "renamed.csv", rows: sharedRows } });
-    expect(duplicateA.status).toBe(409);
+    const sharedExternalId = await env.request("POST", "/api/import", {
+      token: adminA(), body: { fileName: "shared-external-id.csv", rows: [importRow("only-b-2")] },
+    });
+    expect(sharedExternalId.status).toBe(201);
     const owners = await env.adminPool.query("SELECT organization_id::text AS org FROM customers WHERE external_id='only-b-2' ORDER BY organization_id");
     expect(owners.rows.map(row => row.org).sort()).toEqual([a().id, b().id].sort());
+
+    const fingerprintRows = [importRow("fingerprint-probe")];
+    const firstA = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "fingerprint.csv", rows: fingerprintRows } });
+    expect(firstA.status).toBe(201);
+    const sameContentB = await env.request("POST", "/api/import", { token: adminB(), body: { fileName: "fingerprint.csv", rows: fingerprintRows } });
+    expect(sameContentB.status).toBe(201);
+    const duplicateA = await env.request("POST", "/api/import", { token: adminA(), body: { fileName: "renamed.csv", rows: fingerprintRows } });
+    expect(duplicateA.status).toBe(409);
   });
 
   it("una fase presente solo in B è rifiutata nell'import di A senza scritture", async () => {
