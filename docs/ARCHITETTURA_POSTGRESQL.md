@@ -1,28 +1,82 @@
-# Architettura PostgreSQL — runtime unico
+# Architettura — Percorso Cliente
 
-## Runtime
+## Scopo e runtime
 
-Il server HTTP standard avvia `server/src/postgres-server.ts` e usa il pool condiviso `server/src/postgres.ts`. I comandi standard di sviluppo, avvio, test e produzione usano PostgreSQL. Non sono previste modalità applicative parallele.
+Percorso Cliente è una piattaforma web B2B multi-organizzazione per analizzare il percorso cliente, il funnel e le conversioni. PostgreSQL è l'unico database applicativo.
 
-## Moduli
+- **Frontend:** React, TypeScript, Vite e Recharts.
+- **Backend:** Node.js, Express e TypeScript; entrypoint `server/src/postgres-server.ts`.
+- **Persistenza:** PostgreSQL tramite `pg`.
+- **Test:** Vitest, Testing Library, PostgreSQL 16 temporaneo e Playwright/Chromium nella CI.
+- **Runtime:** `npm run dev` per sviluppo; `npm start` per il server compilato.
 
-- Autenticazione, password scrypt, sessioni opache, risoluzione e revoca.
-- Middleware di sessione, ruoli e permessi.
-- API tenant-scoped per clienti, eventi, funnel, analisi, segmentazione e importazione.
-- Gestione membri e inviti monouso con scadenza, revoca e accettazione atomica.
-- Audit log per import, membership, inviti, clienti e modifiche funnel.
-- Esportazione CSV clienti lato server con permesso dedicato, limite massimo e mitigazione formula injection.
-- Migrazioni versionate 001–010, checksum, advisory lock e preflight read-only, inclusa la verifica dei privilegi sul rate limiter API.
-- Verifica del ruolo runtime e dei privilegi minimi.
+## Flussi principali
 
-## Avvio sicuro
+1. L'utente accede con slug dell'organizzazione, email e password.
+2. Il server verifica le credenziali e la membership attiva, quindi crea una sessione opaca.
+3. Il cookie di sessione è HttpOnly e SameSite=Strict; in produzione usa il prefisso host-only `__Host-` e l'attributo Secure.
+4. Le API risolvono la sessione e ricavano da essa organizzazione, utente e ruolo. Il browser non può scegliere l'organizzazione attiva tramite un parametro arbitrario.
+5. I repository eseguono query tenant-scoped in transazioni PostgreSQL; le tabelle operative applicano Row Level Security.
+6. Le operazioni amministrative e sui dati scrivono gli eventi previsti nell'audit log.
 
-Il server non applica migrazioni automaticamente. Verifica lo storico e il ruolo PostgreSQL; se esistono migrazioni pendenti, checksum divergenti o privilegi non conformi, il processo non apre la porta HTTP.
+## Moduli funzionali
 
-## Stato del database remoto
+- Dashboard, KPI, analisi temporali, canali, segmentazione e confronti.
+- Gestione clienti, eventi e fasi del funnel.
+- Importazione dati e validazione server-side.
+- Esportazione CSV clienti ed export JSON dell'organizzazione, con permessi dedicati.
+- Autenticazione, sessioni, revoca, cambio password e recupero password.
+- Gestione membri, ruoli e inviti monouso con scadenza, revoca e accettazione atomica.
+- Email transazionali tramite Resend quando `RESEND_API_KEY` e `EMAIL_FROM` sono configurati.
+- Audit log, rate limiting persistente e controlli di sicurezza del runtime.
 
-Il repository e la CI dimostrano che il codice e le migrazioni funzionano su PostgreSQL temporaneo. Non dimostrano che Neon contenga già le migrazioni 001–010 o che i dati precedenti siano stati trasferiti. Serve un preflight read-only sull'istanza effettiva, confronto checksum/ruoli/RLS e riconciliazione dei conteggi. Nessuna operazione remota è stata eseguita da questa attività.
+## Autorizzazioni
 
-## Limiti di rilascio
+| Ruolo | Accesso previsto |
+|---|---|
+| Admin | Gestione completa di dati, funnel, membri, inviti e audit |
+| Editor | Lettura e modifica di clienti/funnel, import ed export |
+| Analyst | Lettura analitica, clienti e funnel; export |
+| Viewer | Sola lettura delle viste consentite |
 
-La CI include un percorso browser end-to-end rappresentativo con Playwright/Chromium su PostgreSQL temporaneo. Prima del rilascio restano necessari test browser completi per i ruoli e i casi cross-tenant, backup/restore, test di carico, osservabilità e staging. L'invio email automatico e il recupero password/account restano da implementare.
+Le autorizzazioni sono applicate dal server tramite middleware per permesso. I controlli nel frontend sono solo presentazionali e non sostituiscono i controlli API.
+
+## Database e avvio sicuro
+
+Le migrazioni SQL versionate (001–013) usano checksum e advisory lock. Le migrazioni sono applicate con un comando amministrativo esplicito; lo startup del server non esegue DDL.
+
+All'avvio il server:
+- richiede una modalità esplicita `NODE_ENV=development|test|production`;
+- verifica che lo storico migrazioni e i checksum coincidano;
+- verifica i privilegi del ruolo runtime;
+- rifiuta l'avvio se schema o privilegi non sono conformi.
+
+Il ruolo runtime deve essere distinto dal proprietario e non deve avere privilegi elevati. Le operazioni di migrazione e bootstrap richiedono un ruolo amministrativo separato.
+
+## API principali
+
+| Area | Endpoint |
+|---|---|
+| Autenticazione | `/api/auth/login`, `/api/auth/session`, `/api/auth/logout` |
+| Inviti | `/api/invitations`, `/api/invitations/accept`, `/api/invitations/:id/revoke` |
+| Analisi | `/api/meta`, `/api/summary`, `/api/channels`, `/api/timeseries` |
+| Clienti | `/api/customers`, `/api/customers/:id` |
+| Funnel | `/api/funnel-stages`, `/api/funnel-stages/:id` |
+| Import | `/api/import` |
+| Segmentazione | `/api/segments`, `/api/segments/customers` |
+| Export | `/api/export/customers.csv`, `/api/export/organization.json` |
+| Organizzazione | `/api/organization`, `/api/members`, `/api/invitations` |
+| Audit | `/api/audit` |
+
+## Limiti e stato di rilascio
+
+La CI su PostgreSQL temporaneo verifica test, build, migrazioni, checksum, RLS, avvio con ruolo limitato e un percorso browser automatizzato. Queste prove non attestano che il database remoto sia già stato migrato né sostituiscono un collaudo staging.
+
+Prima di un rilascio commerciale sono ancora necessari:
+- matrice completa delle autorizzazioni e test cross-tenant su tutte le API e operazioni;
+- collaudo su staging separato, inclusi email e flussi di recupero account;
+- backup e ripristino realmente eseguiti su un database isolato;
+- test di carico, monitoraggio, allarmi, rollback e procedure operative;
+- revisione indipendente di sicurezza e valutazione privacy/contrattuale.
+
+Nessuna operazione remota, migrazione su Neon o deploy è implicata dal superamento della CI. Il gate vincolante è `docs/GATE_RILASCIO.md`.
