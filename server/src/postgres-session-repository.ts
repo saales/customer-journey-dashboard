@@ -11,18 +11,31 @@ export interface IssuedPostgresSession {
   expiresAt: string;
 }
 
+export class PostgresSessionIssueError extends Error {
+  constructor() {
+    super("Utente, organizzazione, membership o credenziale non più validi.");
+    this.name = "PostgresSessionIssueError";
+  }
+}
+
+
 /** Inserts a session using a caller-owned transaction. */
 export async function createPostgresSessionInTransaction(
   client: PoolClient,
   userId: string,
   organizationId: string,
   ttlMs = DEFAULT_SESSION_TTL_MS,
+  expectedPasswordHash?: string,
 ): Promise<IssuedPostgresSession> {
   if (!UUID_RE.test(userId) || !UUID_RE.test(organizationId)) {
     throw new Error("Identificativo utente o organizzazione non valido.");
   }
   if (!Number.isSafeInteger(ttlMs) || ttlMs < 60_000 || ttlMs > MAX_SESSION_TTL_MS) {
     throw new Error("Durata della sessione non valida.");
+  }
+
+  if (expectedPasswordHash !== undefined && (typeof expectedPasswordHash !== "string" || expectedPasswordHash.length > 256)) {
+    throw new Error("Hash credenziale non valido.");
   }
 
   const { token, tokenHash } = createSessionToken();
@@ -39,11 +52,12 @@ export async function createPostgresSessionInTransaction(
       AND o.status = 'active'
      WHERE u.id = $1::uuid
        AND u.status = 'active'
+       AND ($5::text IS NULL OR u.password_hash = $5)
      RETURNING to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expiresAt"`,
-    [userId, organizationId, tokenHash, ttlMs],
+    [userId, organizationId, tokenHash, ttlMs, expectedPasswordHash ?? null],
   );
   if (result.rowCount !== 1 || !result.rows[0]) {
-    throw new Error("Utente, organizzazione o membership non attivi.");
+    throw new PostgresSessionIssueError();
   }
   return { token, expiresAt: result.rows[0].expiresAt };
 }
@@ -54,6 +68,7 @@ export async function issuePostgresSession(
   userId: string,
   organizationId: string,
   ttlMs = DEFAULT_SESSION_TTL_MS,
+  passwordHashGuard?: { expected: string; replacement?: string },
 ): Promise<IssuedPostgresSession> {
   // Rifiuta input errati prima di acquisire una connessione dal pool.
   if (!UUID_RE.test(userId) || !UUID_RE.test(organizationId)) {
@@ -66,7 +81,27 @@ export async function issuePostgresSession(
   let released = false;
   try {
     await client.query("BEGIN");
-    const issued = await createPostgresSessionInTransaction(client, userId, organizationId, ttlMs);
+    let expectedPasswordHash = passwordHashGuard?.expected;
+    if (passwordHashGuard) {
+      const lockedUser = await client.query<{ passwordHash: string }>(
+        "SELECT password_hash AS \"passwordHash\" FROM users WHERE id = $1::uuid AND status = 'active' FOR SHARE",
+        [userId],
+      );
+      if (lockedUser.rows[0]?.passwordHash !== passwordHashGuard.expected) {
+        throw new PostgresSessionIssueError();
+      }
+      if (passwordHashGuard.replacement) {
+        const upgraded = await client.query(
+          "UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1::uuid AND password_hash = $3",
+          [userId, passwordHashGuard.replacement, passwordHashGuard.expected],
+        );
+        if (upgraded.rowCount !== 1) throw new PostgresSessionIssueError();
+        expectedPasswordHash = passwordHashGuard.replacement;
+      }
+    }
+    const issued = await createPostgresSessionInTransaction(
+      client, userId, organizationId, ttlMs, expectedPasswordHash,
+    );
     await client.query("COMMIT");
     return issued;
   } catch (error) {
