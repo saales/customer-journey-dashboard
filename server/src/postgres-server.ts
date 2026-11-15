@@ -2,6 +2,7 @@ import { createPostgresApp } from "./postgres-app.js";
 import { postgresPool } from "./postgres.js";
 import { loadPostgresMigrations, planPostgresMigrations } from "./postgres-migrations.js";
 import { assertSafePostgresRuntimeRole } from "./postgres-runtime-preflight.js";
+import { requireRuntimeEnvironment } from "./runtime-environment.js";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -10,6 +11,7 @@ function requiredEnvironment(name: string): string {
 }
 
 async function main(): Promise<void> {
+  const runtimeEnvironment = requireRuntimeEnvironment(process.env.NODE_ENV);
   const allowedOrigins = requiredEnvironment("APP_ORIGIN")
     .split(",")
     .map((origin) => origin.trim())
@@ -36,7 +38,7 @@ async function main(): Promise<void> {
 
   await assertSafePostgresRuntimeRole(postgresPool);
 
-  const production = process.env.NODE_ENV === "production";
+  const production = runtimeEnvironment === "production";
   const app = createPostgresApp(postgresPool, {
     allowedOrigins,
     rateLimitSecret,
