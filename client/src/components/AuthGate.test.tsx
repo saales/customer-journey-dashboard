@@ -62,7 +62,7 @@ describe("Accesso PostgreSQL dal browser", () => {
   });
 
   it("accetta un invito monouso e verifica la sessione appena creata", async () => {
-    window.history.replaceState({}, "", `/#token=${"A".repeat(43)}`);
+    window.history.replaceState({}, "", `/?token=${"A".repeat(43)}`);
     const requests: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input); requests.push(url);
@@ -72,6 +72,7 @@ describe("Accesso PostgreSQL dal browser", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<AuthGate>{(_logout, role) => <p>Ruolo: {role}</p>}</AuthGate>);
+    expect(window.location.search).toBe("");
     expect(window.location.hash).toBe("");
     fireEvent.change(await screen.findByLabelText("Nome e cognome"), { target: { value: "Nuovo utente" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Password-Invito-2026" } });
