@@ -93,7 +93,7 @@ describe("PostgreSQL credential authentication", () => {
       "SELECT password_hash AS \"passwordHash\" FROM users WHERE id = $1::uuid",
       [legacyUserId],
     );
-    expect(upgraded.rows[0]?.passwordHash).toMatch(/^scrypt\\$32768\\$8\\$3\\$/);
+    expect(upgraded.rows[0]?.passwordHash).toMatch(/^scrypt\$32768\$8\$3\$/);
     await expect(issuePostgresSession(
       pool!, legacyUserId, organizationId, undefined, { expected: legacyPasswordHash },
     )).rejects.toBeInstanceOf(PostgresSessionIssueError);
@@ -114,7 +114,7 @@ describe("PostgreSQL credential authentication", () => {
       )).resolves.toBeNull();
       expect(verification).toHaveBeenCalledWith(
         "wrong-password-123",
-        expect.stringMatching(/^scrypt\$32768\$8\$1\$/),
+        expect.stringMatching(/^scrypt\$32768\$8\$3\$/),
       );
     } finally {
       verification.mockRestore();
