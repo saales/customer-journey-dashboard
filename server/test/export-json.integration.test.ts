@@ -1,9 +1,33 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Pool, PoolClient } from "pg";
+import { exportPostgresOrganizationJson } from "../src/postgres-export-repository.js";
 import {
   createHttpTestEnvironment, integrationDatabaseUrl, ROLES, type HttpTestEnvironment,
 } from "./helpers/http-test-environment.js";
 
 const dbUrl = integrationDatabaseUrl();
+/** Organizzazione isolata per i test di snapshot del repository export. */
+async function makeExportOrg(slug: string) {
+  const org = await env.adminPool.query<{ id: string }>(
+    "INSERT INTO organizations (name, slug) VALUES ($1,$1) RETURNING id::text AS id", [slug],
+  );
+  const id = org.rows[0]!.id;
+  await env.adminPool.query(
+    "INSERT INTO funnel_stages (organization_id,id,label,position,is_system) VALUES ($1,'visit','Visita',0,TRUE),($1,'lead','Lead',1,TRUE)", [id],
+  );
+  const user = await env.adminPool.query<{ id: string }>(
+    "INSERT INTO users (email,password_hash,full_name) VALUES ($1,'x','Admin') RETURNING id::text AS id", [`${slug}@example.test`],
+  );
+  await env.adminPool.query("INSERT INTO memberships (organization_id,user_id,role) VALUES ($1,$2,'admin')", [id,user.rows[0]!.id]);
+  return {
+    id, userId:user.rows[0]!.id,
+    drop:async()=>{
+      await env.adminPool.query("DELETE FROM events WHERE organization_id=$1",[id]);
+      await env.adminPool.query("DELETE FROM organizations WHERE id=$1",[id]);
+    },
+  };
+}
+
 let env: HttpTestEnvironment;
 
 beforeAll(async () => { if (dbUrl) env = await createHttpTestEnvironment(); }, 60_000);
@@ -89,4 +113,76 @@ describe.skipIf(!dbUrl)("Export JSON organizzazione: permessi, contenuto, audit 
     );
     expect(after.rows).toEqual(before.rows);
   });
+});
+
+
+describe.skipIf(!dbUrl)("Export JSON — snapshot concorrente REPEATABLE READ", () => {
+  /** Inietta una scrittura committata da un'altra connessione dopo una query precisa. */
+  function poolWithConcurrentWrite(afterQueryMatching: RegExp, sideEffect: () => Promise<void>): Pick<Pool, "connect"> {
+    let fired = false;
+    return {
+      connect: async () => {
+        const client = await env.runtimePool.connect();
+        const original = client.query.bind(client) as (...args: unknown[]) => Promise<unknown>;
+        (client as unknown as { query: unknown }).query = async (...args: unknown[]) => {
+          const result = await original(...args);
+          const sql = typeof args[0] === "string" ? args[0] : "";
+          if (!fired && afterQueryMatching.test(sql)) { fired = true; await sideEffect(); }
+          return result;
+        };
+        return client as PoolClient;
+      },
+    } as Pick<Pool, "connect">;
+  }
+
+  it("le scritture committate durante l'export non entrano nello snapshot e il successivo export le vede", async () => {
+    const org = await makeExportOrg("snapshot-json");
+    try {
+      const first = await env.adminPool.query<{id:string}>(
+        "INSERT INTO customers (organization_id,external_id,channel,created_at) VALUES ($1,'iniziale','Email','2026-01-01') RETURNING id::text AS id",[org.id],
+      );
+      await env.adminPool.query(
+        "INSERT INTO events (organization_id,customer_id,stage_id,occurred_at) VALUES ($1,$2::bigint,'visit','2026-01-01')",[org.id,first.rows[0]!.id],
+      );
+      const racing = poolWithConcurrentWrite(/FROM funnel_stages/, async () => {
+        const late = await env.adminPool.query<{id:string}>(
+          "INSERT INTO customers (organization_id,external_id,channel,created_at) VALUES ($1,'tardivo','Social','2026-02-02') RETURNING id::text AS id",[org.id],
+        );
+        await env.adminPool.query(
+          "INSERT INTO events (organization_id,customer_id,stage_id,occurred_at) VALUES ($1,$2::bigint,'visit','2026-02-02'),($1,$2::bigint,'lead','2026-02-03')",[org.id,late.rows[0]!.id],
+        );
+        await env.adminPool.query(
+          "INSERT INTO import_batches (organization_id,fingerprint,file_name,customer_count,row_count) VALUES ($1,'late','late.csv',1,2)",[org.id],
+        );
+        await env.adminPool.query("UPDATE organizations SET name='Rinominata durante export' WHERE id=$1",[org.id]);
+        await env.adminPool.query("UPDATE funnel_stages SET label='Etichetta tardiva' WHERE organization_id=$1 AND id='lead'",[org.id]);
+      });
+      const snapshot = await exportPostgresOrganizationJson(racing,org.id,org.userId);
+      expect(snapshot.customers).toHaveLength(1);
+      expect(snapshot.customers[0]!.events).toHaveLength(1);
+      expect(snapshot.importBatches).toEqual([]);
+      expect(snapshot.organization.name).toBe("snapshot-json");
+      expect(snapshot.funnelStages.find(s=>s.id==="lead")!.label).toBe("Lead");
+      const after = await exportPostgresOrganizationJson(env.runtimePool,org.id,org.userId);
+      expect(after.customers).toHaveLength(2);
+      expect(after.customers.reduce((n,customer)=>n+customer.events.length,0)).toBe(3);
+      expect(after.importBatches).toHaveLength(1);
+      expect(after.organization.name).toBe("Rinominata durante export");
+    } finally { await org.drop(); }
+  },60_000);
+
+  it("un errore a metà export esegue rollback e non lascia connessioni in transazione", async () => {
+    const org = await makeExportOrg("snapshot-rollback");
+    try {
+      await env.adminPool.query(
+        "INSERT INTO import_batches (organization_id,fingerprint,file_name,customer_count,row_count) SELECT $1,'f'||g,'f.csv',0,0 FROM generate_series(1,100001) g",[org.id],
+      );
+      await expect(exportPostgresOrganizationJson(env.runtimePool,org.id,org.userId)).rejects.toMatchObject({status:413});
+      const audit = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM audit_logs WHERE organization_id=$1 AND action='data.exported'",[org.id]);
+      expect(audit.rows[0]!.n).toBe(0);
+      expect(env.runtimePool.waitingCount).toBe(0);
+      const idle = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND state='idle in transaction'");
+      expect(idle.rows[0]!.n).toBe(0);
+    } finally { await org.drop(); }
+  },120_000);
 });
