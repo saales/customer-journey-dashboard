@@ -81,8 +81,8 @@ La PR deve restare draft e non va unita né distribuita finché i gate in `docs/
 
 ## Recupero test dallo ZIP — 15 novembre 2026
 
-Sono state aggiunte al ramo due suite d'integrazione riscritte/adattate all'helper HTTP attuale:
+Sono stati aggiunti al ramo due file di test d'integrazione con una prima selezione mirata di casi riscritti/adattati all'helper HTTP attuale (8 scenari multi-tenant e 11 casi export contando le quattro varianti di ruolo). Non è un porting integrale dei 34+17 casi originali nello ZIP:
 - `server/test/multi-tenant-negative.integration.test.ts`: test HTTP cross-tenant su letture, update/delete, import con organizationId manipolato, RLS/ruolo runtime, viewer e identità con sessioni in due tenant.
 - `server/test/export-json.integration.test.ts`: test HTTP su matrice ruoli, autenticazione, intestazioni e schema, contenuti secret-free e tenant-scoped, audit e ordinamento eventi.
 
-Questi test sono stati ricostruiti prendendo come riferimento i casi nello ZIP, non copiati integralmente. La loro esecuzione sulla CI del nuovo head è ancora da verificare; non conteggiarli come superati finché il relativo run GitHub Actions non è completato.
+Questi test sono stati ricostruiti prendendo come riferimento i casi nello ZIP, non copiati integralmente; restano da migrare gli altri casi limite delle suite originali. La loro esecuzione sulla CI del nuovo head è ancora da verificare; non conteggiarli come superati finché il relativo run GitHub Actions non è completato.
