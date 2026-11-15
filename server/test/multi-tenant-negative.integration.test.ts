@@ -103,6 +103,69 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     expect((await env.request("GET", "/api/export/organization.json")).status).toBe(401);
   });
 
+  it("l'elenco membri di A non espone utenti appartenenti solo a B", async () => {
+    const response = await env.request<Array<{ userId: string; email: string }>>(
+      "GET", "/api/members", { token: a().users.admin.token },
+    );
+    expect(response.status).toBe(200);
+    expect(response.body.map(member => member.userId).sort()).toEqual(
+      Object.values(a().users).map(user => user.id).sort(),
+    );
+    expect(response.text).not.toMatch(/\\.b@example\\.test/);
+  });
+
+  it("PATCH da A verso membership o userId di B restituisce 404 e lascia B invariato", async () => {
+    const before = await env.adminPool.query(
+      "SELECT id::text, user_id::text, role, status FROM memberships WHERE organization_id=$1 ORDER BY id",
+      [b().id],
+    );
+    const targets = [b().users.admin.membershipId, b().users.viewer.membershipId, b().users.viewer.id];
+    for (const target of targets) {
+      const response = await env.request("PATCH", `/api/members/${target}`, {
+        token: a().users.admin.token, body: { role: "viewer", status: "suspended" },
+      });
+      expect(response.status).toBe(404);
+    }
+    const after = await env.adminPool.query(
+      "SELECT id::text, user_id::text, role, status FROM memberships WHERE organization_id=$1 ORDER BY id",
+      [b().id],
+    );
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("un amministratore non può ridurre il proprio ruolo", async () => {
+    const response = await env.request("PATCH", `/api/members/${a().users.admin.membershipId}`, {
+      token: a().users.admin.token, body: { role: "viewer" },
+    });
+    expect(response.status).toBe(409);
+    const member = await env.adminPool.query(
+      "SELECT role, status FROM memberships WHERE id=$1",
+      [a().users.admin.membershipId],
+    );
+    expect(member.rows[0]).toEqual({ role: "admin", status: "active" });
+  });
+
+  it("il ruolo runtime non possiede privilegi owner, superuser o BYPASSRLS", async () => {
+    const role = await env.runtimePool.query(
+      "SELECT rolsuper, rolbypassrls, rolinherit, rolcreaterole, rolcreatedb FROM pg_roles WHERE rolname=current_user",
+    );
+    expect(role.rows[0]).toEqual({
+      rolsuper: false, rolbypassrls: false, rolinherit: false, rolcreaterole: false, rolcreatedb: false,
+    });
+    const owned = await env.runtimePool.query(
+      "SELECT relname FROM pg_class WHERE relowner=(SELECT oid FROM pg_roles WHERE rolname=current_user) AND relkind='r'",
+    );
+    expect(owned.rows).toEqual([]);
+  });
+
+  it.each(["customers", "events", "funnel_stages", "import_batches", "audit_logs", "invitations"])(
+    "senza contesto tenant RLS nasconde ogni riga da %s",
+    async (table) => {
+      const result = await env.runtimePool.query(`SELECT COUNT(*)::int AS n FROM ${table}`);
+      expect(result.rows[0]!.n).toBe(0);
+    },
+  );
+
   it("la stessa identità utente può avere sessioni distinte e vede il tenant della sessione", async () => {
     const user = a().users.admin;
     const secondMembership = await env.adminPool.query(
