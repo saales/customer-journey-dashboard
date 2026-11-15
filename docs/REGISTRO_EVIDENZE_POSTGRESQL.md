@@ -2,129 +2,66 @@
 
 ## Stato del ramo
 
-Ramo di integrazione: `integration/staging-additions-hardening`  
-Pull request: [#3](https://github.com/saales/customer-journey-dashboard/pull/3), aperta, draft e non unita  
-Database applicativo: PostgreSQL  
-Stato database remoto: non verificato; nessuna migrazione o modifica remota eseguita.
+- Ramo: `integration/staging-additions-hardening`
+- Pull request: [#3](https://github.com/saales/customer-journey-dashboard/pull/3), aperta, draft e non unita
+- Base: `recovery/checkpoint-12-postgres`
+- Database applicativo: PostgreSQL
+- Database remoto/Neon: non verificato in questa attività; nessuna migrazione, scrittura o modifica remota eseguita
+- Ultimo commit di codice verificato: `d2a7125be3805da833069d8e0df6c15a20d2d300`
 
-## Evidenze codice
+## CI verificata
 
-| Area | Evidenza |
-|---|---|
-| Runtime unico | `server/src/postgres-server.ts`; script standard root e server |
-| Pool | `server/src/postgres.ts` |
-| Migrazioni | `server/migrations/001`–`013` |
-| Runner | `server/src/postgres-migrations.ts` |
-| Preflight | `server/src/postgres-runtime-preflight.ts` |
-| Autenticazione | `postgres-authentication.ts`, `postgres-auth-*`, `postgres-session-*` |
-| Tenant | `tenant-transaction.ts` e repository PostgreSQL |
-| API | `postgres-app.ts` |
-| Inviti | `postgres-invitations-repository.ts`, migration 008 e schermata admin |
-| Audit | repository clienti, funnel, import, membership, inviti ed export CSV |
-| Export | `postgres-export-repository.ts`; evento audit `data.exported` nella stessa transazione |
+Run [43699864674](https://github.com/saales/customer-journey-dashboard/actions/runs/43699864674), commit `d2a7125be3805da833069d8e0df6c15a20d2d300`, conclusa con successo su Node.js 20 e 22.
 
-## CI
+| Controllo | Risultato |
+|---|---:|
+| Test server | 37 file, 171 test superati |
+| Test client | 11 file, 41 test superati |
+| Playwright/Chromium su Node.js 22 | 1 test E2E superato |
+| npm audit | 0 vulnerabilità segnalate |
+| Build client e server | Superata |
+| Migrazioni PostgreSQL 001–013 | Superate su database temporaneo |
+| Verifica storico/checksum migrazioni | Superata |
+| Verifica policy RLS effettive | Superata |
+| Avvio con ruolo runtime limitato | Superato |
 
-- Il commit `d9f2c296aac62cbdcddb002f318c2a3bab024547` ha superato test, build, audit dipendenze, migrazioni 001–010, verifica checksum e avvio runtime con ruolo limitato su Node.js 20 e 22: run [43495637026](https://github.com/saales/customer-journey-dashboard/actions/runs/43495637026).
-- Sul runtime Node.js 22 la stessa CI ha completato Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico, verificando anche la registrazione e consultazione amministrativa dell'export CSV.
-- La CI usa PostgreSQL temporaneo e non accede a Neon.
+La CI usa un PostgreSQL temporaneo e dati sintetici. Non verifica il database remoto e non costituisce prova di deploy o collaudo commerciale.
 
-## Verifiche remote non eseguite
+## Copertura di sicurezza e autorizzazioni
 
-- Nessuna query è stata eseguita sul database Neon in questa attività.
-- Non è stato dimostrato che le migrazioni 001–010 siano già applicate sul database remoto.
-- Non sono stati verificati checksum, ruoli, policy RLS e privilegi effettivi remoti.
-- Non è stato effettuato alcun trasferimento di dati preesistenti.
-- Non sono state eseguite scritture, DDL o bootstrap remoti.
+- Matrice HTTP sui ruoli admin, editor, analyst e viewer estesa alle principali route analytics, clienti, funnel, import/export, account, organizzazione, membri, inviti e audit.
+- Test negativi cross-tenant su modifica e cancellazione clienti.
+- Verifica che letture clienti, fasi funnel, membri e audit del tenant A non espongano dati del tenant B.
+- Verifica export JSON isolato per organizzazione.
+- Test di importazione con `organizationId` ostile nel payload: il server associa i record all'organizzazione della sessione, non a quella dichiarata dal client.
+- Verifica RLS e policy tenant-scoped sulla base temporanea della CI.
 
-## Limiti prima del rilascio
+La matrice copre le route elencate nei test, non ogni combinazione di input, stato e operazione di tutte le API. La copertura cross-tenant completa resta un gate aperto.
 
-Restano necessari la copertura cross-tenant di tutte le API, il collaudo su staging, una prova reale di consegna email, backup/restore, test di carico, verifica del database remoto, osservabilità e piano di rollback. Il percorso browser automatizzato e la matrice HTTP parziale non dimostrano ancora il funzionamento completo del prodotto in un ambiente commerciale. Fino ad allora non usare dati aziendali reali né presentare il prodotto come pronto per la vendita.
+## Funzioni implementate e documentate
 
-## Manutenzione sicurezza — aggiornamento
+- Runtime PostgreSQL unico, migrazioni versionate 001–013 e runner con checksum.
+- Ruolo runtime separato e limitato; verificatore read-only di database, TLS, schema, RLS, privilegi e migrazioni.
+- Sessioni, login, logout, cambio password, recupero password e inviti con token monouso.
+- Ruoli e permessi organizzativi, membership, audit e isolamento tenant.
+- Import, CSV e export JSON tenant-scoped.
+- Backup/restore staging con manifest SHA-256 e controlli di destinazione.
+- Smoke test staging e controlli RLS.
+- Controlli di validazione e regressione frontend/API.
 
-| Funzione | Evidenza | Stato |
-|---|---|---|
-| Pulizia in batch dei record HMAC del rate limiter oltre retention | `cleanupPostgresLoginAttemptLimits` | Implementata; comando pianificabile giornalmente |
-| Configurazione esplicita dei proxy attendibili per risolvere l'IP client | `TRUSTED_PROXY_IPS`, `req.ip` e `validateTrustedProxyIps` | Implementata; richiede configurazione corretta del reverse proxy |
-| Test retention/batch e validazione IP/CIDR | test unitari e PostgreSQL integration | Aggiunti; CI verde sul commit `7570eb3` (run [43493813499](https://github.com/saales/customer-journey-dashboard/actions/runs/43493813499)) |
+## Elementi ancora aperti prima del rilascio
 
-## Collaudo browser end-to-end — 13 novembre 2026
+1. Eseguire il collaudo su uno staging reale, separato dalla produzione, con TLS, reverse proxy, cookie Secure e segreti configurati nel secret manager.
+2. Eseguire e archiviare una prova di backup e restore su database isolato; definire RPO/RTO.
+3. Verificare consegna reale di email invito e recupero password con dominio e provider configurati.
+4. Completare la matrice di autorizzazioni e i test cross-tenant per tutte le API, incluse le azioni amministrative e i casi limite.
+5. Eseguire test di carico, osservabilità, allarmi, rotazione log e verifica dei limiti di connessione PostgreSQL.
+6. Documentare rollback applicativo e piano di ripristino compatibile con le migrazioni.
+7. Completare revisione privacy/contrattuale e definire onboarding, supporto, prezzi, piani e fatturazione se il servizio viene venduto come SaaS.
+8. Progettare ed eventualmente implementare una procedura sicura di cancellazione tenant. Nel ramo non è presente un comando dedicato con guardrail certificati: non effettuare cancellazioni manuali su ambienti reali.
 
-- Run CI [43495637026](https://github.com/saales/customer-journey-dashboard/actions/runs/43495637026), commit `d9f2c296aac62cbdcddb002f318c2a3bab024547`: concluso con successo su Node.js 20 e 22.
-- Il job Node.js 22 ha eseguito Playwright/Chromium su PostgreSQL temporaneo e tenant sintetico.
-- Flusso verificato: login admin, creazione cliente, aggiunta fase funnel, importazione CSV, export admin, invito e accettazione analista, export analista, rifiuto HTTP 403 della lettura audit e della creazione cliente invocata direttamente dall'analista, logout e revoca sessione verificata con HTTP 401.
-- Non è un test completo di tutti i ruoli o dell'isolamento cross-tenant; non sono stati eseguiti test di carico.
-- Il test non accede al database Neon, non usa dati reali e non effettua deploy.
+## Decisione
 
-## Migrazione 010 — lettura audit tenant-scoped
+Il codice e i test automatici del commit indicato sono verdi. Questo risultato non dimostra che il prodotto sia pronto al 100% per il mercato: staging reale, email, backup/restore, carico, monitoraggio, copertura completa delle API e aspetti commerciali/privacy non sono ancora certificati.
 
-- La suite E2E ha evidenziato che il ruolo runtime poteva inserire audit, ma non leggere il registro: il preflight non rilevava il privilegio SELECT mancante.
-- Aggiunta migrazione 010 per concedere SELECT su `audit_logs` al ruolo applicativo, senza modificarne proprietà, RLS o privilegi di scrittura ulteriori.
-- Il preflight ora richiede e verifica anche `audit_logs:SELECT`; test negativo dedicato per il ruolo privo di questo privilegio.
-- Il test browser verifica che l'export admin generi l'evento `data.exported` consultabile dall'amministratore e che l'analista resti privo di `audit:read`.
-
-## Hardening del preflight runtime
-
-- Il preflight verifica anche SELECT/INSERT/UPDATE/DELETE sulla tabella globale `api_request_limits`, introdotta dalla migrazione 009.
-- Test unitario negativo dedicato: un ruolo senza INSERT su `api_request_limits` deve fallire il preflight. Il preflight ora riporta anche il dettaglio dei privilegi o delle configurazioni non conformi.
-
-
-## Correzione emersa dal collaudo browser — 13 novembre 2026
-
-- Il test Playwright ha individuato una regressione non coperta dal percorso precedente: dopo l'esportazione CSV, la lettura di `/api/audit` come amministratore restituiva HTTP 500.
-- I log PostgreSQL hanno identificato la causa: il ruolo runtime disponeva di `INSERT` su `audit_logs`, ma non di `SELECT`, necessario per la query di consultazione. Il controllo dei privilegi non rilevava questa mancanza.
-- Aggiunta la migrazione incrementale `010_audit_log_read_grant.sql`: concede esclusivamente `SELECT` su `audit_logs` al ruolo `percorso_app`. La policy RLS continua a limitare le righe al tenant impostato dalla sessione; il controllo autorizzativo HTTP continua a riservare l'endpoint agli amministratori.
-- Aggiornati il runner delle migrazioni, il preflight del ruolo runtime, il test negativo per il privilegio mancante e il test d'integrazione che verifica il grant della migrazione 010.
-- Il test browser già presente verifica la lettura audit amministrativa dopo l'export; il suo esito dopo la correzione è ancora da confermare nella CI del commit aggiornato.
-
-
-## Verifica ruoli estesa — 13 novembre 2026
-
-- Il test middleware verifica l'insieme esatto dei permessi previsti per ciascun ruolo: admin, editor, analyst e viewer.
-- Il percorso Playwright include ora admin, analyst e viewer. L'analista può esportare ma non scrivere né leggere l'audit; il viewer può leggere ma non esportare, scrivere o consultare l'audit. Le negazioni API sono verificate con HTTP 403 oltre ai controlli di visibilità UI.
-- Run CI [43499933923](https://github.com/saales/customer-journey-dashboard/actions/runs/43499933923) sul commit `b64e6cd8f7ca278b612784ab25727f592d05a3e8`: Node.js 20 e 22 completati con successo; test, build, audit, migrazioni 001–010/checksum e avvio runtime limitato; su Node.js 22 anche bootstrap tenant sintetico e Playwright/Chromium.
-- I test PostgreSQL di migrazione verificano RLS con un ruolo non proprietario e due organizzazioni. Rimangono necessari casi API cross-tenant più estesi e un percorso browser dedicato al ruolo editor.
-- Non sono state eseguite verifiche o scritture su Neon; staging, backup/restore, monitoraggio, carico e revisione indipendente restano fuori da questa CI.
-
-
-## Verifica browser del ruolo editor — 13 novembre 2026
-
-- Esteso `e2e/customer-journey.spec.ts` con invito e accettazione reali del ruolo editor nel PostgreSQL effimero della CI.
-- Il browser verifica che l'editor possa creare clienti, aggiungere fasi funnel, importare ed esportare CSV; verifica inoltre HTTP 403 su audit e gestione membri.
-- CI [43502016449](https://github.com/saales/customer-journey-dashboard/actions/runs/43502016449), commit `c2c3112c9562add0d98ed7f28b14dad79c37620e`: successo su Node.js 20 e 22. Entrambi i runtime hanno superato `npm ci`, npm audit, test, build, migrazioni 001–010, verifica storico/checksum e avvio PostgreSQL con ruolo runtime limitato. Su Node.js 22 è passato anche Playwright/Chromium con gli scenari admin, analyst, viewer ed editor.
-- La pipeline usa un database temporaneo e dati sintetici; non costituisce una verifica del database Neon né una prova completa di isolamento API cross-tenant.
-
-
-## Recupero account, inviti email e impostazioni organizzazione — 13 novembre 2026
-
-- Migrazione incrementale 011: token di recupero password con SHA-256, scadenza 30 minuti, uso singolo, revoca atomica di tutte le sessioni e grant limitato alla modifica di `users.password_hash` e `updated_at`.
-- Endpoint pubblici di richiesta e completamento recupero: risposta generica per evitare enumerazione account, verifica Origin, rate limiting API condiviso e aggiornamento password con scrypt.
-- Adapter email transazionale per Resend. Se `RESEND_API_KEY` e `EMAIL_FROM` non sono configurati, l'invio automatico resta disattivato; i link invito restano condivisibili manualmente. Nessuna email reale è stata inviata o verificata.
-- La UI di accesso include richiesta e completamento recupero password; la UI amministrativa mostra lo stato dell'invio invito.
-- Migrazione incrementale 012: concede soltanto UPDATE sulle colonne `organizations.name` e `updated_at`. API amministrative e UI per leggere/aggiornare nome, slug e data creazione; le modifiche generano audit event nella stessa transazione.
-- Test unitari aggiunti per token monouso, revoca sessioni, provider email, audit e impostazioni organizzazione. CI [43511933734](https://github.com/saales/customer-journey-dashboard/actions/runs/43511933734) sul commit `deb8c5ea337eda82e4a5296996a2ab0ef05045c3`: Node.js 20 e 22 verdi; npm test, build, audit, migrazioni 001–012, checksum, avvio runtime limitato e Playwright/Chromium completati. Lo scenario browser include anche la modifica del nome organizzazione. Non è stato testato l'invio email reale perché CI non dispone di credenziali Resend.
-- Le migrazioni 011–012 sono registrate nel runner; non sono state applicate al database Neon né ad altri database remoti.
-
-
-## Self-service account e copertura RLS audit — 13 novembre 2026
-
-- Migrazione 013: grant di UPDATE limitato a `users.full_name` e `users.updated_at`; il preflight runtime verifica anche questo privilegio.
-- API autenticate per lettura/modifica del profilo e cambio password. Il cambio verifica la password attuale con scrypt, blocca la riga credenziale durante verifica/aggiornamento, aggiorna la password, revoca tutte le sessioni e registra l'evento audit nella stessa transazione tenant.
-- UI account disponibile a tutti i ruoli: modifica nome, visualizzazione email/ruolo e cambio password con conferma; dopo il cambio viene richiesto un nuovo login.
-- Test unitari per aggiornamento profilo, password errata, aggiornamento atomico, revoca sessioni e audit. E2E admin verifica la modifica del profilo.
-- Il test RLS PostgreSQL ora inserisce un evento audit valido nel tenant A e dimostra che il ruolo runtime lo vede nel tenant A ma non nel tenant B; non si limita più a verificare una tabella audit vuota.
-- CI [43513998940](https://github.com/saales/customer-journey-dashboard/actions/runs/43513998940), commit `78432080f9d6b59c3960817e38392e0e3c4e09ec`: Node.js 20 e 22 verdi; 33 file test server con 142 test, 10 file test client con 37 test, build, audit dipendenze, migrazioni 001–013/checksum, avvio runtime con ruolo limitato e Playwright/Chromium.
-- Nessuna verifica o scrittura su Neon, nessun deploy e nessun invio reale email.
-
-
-## Stato corrente del ramo di integrazione — 15 novembre 2026
-
-- Head del ramo al momento dell'aggiornamento: `d758261e041ac357eec3460cd32e13871755317b`.
-- CI verde più recente confermata: run [43698587489](https://github.com/saales/customer-journey-dashboard/actions/runs/43698587489), commit `645239ba5093baa583ed851c07f52a7881354e52`, Node.js 20 e 22.
-- Le modifiche successive hanno introdotto la modalità runtime esplicita, test HTTP della matrice ruoli e regressioni cross-tenant, oltre alla pulizia della documentazione.
-- La CI sul commit intermedio `608e99acb0e3194fefc17f4544596e96c0445e16` ha eseguito 169 test server con successo ma ha fallito un nuovo test perché il payload di aggiornamento cliente del test non rispettava il contratto API (HTTP 400 invece del 404 atteso). Il payload è stato corretto nel commit `0dbf2ae408609c2e35475219fe6e3dd4d6926130`.
-- La CI sul commit intermedio `c582fa4a96e0afcb37fb6d76595ac264e74ec65b` è fallita sullo stesso test prima della correzione. Non è disponibile un'esecuzione CI completata sul head corrente `d758261e041ac357eec3460cd32e13871755317b`.
-- I documenti di architettura duplicati e la guida specifica per tesi sono stati rimossi; il documento canonico è `docs/ARCHITETTURA_POSTGRESQL.md`.
-- La procedura di cancellazione tenant non è implementata nel ramo e non va simulata con comandi manuali su database reali.
-- Nessuna query, scrittura, migrazione, backup o deploy è stato eseguito su Neon o produzione.
+La PR deve restare draft e non va unita né distribuita finché i gate in `docs/GATE_RILASCIO.md` non sono completati con evidenze verificabili.
