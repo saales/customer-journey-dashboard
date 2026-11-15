@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createHttpTestEnvironment, integrationDatabaseUrl, type HttpTestEnvironment,
@@ -5,8 +6,19 @@ import {
 
 const dbUrl = integrationDatabaseUrl();
 let env: HttpTestEnvironment;
+let bInviteId: string;
+const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
-beforeAll(async () => { if (dbUrl) env = await createHttpTestEnvironment(); }, 60_000);
+beforeAll(async () => {
+  if (!dbUrl) return;
+  env = await createHttpTestEnvironment();
+  const token = randomBytes(32).toString("base64url");
+  const invite = await env.adminPool.query<{ id: string }>(
+    "INSERT INTO invitations (organization_id,email,role,token_hash,invited_by,expires_at) VALUES ($1,'pending-b@example.test','viewer',$2,$3,NOW()+INTERVAL '7 days') RETURNING id::text AS id",
+    [env.tenants.B.id, sha256(token), env.tenants.B.users.admin.id],
+  );
+  bInviteId = invite.rows[0]!.id;
+}, 60_000);
 afterAll(async () => { await env?.close(); });
 
 describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
@@ -126,6 +138,38 @@ describe.skipIf(!dbUrl)("Isolamento multi-tenant HTTP e PostgreSQL", () => {
     expect(response.status).toBe(400);
     const after = await env.adminPool.query("SELECT COUNT(*)::int AS n FROM customers WHERE organization_id=$1", [a().id]);
     expect(after.rows).toEqual(before.rows);
+  });
+  it("l’elenco inviti di A non rivela gli inviti di B", async () => {
+    const response = await env.request("GET", "/api/invitations", { token: adminA() });
+    expect(response.status).toBe(200);
+    expect(response.text).not.toContain("pending-b@example.test");
+    expect(response.text).not.toContain(bInviteId);
+  });
+
+  it("A non può revocare un invito di B e l’invito resta valido", async () => {
+    const before = await env.adminPool.query("SELECT revoked_at FROM invitations WHERE id=$1", [bInviteId]);
+    const response = await env.request("POST", "/api/invitations/" + bInviteId + "/revoke", { token: adminA() });
+    expect(response.status).toBe(404);
+    const after = await env.adminPool.query("SELECT revoked_at FROM invitations WHERE id=$1", [bInviteId]);
+    expect(after.rows).toEqual(before.rows);
+    expect(after.rows[0]!.revoked_at).toBeNull();
+  });
+
+  it("inviti scaduti o revocati non creano utenti né membership", async () => {
+    const expiredToken = randomBytes(32).toString("base64url");
+    const revokedToken = randomBytes(32).toString("base64url");
+    await env.adminPool.query(
+      "INSERT INTO invitations (organization_id,email,role,token_hash,invited_by,expires_at,revoked_at) VALUES ($1,'expired-invite@example.test','viewer',$2,$4,NOW()-INTERVAL '1 minute',NULL),($1,'revoked-invite@example.test','viewer',$3,$4,NOW()+INTERVAL '1 day',NOW())",
+      [a().id, sha256(expiredToken), sha256(revokedToken), a().users.admin.id],
+    );
+    for (const token of [expiredToken, revokedToken]) {
+      const response = await env.request("POST", "/api/invitations/accept", { body: { token, fullName: "Test non valido", password: "Password-di-test-2026!" } });
+      expect(response.status).toBe(400);
+    }
+    const users = await env.adminPool.query("SELECT id FROM users WHERE email IN ('expired-invite@example.test','revoked-invite@example.test')");
+    const memberships = await env.adminPool.query("SELECT id FROM memberships WHERE organization_id=$1 AND user_id IN (SELECT id FROM users WHERE email IN ('expired-invite@example.test','revoked-invite@example.test'))", [a().id]);
+    expect(users.rowCount).toBe(0);
+    expect(memberships.rowCount).toBe(0);
   });
   it("il ruolo runtime senza contesto tenant non legge righe e non può modificare dati di B", async () => {
     const visible = await env.runtimePool.query("SELECT id FROM customers");
