@@ -1,11 +1,15 @@
 import type { Pool, PoolClient } from "pg";
-import { verifyPassword } from "./password-hashing.js";
-import { issuePostgresSession, type IssuedPostgresSession } from "./postgres-session-repository.js";
+import { hashPassword, needsPasswordRehash, verifyPassword } from "./password-hashing.js";
+import {
+  issuePostgresSession,
+  PostgresSessionIssueError,
+  type IssuedPostgresSession,
+} from "./postgres-session-repository.js";
 
 // A fixed dummy hash makes unknown-account login attempts pay the same scrypt
 // cost as a known account with a wrong password, reducing timing-based enumeration.
 const DUMMY_PASSWORD_HASH =
-  "scrypt$32768$8$1$nypNbIseP1BxkqS2yNDi9A$_-BiuFn8yIlUwZL_jc5LL-Yo6RMy0cgRi9M3wRBCf_LMT_hQS_QFsSn4VuI1UU1J7TkIkHzpsXjLjDf-lO8WqQ";
+  "scrypt$32768$8$3$nypNbIseP1BxkqS2yNDi9A$VI7Rb7uq34T7bs8bbiKwLHa9uqpP-y8OWy_9AeJkHJVLuqppVsht4qZyYvhzUEUP2sUWaq5eODEZXzQ1uILmSA";
 
 /**
  * Authenticates a user against one explicitly selected organization.
@@ -60,5 +64,21 @@ export async function authenticatePostgresCredentials(
   }
   if (!(await verifyPassword(password, credential.passwordHash))) return null;
 
-  return issuePostgresSession(pool, credential.userId, credential.organizationId);
+  const replacement = needsPasswordRehash(credential.passwordHash)
+    ? await hashPassword(password)
+    : undefined;
+  try {
+    // The session repository locks and re-checks the exact hash verified above.
+    // A concurrent password reset therefore cannot be followed by a stale login.
+    return await issuePostgresSession(
+      pool,
+      credential.userId,
+      credential.organizationId,
+      undefined,
+      { expected: credential.passwordHash, replacement },
+    );
+  } catch (error) {
+    if (error instanceof PostgresSessionIssueError) return null;
+    throw error;
+  }
 }
