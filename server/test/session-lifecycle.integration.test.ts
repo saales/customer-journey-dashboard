@@ -46,7 +46,7 @@ describe.skipIf(!dbUrl)("Ciclo di vita HTTP delle sessioni", () => {
     const cookie = response.headers.getSetCookie().find((value) => value.startsWith("percorso_session="))!;
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Strict/i);
-    expect(cookie).toMatch(/Path=\\//i);
+    expect(cookie).toMatch(/Path=\//i);
     expect(response.text).not.toContain(token);
     const rows = await env.adminPool.query("SELECT token_hash FROM sessions WHERE user_id=$1", [user.userId]);
     expect(rows.rows).toEqual([{ token_hash: hash(token) }]);
