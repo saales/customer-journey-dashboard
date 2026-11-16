@@ -15,6 +15,8 @@ Data: 16 novembre 2026
 - `npm audit`: zero vulnerabilità rilevate.
 - `npm run test:e2e`: non eseguito in locale; il flusso browser viene predisposto nella CI con Chromium e dati sintetici.
 
+La CI del PR [#7](https://github.com/saales/customer-journey-dashboard/pull/7), run [43851490624](https://github.com/saales/customer-journey-dashboard/actions/runs/43851490624), è passata su Node.js 20 e 22. Su Node.js 22 sono passati anche Playwright/Chromium e gli scenari browser.
+
 La build segnala un bundle JavaScript principale di circa 690 kB non compresso, sopra la soglia di avviso Vite di 500 kB. La compilazione riesce; per ridurre il tempo di caricamento iniziale si può valutare lo spezzamento del bundle.
 
 ## Verifiche ancora necessarie
