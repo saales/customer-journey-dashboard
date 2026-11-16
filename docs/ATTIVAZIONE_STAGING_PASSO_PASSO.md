@@ -7,7 +7,7 @@ Questo documento separa ciò che deve essere predisposto dal titolare dell'ambie
 ### Passo 1 — scegliere dominio e hosting (titolare)
 
 - [ ] Scegliere un dominio o sottodominio dedicato, ad esempio `staging.example.it`.
-- [ ] Scegliere un VPS/servizio cloud che supporti Node.js 20 o 22 e PostgreSQL gestito.
+- [ ] Scegliere un VPS/servizio cloud che supporti Node.js 22, 24 o 26 e PostgreSQL gestito.
 - [ ] Scegliere una regione UE/SEE, salvo diversa esigenza documentata.
 - [ ] Creare un ambiente staging separato; non usare il dominio pubblico del prodotto e non inserire dati di clienti reali.
 - [ ] Annotare provider, regione, dominio, IP pubblico del server e IP/CIDR del reverse proxy.
@@ -28,7 +28,7 @@ Il runtime HTTP deve usare solo la connessione `percorso_app`. Le credenziali ow
 ### Passo 3 — predisporre il server e il DNS (titolare)
 
 - [ ] Creare una VM/servizio Linux con accesso amministrativo controllato.
-- [ ] Installare Node.js 22 LTS (Node.js 20 è supportato dalla CI, ma per un nuovo ambiente scegliere la versione 22).
+- [ ] Installare Node.js 24 o 26 LTS; Node.js 22 resta una linea LTS di manutenzione.
 - [ ] Installare Nginx e configurare il DNS del sottodominio verso il server.
 - [ ] Abilitare HTTPS con certificato valido.
 - [ ] Consentire dall'esterno solo HTTPS (443) e, se indispensabile, SSH limitato agli IP amministrativi; la porta API 3001 non deve essere pubblica.

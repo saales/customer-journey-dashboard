@@ -4,7 +4,7 @@ Questa procedura prepara un'istanza di sviluppo/dimostrazione su un singolo comp
 
 ## 1. Prerequisiti
 
-- Node.js 20 o 22 LTS e npm.
+- Node.js 22, 24 o 26 LTS e npm.
 - `NODE_ENV=development` in locale; usare esclusivamente `NODE_ENV=production` in staging/produzione.
 - PostgreSQL 16 in esecuzione sul computer.
 - Git.
