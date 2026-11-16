@@ -46,3 +46,12 @@
 3. Ripristinare o sostituire consapevolmente i due file mancanti, senza copiare automaticamente versioni non verificate.
 4. Aggiornare il registro evidenze soltanto dopo aver ripetuto CI e test sul commit risultante.
 5. Eseguire test locali con PostgreSQL isolato e dati sintetici; non usare database aziendali o remoti.
+
+## Precisazione sul conteggio delle suite — 16 novembre 2026
+
+È stato ricalcolato il numero delle dichiarazioni `it(...)` / `test(...)` direttamente sui due file contenuti nell'archivio identificato dallo SHA-256 riportato sopra:
+
+- `server/test/multi-tenant-negative.integration.test.ts`: 34 dichiarazioni.
+- `server/test/export-json.integration.test.ts`: 18 dichiarazioni.
+
+Il registro PostgreSQL presente nel branch di integrazione riportava in una sezione storica 17 dichiarazioni per la seconda suite: quel valore è da considerare superato per il conteggio dello ZIP. Il conteggio misura le dichiarazioni sintattiche individuate, non prova che i test siano eseguibili, corretti o equivalenti ai test attuali del branch. L'archivio non è stato installato né eseguito.
