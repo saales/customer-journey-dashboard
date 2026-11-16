@@ -32,13 +32,13 @@ In produzione, `server/src/postgres-transport-config.ts` accetta per i database 
 
 ## Verifiche eseguite e limiti
 
-Sul checkout revisionato sono stati eseguiti la build del server e del client e i test mirati sul requisito `sslmode=verify-full`. La suite client ha completato 70 test. La suite server e le prove browser non sono state completate dopo le modifiche: il sandbox locale rifiuta l'apertura di listener HTTP (`EPERM`) e `npm audit` non ha raggiunto il registro dei pacchetti per un errore DNS. Una run CI precedente era passata prima delle ultime modifiche; occorre eseguire nuovamente la CI sul commit aggiornato.
+Sul checkout revisionato sono stati eseguiti la build del server e del client e i test mirati sul requisito `sslmode=verify-full`. La suite client ha completato 70 test. In locale, la suite server non ha potuto completare i casi che aprono listener HTTP (`EPERM`) e `npm audit` non ha raggiunto il registro dei pacchetti per un errore DNS. La CI GitHub Actions del PR [#7](https://github.com/saales/customer-journey-dashboard/pull/7), run [43869048649](https://github.com/saales/customer-journey-dashboard/actions/runs/43869048649), sul commit `c53715f70ac9afbdc1cbef88cdcb873330be254c` è passata su Node.js 20 e 22 per installazione, audit, suite automatizzate, build, migrazioni e controlli del runtime. Su Node.js 22 sono passati anche Playwright/Chromium e lo scenario con un secondo tenant.
 
-Non sono stati verificati un database remoto, un deploy su staging, la consegna reale delle email, backup e ripristino, carico, accessibilità o ogni combinazione di endpoint e tenant. La copertura esistente dimostra alcuni scenari cross-tenant, ma non l'intera matrice. Per questo il progetto non può essere definito privo di falle o pronto per dati aziendali reali sulla sola base di questa revisione.
+Non sono stati verificati un database remoto, un deploy su staging, la consegna reale delle email, backup e ripristino, carico, accessibilità o ogni combinazione di endpoint e tenant. La CI dimostra il superamento degli scenari inclusi, non l'intera matrice cross-tenant. Per questo il progetto non può essere definito privo di falle o pronto per dati aziendali reali sulla sola base di questa revisione.
 
 ## Attività prima del rilascio
 
-1. Eseguire la CI completa sul commit aggiornato e ripetere `npm audit` da una rete disponibile.
+1. Ripetere la CI e `npm audit` dopo modifiche al codice o al lockfile e conservare il risultato associato al commit.
 2. Verificare `HOST`, `NODE_ENV`, `APP_ORIGIN`, TLS del proxy e `DATABASE_URL` nel deployment, senza stampare segreti nei log.
 3. Verificare `sslmode=verify-full` contro il provider PostgreSQL scelto e confermare l'esito della validazione del certificato.
 4. Eseguire in staging una matrice di test di autorizzazione e isolamento per tutte le API con almeno due tenant sintetici.
