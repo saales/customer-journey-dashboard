@@ -345,7 +345,7 @@ export function Segmentation({
       <div className="card">
         <div className="card-head">
           <div>
-            <h2>Customer Segmentation</h2>
+            <h2>Segmentazione dei clienti</h2>
             <p className="subtitle">
               Analisi dinamica della base clienti per canale, fase funnel,
               periodo e combinazione di criteri.

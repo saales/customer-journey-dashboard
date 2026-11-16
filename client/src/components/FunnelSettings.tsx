@@ -4,9 +4,10 @@ import { api, type FunnelStage } from "../api";
 
 interface Props {
   onDataChange?: () => void;
+  readOnly?: boolean;
 }
 
-export function FunnelSettings({ onDataChange }: Props) {
+export function FunnelSettings({ onDataChange, readOnly = false }: Props) {
   const [stages, setStages] = useState<FunnelStage[]>([]);
   const [newLabel, setNewLabel] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -179,12 +180,12 @@ export function FunnelSettings({ onDataChange }: Props) {
   }
 
   if (loading) {
-    return <p className="loading">Caricamento delle fasi del funnel…</p>;
+    return <p className="loading">Caricamento delle fasi del percorso…</p>;
   }
 
   return (
     <div className="card funnel-settings">
-      <h2>Configurazione del funnel</h2>
+      <h2>Configurazione del percorso</h2>
 
       <p className="subtitle">
         Personalizza le fasi del percorso cliente. Le modifiche non eliminano
@@ -244,7 +245,7 @@ export function FunnelSettings({ onDataChange }: Props) {
                 </span>
               </div>
 
-              <div className="funnel-stage-actions">
+              {!readOnly && <div className="funnel-stage-actions">
                 {isEditing ? (
                   <>
                     <button
@@ -314,13 +315,13 @@ export function FunnelSettings({ onDataChange }: Props) {
                     </button>
                   </>
                 )}
-              </div>
+              </div>}
             </div>
           );
         })}
       </div>
 
-      <div className="funnel-stage-add">
+      {!readOnly && <div className="funnel-stage-add">
         <label htmlFor="new-funnel-stage">Aggiungi una fase</label>
 
         <div className="funnel-stage-add-controls">
@@ -342,7 +343,7 @@ export function FunnelSettings({ onDataChange }: Props) {
             Aggiungi fase
           </button>
         </div>
-      </div>
+      </div>}
 
       <p className="hint">
         Visita e Cliente sono fasi obbligatorie. Le fasi disattivate non

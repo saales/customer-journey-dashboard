@@ -273,6 +273,29 @@ export function Comparisons({ query }: ComparisonsProps) {
     [previousQuery],
   );
 
+  // Gli Hook vanno sempre chiamati nello stesso ordine: questo useMemo sta PRIMA di ogni return anticipato.
+
+  const channelRows = useMemo(() => {
+    const currentByChannel = new Map(
+      (currentChannels.data ?? []).map((row) => [row.channel, row]),
+    );
+
+    const previousByChannel = new Map(
+      (previousChannels.data ?? []).map((row) => [row.channel, row]),
+    );
+
+    const allChannels = new Set([
+      ...currentByChannel.keys(),
+      ...previousByChannel.keys(),
+    ]);
+
+    return Array.from(allChannels).map((channel) => ({
+      channel,
+      current: currentByChannel.get(channel),
+      previous: previousByChannel.get(channel),
+    }));
+  }, [currentChannels.data, previousChannels.data]);
+
   if (!query || !previousQuery) {
     return (
       <div className="card empty">
@@ -323,29 +346,6 @@ export function Comparisons({ query }: ComparisonsProps) {
   const currentKpis = current.kpis;
   const previousKpis = previous.kpis;
 
-  const currentChannelRows = currentChannels.data ?? [];
-  const previousChannelRows = previousChannels.data ?? [];
-
-  const channelRows = useMemo(() => {
-    const currentByChannel = new Map(
-      currentChannelRows.map((row) => [row.channel, row]),
-    );
-
-    const previousByChannel = new Map(
-      previousChannelRows.map((row) => [row.channel, row]),
-    );
-
-    const allChannels = new Set([
-      ...currentByChannel.keys(),
-      ...previousByChannel.keys(),
-    ]);
-
-    return Array.from(allChannels).map((channel) => ({
-      channel,
-      current: currentByChannel.get(channel),
-      previous: previousByChannel.get(channel),
-    }));
-  }, [currentChannelRows, previousChannelRows]);
 
   const currentSegmentData = currentSegments.data;
   const previousSegmentData = previousSegments.data;
@@ -377,7 +377,7 @@ export function Comparisons({ query }: ComparisonsProps) {
         />
 
         <KpiComparison
-          label="Lead"
+          label="Contatti acquisiti"
           current={currentKpis.leads}
           previous={previousKpis.leads}
         />
@@ -468,25 +468,25 @@ export function Comparisons({ query }: ComparisonsProps) {
       {currentSegmentData && previousSegmentData && (
         <>
           <SegmentComparisonTable
-            title="Confronto segmenti per canale"
+            title="Confronto dei segmenti per canale"
             current={currentSegmentData.channels}
             previous={previousSegmentData.channels}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti per fase funnel"
+            title="Confronto dei segmenti per fase del percorso"
             current={currentSegmentData.stages}
             previous={previousSegmentData.stages}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti per periodo di acquisizione"
+            title="Confronto dei segmenti per periodo di acquisizione"
             current={currentSegmentData.periods}
             previous={previousSegmentData.periods}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti combinati"
+            title="Confronto dei segmenti combinati"
             current={currentSegmentData.combinations}
             previous={previousSegmentData.combinations}
           />

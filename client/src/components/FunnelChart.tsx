@@ -39,8 +39,8 @@ export function FunnelChart({
         </div>
 
         <ExportButton
-          filename={`funnel_${suffix}.csv`}
-          title="Analisi del funnel di conversione"
+          filename={`percorso_${suffix}.csv`}
+          title="Analisi del percorso di conversione"
           description="Distribuzione dei clienti nelle fasi del percorso di conversione, dalla visita iniziale alla conversione finale."
           headers={[
             "Fase",

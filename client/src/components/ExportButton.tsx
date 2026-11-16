@@ -1,8 +1,7 @@
 
 import { downloadCsv, type CsvCell } from "../csv";
-import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface Props {
   filename: string;
@@ -49,13 +48,15 @@ function getColumnLetter(column: number): string {
   return result;
 }
 
-function downloadExcel(
+async function downloadExcel(
   filename: string,
   headers: string[],
   rows: CsvCell[][],
   title: string,
   description?: string
-): void {
+): Promise<void> {
+  // Libreria caricata solo quando serve: non pesa sul primo caricamento dell'app.
+  const XLSX = await import("xlsx");
   const generatedAt = new Date();
 
   const worksheetData: (string | number)[][] = [
@@ -103,25 +104,26 @@ function downloadExcel(
 
   workbook.Props = {
     Title: title,
-    Subject: "Report Customer Journey Intelligence",
-    Author: "Customer Journey Intelligence",
+    Subject: "Analisi del percorso cliente",
+    Author: "Analisi del percorso cliente",
     CreatedDate: generatedAt,
   };
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Analisi");
 
   XLSX.writeFile(workbook, `${getBaseFilename(filename)}.xlsx`, {
     compression: true,
   });
 }
 
-function downloadPdf(
+async function downloadPdf(
   filename: string,
   headers: string[],
   rows: CsvCell[][],
   title: string,
   description?: string
-): void {
+): Promise<void> {
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
   const doc = new jsPDF({
     orientation: headers.length > 5 ? "landscape" : "portrait",
     unit: "mm",
@@ -135,8 +137,8 @@ function downloadPdf(
 
   doc.setProperties({
     title,
-    subject: "Report Customer Journey Intelligence",
-    creator: "Customer Journey Intelligence",
+    subject: "Analisi del percorso cliente",
+    creator: "Analisi del percorso cliente",
   });
 
   doc.setFont("helvetica", "bold");
@@ -215,7 +217,7 @@ function downloadPdf(
   doc.setTextColor(120, 120, 120);
 
   doc.text(
-    `Customer Journey Intelligence | Pagina ${currentPage}`,
+    `Analisi del percorso cliente | Pagina ${currentPage}`,
     14,
     pageHeight - 8
   );
@@ -223,6 +225,11 @@ function downloadPdf(
   });
 
   doc.save(`${getBaseFilename(filename)}.pdf`);
+}
+
+/** Gli export Excel/PDF caricano le librerie on-demand: un errore di rete non deve passare inosservato. */
+function runExport(task: Promise<void>): void {
+  task.catch(() => window.alert("Esportazione non riuscita. Controlla la connessione e riprova."));
 }
 
 export function ExportButton({
@@ -233,51 +240,74 @@ export function ExportButton({
   description,
 }: Props) {
   const reportTitle = getReportTitle(filename, title);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const items = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+        if (!items.length) return;
+        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next = event.key === "ArrowDown" ? (index + 1) % items.length : (index - 1 + items.length) % items.length;
+        items[next]?.focus();
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    rootRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  function choose(action: () => void) {
+    setOpen(false);
+    triggerRef.current?.focus();
+    action();
+  }
 
   return (
-    <div className="export-group">
+    <div className="export-menu" ref={rootRef}>
       <button
+        ref={triggerRef}
         type="button"
-        className="export"
-        onClick={() => downloadCsv(filename, headers, rows)}
-        title="Esporta i dati in formato CSV"
+        className="export export-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
       >
-        Esporta CSV
+        Esporta
+        <ChevronDown size={15} aria-hidden="true" />
       </button>
-
-      <button
-        type="button"
-        className="export"
-        onClick={() =>
-          downloadExcel(
-            filename,
-            headers,
-            rows,
-            reportTitle,
-            description
-          )
-        }
-        title="Esporta i dati in formato Excel"
-      >
-        Esporta Excel
-      </button>
-
-      <button
-        type="button"
-        className="export"
-        onClick={() =>
-          downloadPdf(
-            filename,
-            headers,
-            rows,
-            reportTitle,
-            description
-          )
-        }
-        title="Esporta i dati in formato PDF"
-      >
-        Esporta PDF
-      </button>
+      {open && (
+        <div className="export-list" role="menu" aria-label="Formato di esportazione">
+          <button type="button" role="menuitem" className="export-item" aria-label="Esporta CSV"
+            onClick={() => choose(() => downloadCsv(filename, headers, rows))}>
+            CSV
+          </button>
+          <button type="button" role="menuitem" className="export-item" aria-label="Esporta Excel"
+            onClick={() => choose(() => runExport(downloadExcel(filename, headers, rows, reportTitle, description)))}>
+            Excel
+          </button>
+          <button type="button" role="menuitem" className="export-item" aria-label="Esporta PDF"
+            onClick={() => choose(() => runExport(downloadPdf(filename, headers, rows, reportTitle, description)))}>
+            PDF
+          </button>
+        </div>
+      )}
     </div>
   );
 }
