@@ -13,7 +13,7 @@ beforeAll(async () => {
   if (!dbUrl) return;
   env = await createHttpTestEnvironment();
   const app = createPostgresApp(env.runtimePool, { allowedOrigins: [ORIGIN], rateLimitSecret: "limite-configurabile-con-almeno-32-caratteri", production: false, apiRateLimit: 5 });
-  server = app.listen(0);
+  server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }, 60_000);

@@ -6,6 +6,8 @@
 - Backup verificato e prova di ripristino completata.
 - Ruolo owner separato dal ruolo runtime `percorso_app` (NOINHERIT, non superuser, senza BYPASSRLS).
 - `DATABASE_URL`, `APP_ORIGIN` HTTPS e `LOGIN_RATE_LIMIT_SECRET` configurati come secret di ambiente.
+- `DATABASE_URL` usa `sslmode=verify-full` per i database remoti; così il driver richiede TLS e verifica il certificato e il nome host. `sslmode=disable` è solo per database locali di sviluppo. In produzione il runtime rifiuta URL remoti che non usano `verify-full`.
+- `HOST=127.0.0.1` quando il reverse proxy è sullo stesso host. Per un proxy in container o su altro host, impostare `HOST` sull'interfaccia privata necessaria e bloccare l'accesso pubblico diretto alla porta API.
 - Per recupero password e inviti automatici: `RESEND_API_KEY` e `EMAIL_FROM` configurati; senza questi valori gli inviti restano condivisibili manualmente e il recupero password non invia email.
 - `TRUSTED_PROXY_IPS` valorizzato con gli IP/CIDR esatti dei reverse proxy fidati; lasciare vuoto solo se il processo riceve direttamente il traffico client.
 - DNS, TLS, reverse proxy e monitoraggio pronti.
@@ -17,6 +19,7 @@ La build produce il frontend statico in `client/dist`; il processo Node avvia es
 1. Eseguire `npm ci` e `npm run build` in fase di rilascio; pubblicare `client/dist` nella directory configurata come root Nginx e avviare il server Node come servizio gestito (systemd o orchestratore), non in una shell interattiva.
 2. Configurare dominio, certificati TLS e percorso statico nel file Nginx di esempio; validare con `nginx -t` prima del reload.
 3. Se Nginx è sullo stesso host, impostare `TRUSTED_PROXY_IPS=127.0.0.1/32,::1/128`; se è in un container o su un host separato, usare esclusivamente gli IP/CIDR effettivi del proxy. Non fidarsi di reti client o di proxy non controllati.
+   Il server Node ascolta su `127.0.0.1` per default; quando il proxy è separato, `HOST` deve indicare solo un'interfaccia di rete privata raggiungibile dal proxy. Non pubblicare direttamente la porta API su Internet.
 4. Configurare `APP_ORIGIN` con l'origine HTTPS esatta del frontend, senza percorso.
 5. Eseguire il preflight read-only sul database di destinazione: `npm run db:migrate -- --check`.
 6. Verificare che le migrazioni applicate e i checksum coincidano con il ramo rilasciato.

@@ -109,7 +109,7 @@ export async function verifyPostgresReadOnly(
     if (identityOk) {
       checks.push(check("transport.tls", "Connessione cifrata (TLS)",
         row.ssl === true ? "pass" : requireSsl ? "fail" : "warn",
-        row.ssl === true ? "TLS attivo" : "connessione senza TLS (su Neon usare sslmode=require)"));
+        row.ssl === true ? "TLS attivo" : "connessione senza TLS (su Neon usare sslmode=verify-full)"));
       if (target.pooledEndpoint) {
         checks.push(check("transport.pooler", "Endpoint di connessione",
           "warn", "endpoint pooler: va bene per l'app e per questa verifica; per le migrazioni usare l'endpoint diretto (advisory lock di sessione)"));

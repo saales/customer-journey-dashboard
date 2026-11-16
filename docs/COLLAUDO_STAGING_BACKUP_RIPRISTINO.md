@@ -29,7 +29,7 @@ un'evidenza da archiviare.
 ## 2. Verifica read-only del database (prima di ogni collaudo)
 
 ```bash
-# DATABASE_URL = connessione del ruolo percorso_app (sslmode=require)
+# DATABASE_URL = connessione del ruolo percorso_app (sslmode=verify-full)
 npm run db:verify-readonly -- --expect-database <nome-database-staging> [--estimates] [--json]
 ```
 
@@ -79,7 +79,7 @@ Il file JSON di evidenza non contiene token né password.
 | B. Backup logico | `scripts/staging/backup.sh` (`pg_dump` formato custom) | copia portabile, indipendente dal fornitore, prima di ogni rilascio |
 
 ```bash
-SOURCE_DATABASE_URL='postgresql://…@<host-diretto>/<db>?sslmode=require' \
+SOURCE_DATABASE_URL='postgresql://…@<host-diretto>/<db>?sslmode=verify-full' \
 CONFIRM_DATABASE=<db> BACKUP_DIR=./backups scripts/staging/backup.sh
 ```
 Lo script: rifiuta endpoint pooler e `pg_dump` più vecchio del server; produce `<db>_<UTC>.dump` (permessi 600), verifica che
@@ -95,7 +95,7 @@ Un backup non provato non è un backup. La prova va fatta **prima** del go-live 
 
 ```bash
 BACKUP_FILE=./backups/<file>.dump \
-TARGET_DATABASE_URL='postgresql://…@<host-diretto>/<db-vuoto>?sslmode=require' \
+TARGET_DATABASE_URL='postgresql://…@<host-diretto>/<db-vuoto>?sslmode=verify-full' \
 CONFIRM_DATABASE=<db-vuoto> SOURCE_DATABASE_URL=<origine, opzionale> \
 scripts/staging/restore-verify.sh
 ```

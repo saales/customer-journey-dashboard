@@ -18,7 +18,7 @@ async function startApp() {
     rateLimitSecret: "test-secret-that-is-long-enough-123456",
     production: false,
   });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1");
   servers.push(server);
   await new Promise<void>((resolve) => server.once("listening", resolve));
   const address = server.address();

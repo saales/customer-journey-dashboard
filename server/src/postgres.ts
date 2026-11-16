@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readIntegerEnvironment } from "./runtime-config.js";
+import { assertSecurePostgresTransport } from "./postgres-transport-config.js";
 
 // Individua la cartella principale del repository.
 // Funziona sia da src/ sia da dist/.
@@ -32,6 +33,8 @@ if (!connectionString) {
     "DATABASE_URL non configurata. Verificare .env.local o le variabili d'ambiente."
   );
 }
+
+assertSecurePostgresTransport(connectionString);
 
 // Pool di connessioni PostgreSQL condiviso dal runtime applicativo.
 export const postgresPool = new Pool({

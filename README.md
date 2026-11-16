@@ -44,15 +44,17 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 Copiare `.env.example` in `.env.local` e configurare i valori reali solo nel file locale, escluso dal versionamento:
 
 ```dotenv
-DATABASE_URL=postgresql://percorso_app:password@host:5432/database?sslmode=require
+DATABASE_URL=postgresql://percorso_app:password@host:5432/database?sslmode=verify-full
 APP_ORIGIN=http://localhost:5173
 LOGIN_RATE_LIMIT_SECRET=una-stringa-casuale-di-almeno-32-caratteri
 RESEND_API_KEY= # opzionale
 EMAIL_FROM= # opzionale; configurare insieme a RESEND_API_KEY
+HOST=127.0.0.1
 PORT=3001
 ```
 
 Non inserire credenziali o stringhe di connessione nei file versionati, nei ticket o nei log.
+Per un database remoto usare `sslmode=verify-full`, che richiede TLS e verifica certificato e nome host. `sslmode=disable` è adatto solo allo sviluppo locale. In produzione il server si arresta se un database remoto non usa `verify-full`.
 
 ## Migrazioni e bootstrap
 
@@ -86,7 +88,7 @@ npm ci
 npm run dev
 ```
 
-L'interfaccia è disponibile su [http://localhost:5173](http://localhost:5173); il server HTTP usa la porta 3001.
+L'interfaccia è disponibile su [http://localhost:5173](http://localhost:5173); il server HTTP usa la porta 3001 ed è raggiungibile dal solo host (`HOST=127.0.0.1`).
 
 ```bash
 npm test
@@ -108,6 +110,7 @@ La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica check
 - Gli inviti e i reset password usano token monouso, memorizzati solo come hash e con scadenza.
 - Il cambio password richiede la password attuale, aggiorna le credenziali in transazione e revoca tutte le sessioni.
 - Le email transazionali usano Resend; configurare `RESEND_API_KEY` e `EMAIL_FROM`. Senza configurazione, gli inviti restano condivisibili manualmente e il recupero password non può inviare istruzioni.
+- Il server API ascolta su `127.0.0.1` per default. Se un reverse proxy è in un container o su un altro host, impostare `HOST` sull'indirizzo interno necessario e impedire l'accesso diretto dalla rete pubblica.
 
 La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
 

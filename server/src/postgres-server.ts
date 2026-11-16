@@ -51,9 +51,12 @@ async function main(): Promise<void> {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("PORT non valido.");
   }
+  // Default to loopback so a reverse proxy is the only network entry point.
+  // Container platforms with an internal proxy can explicitly set HOST=0.0.0.0.
+  const host = process.env.HOST?.trim() || "127.0.0.1";
 
-  const server = app.listen(port, () => {
-    console.log(`Runtime PostgreSQL in ascolto sulla porta ${port}.`);
+  const server = app.listen(port, host, () => {
+    console.log(`Runtime PostgreSQL in ascolto su ${host}:${port}.`);
   });
 
   let closing = false;

@@ -194,7 +194,7 @@ export async function createHttpTestEnvironment(): Promise<HttpTestEnvironment> 
     const app = createPostgresApp(runtimePool, {
       allowedOrigins: [ORIGIN], rateLimitSecret: RATE_LIMIT_SECRET, production: false,
     });
-    server = app.listen(0);
+    server = app.listen(0, "127.0.0.1");
     await new Promise<void>((resolve) => server!.once("listening", resolve));
     const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 

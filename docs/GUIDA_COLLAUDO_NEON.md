@@ -9,11 +9,11 @@ Le credenziali restano sul tuo computer: non incollarle in chat, nei ticket o ne
 1. **Progetto Neon di staging** e due ruoli:
    - proprietario (migrazioni, bootstrap, backup): usare l'endpoint **diretto**;
    - `percorso_app` (solo app): `LOGIN`, `NOINHERIT`, senza altri attributi; può usare l'endpoint pooler.
-2. **File locale `.env.staging`** (non versionato: `.env.staging` è ora nel `.gitignore`) con le 3 connessioni, sempre con `?sslmode=require`:
+2. **File locale `.env.staging`** (non versionato: `.env.staging` è ora nel `.gitignore`) con le 3 connessioni, sempre con `?sslmode=verify-full`:
    ```
-   OWNER_URL=postgresql://<proprietario>:...@<host-diretto>/<db>?sslmode=require
-   RUNTIME_URL=postgresql://percorso_app:...@<host>/<db>?sslmode=require
-   RESTORE_URL=postgresql://<proprietario>:...@<host-diretto>/<db-vuoto-per-ripristino>?sslmode=require
+   OWNER_URL=postgresql://<proprietario>:...@<host-diretto>/<db>?sslmode=verify-full
+   RUNTIME_URL=postgresql://percorso_app:...@<host>/<db>?sslmode=verify-full
+   RESTORE_URL=postgresql://<proprietario>:...@<host-diretto>/<db-vuoto-per-ripristino>?sslmode=verify-full
    ```
    `<db-vuoto-per-ripristino>` è un database (o branch) **vuoto** nello stesso progetto di staging, dove esiste già il ruolo `percorso_app`.
 3. **Variabili dell'app in staging** (dal tuo hosting): `DATABASE_URL`=`RUNTIME_URL`, `APP_ORIGIN`=URL https del frontend,

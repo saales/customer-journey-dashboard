@@ -20,6 +20,8 @@ Il server HTTP standard avvia `server/src/postgres-server.ts` e usa il pool cond
 
 Il server non applica migrazioni automaticamente. Verifica lo storico e il ruolo PostgreSQL; se esistono migrazioni pendenti, checksum divergenti o privilegi non conformi, il processo non apre la porta HTTP.
 
+Per i database remoti in produzione, il processo richiede `sslmode=verify-full`: TLS protegge il traffico e il driver verifica il certificato e il nome host del server.
+
 ## Stato del database remoto
 
 Il repository e la CI dimostrano che il codice e le migrazioni funzionano su PostgreSQL temporaneo. Non dimostrano che Neon contenga già le migrazioni 001–013 o che i dati precedenti siano stati trasferiti. Serve un preflight read-only sull'istanza effettiva, confronto checksum/ruoli/RLS e riconciliazione dei conteggi. Nessuna operazione remota è stata eseguita da questa attività.

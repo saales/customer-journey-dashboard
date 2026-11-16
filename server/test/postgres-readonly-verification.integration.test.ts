@@ -181,7 +181,7 @@ describe.skipIf(!dbUrl)("Verifica read-only del database (ruolo runtime reale)",
     }
   });
 
-  it("senza TLS: FALLISCE per impostazione predefinita (Neon richiede sslmode=require), avviso con --allow-no-ssl", async () => {
+  it("senza TLS: FALLISCE per impostazione predefinita (Neon richiede sslmode=verify-full), avviso con --allow-no-ssl", async () => {
     const strict = await verifyPostgresReadOnly(env.runtimePool, { ...options(), requireSsl: true });
     expect(byId(strict, "transport.tls").status).toBe(env.runtimePool.options.ssl ? "pass" : "fail");
     const relaxed = await verifyPostgresReadOnly(env.runtimePool, { ...options(), requireSsl: false });
