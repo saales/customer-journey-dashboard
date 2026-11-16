@@ -1,5 +1,5 @@
 import type { Pool, PoolClient } from "pg";
-import { verifyPassword } from "./password-hashing.js";
+import { hashPassword, passwordHashNeedsRehash, verifyPassword } from "./password-hashing.js";
 import { issuePostgresSession, type IssuedPostgresSession } from "./postgres-session-repository.js";
 
 /**
@@ -51,6 +51,34 @@ export async function authenticatePostgresCredentials(
 
   if (!credential || !(await verifyPassword(password, credential.passwordHash))) {
     return null;
+  }
+
+  if (passwordHashNeedsRehash(credential.passwordHash)) {
+    // Upgrade old scrypt parameters after a successful login. Compare-and-swap
+    // prevents a concurrent password change/reset from being overwritten.
+    const upgradedHash = await hashPassword(password);
+    const upgradeClient = await pool.connect();
+    let passwordStillValid = false;
+    try {
+      const updated = await upgradeClient.query(
+        `UPDATE users
+         SET password_hash = $1, updated_at = NOW()
+         WHERE id = $2::uuid AND password_hash = $3 AND status = 'active'`,
+        [upgradedHash, credential.userId, credential.passwordHash],
+      );
+      if (updated.rowCount === 1) {
+        passwordStillValid = true;
+      } else {
+        const latest = await upgradeClient.query<{ passwordHash: string }>(
+          "SELECT password_hash AS \"passwordHash\" FROM users WHERE id = $1::uuid AND status = 'active'",
+          [credential.userId],
+        );
+        passwordStillValid = Boolean(latest.rows[0] && await verifyPassword(password, latest.rows[0].passwordHash));
+      }
+    } finally {
+      upgradeClient.release();
+    }
+    if (!passwordStillValid) return null;
   }
 
   return issuePostgresSession(pool, credential.userId, credential.organizationId);

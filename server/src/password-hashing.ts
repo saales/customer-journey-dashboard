@@ -6,19 +6,53 @@ import {
 
 const KEY_LENGTH = 64;
 const SALT_LENGTH = 16;
-const SCRYPT_N = 32_768;
-const SCRYPT_R = 8;
-const SCRYPT_P = 1;
+const CURRENT_SCRYPT = { N: 32_768, r: 8, p: 3 } as const;
+const SUPPORTED_SCRYPT = [CURRENT_SCRYPT, { N: 32_768, r: 8, p: 1 }] as const;
 const MAXMEM = 64 * 1024 * 1024;
 const FORMAT = "scrypt";
 
-function deriveKey(password: string, salt: Buffer): Promise<Buffer> {
+interface ParsedPasswordHash {
+  parameters: (typeof SUPPORTED_SCRYPT)[number];
+  salt: Buffer;
+  key: Buffer;
+}
+
+function parsePasswordHash(encoded: string): ParsedPasswordHash | null {
+  if (typeof encoded !== "string" || encoded.length > 256) return null;
+  const parts = encoded.split("$");
+  if (parts.length !== 6 || parts[0] !== FORMAT) return null;
+  const parameters = SUPPORTED_SCRYPT.find((candidate) =>
+    parts[1] === String(candidate.N) && parts[2] === String(candidate.r) && parts[3] === String(candidate.p));
+  if (!parameters) return null;
+
+  let salt: Buffer;
+  let key: Buffer;
+  try {
+    salt = Buffer.from(parts[4]!, "base64url");
+    key = Buffer.from(parts[5]!, "base64url");
+  } catch {
+    return null;
+  }
+  if (salt.length !== SALT_LENGTH || key.length !== KEY_LENGTH) return null;
+  return { parameters, salt, key };
+}
+
+export function passwordHashNeedsRehash(encoded: string): boolean {
+  const parsed = parsePasswordHash(encoded);
+  return Boolean(parsed && (
+    parsed.parameters.N !== CURRENT_SCRYPT.N ||
+    parsed.parameters.r !== CURRENT_SCRYPT.r ||
+    parsed.parameters.p !== CURRENT_SCRYPT.p
+  ));
+}
+
+function deriveKey(password: string, salt: Buffer, parameters: ParsedPasswordHash["parameters"]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     scryptCallback(
       password,
       salt,
       KEY_LENGTH,
-      { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: MAXMEM },
+      { ...parameters, maxmem: MAXMEM },
       (error, derivedKey) => error ? reject(error) : resolve(derivedKey as Buffer),
     );
   });
@@ -34,33 +68,16 @@ export async function hashPassword(password: string): Promise<string> {
     throw new Error("La password deve contenere tra 12 e 1024 caratteri.");
   }
   const salt = randomBytes(SALT_LENGTH);
-  const key = await deriveKey(password, salt);
-  return [FORMAT, SCRYPT_N, SCRYPT_R, SCRYPT_P, salt.toString("base64url"), key.toString("base64url")].join("$");
+  const key = await deriveKey(password, salt, CURRENT_SCRYPT);
+  return [FORMAT, CURRENT_SCRYPT.N, CURRENT_SCRYPT.r, CURRENT_SCRYPT.p,
+    salt.toString("base64url"), key.toString("base64url")].join("$");
 }
 
 /** Returns false for malformed hashes and wrong passwords without throwing. */
 export async function verifyPassword(password: string, encoded: string): Promise<boolean> {
-  if (typeof password !== "string" || password.length > 1024 || typeof encoded !== "string" || encoded.length > 256) {
-    return false;
-  }
-  const parts = encoded.split("$");
-  if (parts.length !== 6 || parts[0] !== FORMAT ||
-      parts[1] !== String(SCRYPT_N) ||
-      parts[2] !== String(SCRYPT_R) ||
-      parts[3] !== String(SCRYPT_P)) {
-    return false;
-  }
-
-  let salt: Buffer;
-  let expected: Buffer;
-  try {
-    salt = Buffer.from(parts[4]!, "base64url");
-    expected = Buffer.from(parts[5]!, "base64url");
-  } catch {
-    return false;
-  }
-  if (salt.length !== SALT_LENGTH || expected.length !== KEY_LENGTH) return false;
-
-  const actual = await deriveKey(password, salt);
-  return timingSafeEqual(actual, expected);
+  if (typeof password !== "string" || password.length > 1024) return false;
+  const parsed = parsePasswordHash(encoded);
+  if (!parsed) return false;
+  const actual = await deriveKey(password, parsed.salt, parsed.parameters);
+  return timingSafeEqual(actual, parsed.key);
 }

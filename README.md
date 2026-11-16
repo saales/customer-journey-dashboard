@@ -108,6 +108,8 @@ La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica check
 - Lo startup controlla lo storico migrazioni e i privilegi; non modifica lo schema.
 - Le scritture richiedono Origin autorizzato; i cookie sono HttpOnly e SameSite=Strict.
 - Gli inviti e i reset password usano token monouso, memorizzati solo come hash e con scadenza.
+- Le password usano scrypt `N=32768, r=8, p=3` con salt casuale; gli hash precedenti restano verificabili e vengono aggiornati al login riuscito.
+- I nuovi link per inviti e recupero collocano il token nel frammento URL, non nella richiesta HTTP; l'interfaccia lo rimuove subito dalla barra degli indirizzi e supporta ancora i link precedenti.
 - Il cambio password richiede la password attuale, aggiorna le credenziali in transazione e revoca tutte le sessioni.
 - Le email transazionali usano Resend; configurare `RESEND_API_KEY` e `EMAIL_FROM`. Senza configurazione, gli inviti restano condivisibili manualmente e il recupero password non può inviare istruzioni.
 - Il server API ascolta su `127.0.0.1` per default. Se un reverse proxy è in un container o su un altro host, impostare `HOST` sull'indirizzo interno necessario e impedire l'accesso diretto dalla rete pubblica.

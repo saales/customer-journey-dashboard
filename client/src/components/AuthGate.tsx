@@ -7,6 +7,36 @@ type AuthState = "loading" | "authenticated" | "anonymous" | "error";
 interface AuthSession { userId: string; organizationId: string; role: "admin" | "editor" | "analyst" | "viewer"; }
 interface AuthGateProps { children: (logout: () => Promise<void>, role: AuthSession["role"] | null) => ReactNode; }
 
+function readAuthLinkTokens(): { inviteToken: string; resetToken: string } {
+  const url = new URL(window.location.href);
+  const fragment = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+  return {
+    // Query parameters remain supported for invitations/password resets already sent.
+    inviteToken: fragment.get("token") ?? url.searchParams.get("token") ?? "",
+    resetToken: fragment.get("reset") ?? url.searchParams.get("reset") ?? "",
+  };
+}
+
+function removeAuthLinkTokensFromUrl(): void {
+  const url = new URL(window.location.href);
+  const fragment = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+  let changed = false;
+  for (const parameter of ["token", "reset"] as const) {
+    if (url.searchParams.has(parameter)) {
+      url.searchParams.delete(parameter);
+      changed = true;
+    }
+    if (fragment.has(parameter)) {
+      fragment.delete(parameter);
+      changed = true;
+    }
+  }
+  if (changed) {
+    url.hash = fragment.toString();
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
 async function readSession(): Promise<{ response: Response; session?: AuthSession }> {
   const response = await fetch("/api/auth/session", {
     method: "GET", credentials: "same-origin", cache: "no-store",
@@ -19,8 +49,9 @@ async function readSession(): Promise<{ response: Response; session?: AuthSessio
 export function AuthGate({ children }: AuthGateProps) {
   const [state, setState] = useState<AuthState>("loading");
   const [role, setRole] = useState<AuthSession["role"] | null>(null);
-  const [inviteToken, setInviteToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? "");
-  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("reset") ?? "");
+  const [initialTokens] = useState(readAuthLinkTokens);
+  const [inviteToken, setInviteToken] = useState(initialTokens.inviteToken);
+  const [resetToken, setResetToken] = useState(initialTokens.resetToken);
   const [resetEmail, setResetEmail] = useState("");
   const [resetOrganization, setResetOrganization] = useState("");
   const [resetPassword, setResetPassword] = useState("");
@@ -51,6 +82,7 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   useEffect(() => { if (!inviteToken && !resetToken) void checkSession(); }, [inviteToken, resetToken]);
+  useEffect(() => { removeAuthLinkTokensFromUrl(); }, []);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSubmitting(true); setError("");
@@ -86,9 +118,7 @@ export function AuthGate({ children }: AuthGateProps) {
       });
       const body = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Accettazione dell'invito non riuscita.");
-      const url = new URL(window.location.href);
-      url.searchParams.delete("token");
-      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      removeAuthLinkTokensFromUrl();
       setInvitePassword("");
       setInvitePasswordConfirm("");
       setInviteToken("");
@@ -126,8 +156,7 @@ export function AuthGate({ children }: AuthGateProps) {
       });
       const body = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Reimpostazione non riuscita.");
-      const url = new URL(window.location.href); url.searchParams.delete("reset");
-      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      removeAuthLinkTokensFromUrl();
       setResetToken(""); setResetPassword(""); setResetPasswordConfirm(""); setError(""); setState("anonymous");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Reimpostazione non riuscita."); }
     finally { setResetSubmitting(false); }

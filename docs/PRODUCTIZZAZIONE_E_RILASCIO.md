@@ -1,5 +1,7 @@
 # Percorso Cliente — stato prodotto e piano di rilascio
 
+> **Verdetto al 16 novembre 2026: NO-GO per produzione con dati reali.** Il checkout candidato è stato migliorato e le verifiche locali disponibili passano, ma le ultime modifiche non hanno ancora una CI verde; il collaudo su staging, database remoto, email e ripristino non è documentato.
+
 ## 1. Visione del prodotto
 
 Percorso Cliente è una piattaforma B2B multi-organizzazione per analizzare acquisizione, avanzamento nel funnel e conversione dei clienti. Il runtime applicativo usa PostgreSQL come unico database; non esiste una modalità dimostrativa o un archivio alternativo nel ramo corrente.
@@ -86,15 +88,18 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 - PostgreSQL è l’unico percorso di persistenza del server e il runtime HTTP standard avvia esclusivamente `postgres-server.ts`.
 - Migrazioni versionate 001–013, controllo checksum e preflight dei privilegi del ruolo runtime, inclusi i privilegi del rate limiter API persistente e la lettura tenant-scoped dell'audit.
 - Sessioni opache, autenticazione, autorizzazione per ruolo e tenant scope nelle API.
-- Dashboard, clienti, funnel, segmentazione, importazione, export CSV e JSON organizzativo, gestione membri e inviti monouso, recupero password, gestione sessioni, modifica del nome organizzazione, profilo utente e cambio password con revoca delle sessioni. La CI corrente [43537719146](https://github.com/saales/customer-journey-dashboard/actions/runs/43537719146), sul commit `6999284`, è verde su Node.js 20 e 22; `npm audit` rileva zero vulnerabilità.
-- La CI corrente esegue build e test su Node.js 20/22, applica le migrazioni 001–013 a PostgreSQL temporaneo, verifica i checksum e avvia il runtime con un ruolo non privilegiato. Sul commit `6999284`, i test registrano 34 file/154 test server e 10 file/39 test client superati su entrambe le versioni Node; su Node.js 22 passa anche Playwright/Chromium. Il percorso browser copre admin, analyst, viewer ed editor, creazione cliente e fase funnel, import/export CSV, inviti e accettazione, verifica permessi, audit e revoca sessione. Lo scenario cross-tenant verifica elenco clienti ed eventi associati, update/delete IDOR su cliente, elenco ed update di fasi funnel, export CSV, audit, membri e inviti nel tenant B. Un test middleware controlla la matrice permessi dei quattro ruoli.
+- Dashboard, clienti, funnel, segmentazione, importazione, export CSV e JSON organizzativo, gestione membri e inviti monouso, recupero password, gestione sessioni, modifica del nome organizzazione, profilo utente e cambio password con revoca delle sessioni.
+- La matrice d'autorizzazione confronta le route Express registrate con le aspettative dei quattro ruoli; una nuova route priva di copertura fa fallire la suite.
+- I test negativi cross-tenant coprono clienti, eventi, analytics, segmenti, importazioni, funnel, esportazioni CSV/JSON, audit, membri, inviti e le policy RLS delle tabelle tenant. Coprono gli IDOR e le operazioni selezionate, ma non dimostrano ogni combinazione route × tenant.
+- Una CI precedente, [run 43869048649](https://github.com/saales/customer-journey-dashboard/actions/runs/43869048649) sul commit `c53715f70ac9afbdc1cbef88cdcb873330be254c`, è passata su Node.js 20 e 22 per installazione, audit, test, build, migrazioni e runtime limitato; su Node.js 22 è passato anche Playwright/Chromium. È una prova della revisione precedente, non del checkout con le modifiche più recenti.
 
 ### Non ancora dimostrato / non disponibile
 
 - Nessuna prova che il database remoto sia già migrato o che dati precedenti siano stati trasferiti.
 - Nessun deploy o collaudo su un ambiente staging reale.
 - Nessuna prova operativa di backup e ripristino.
-- La copertura cross-tenant browser non comprende ancora tutte le API e tutte le operazioni: restano da aggiungere casi negativi dedicati per eventi, importazioni e operazioni su membri/inviti, oltre a una matrice sistematica dei quattro ruoli su ogni endpoint. La CI non sostituisce test di carico.
+- Le modifiche più recenti ai link monouso e al costo scrypt, insieme ai nuovi test, devono ancora passare nella CI completa su Node.js 20/22 e nel test browser.
+- La copertura cross-tenant non comprende ogni combinazione di route e operazione; vanno controllati anche i percorsi staging con due tenant. La CI non sostituisce il collaudo sul provider, test di carico o una revisione indipendente.
 - L'invio email richiede configurazione e verifica di Resend (`RESEND_API_KEY`, `EMAIL_FROM`); non è stata verificata la consegna reale. MFA/SSO e billing non sono implementati.
 - La CI verifica il ruolo runtime sul PostgreSQL temporaneo; il ruolo, lo schema e i checksum del database remoto non sono stati verificati.
 

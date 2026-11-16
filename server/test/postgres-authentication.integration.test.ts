@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import { authenticatePostgresCredentials } from "../src/postgres-authentication.js";
-import { hashPassword } from "../src/password-hashing.js";
+import { verifyPassword } from "../src/password-hashing.js";
 import { revokePostgresSession } from "../src/postgres-session-repository.js";
 import { resolvePostgresSession } from "../src/postgres-session-resolver.js";
 
@@ -9,6 +9,7 @@ const connectionString = process.env.DATABASE_URL;
 const pool = connectionString
   ? new Pool({ connectionString, max: 1, connectionTimeoutMillis: 5_000 })
   : null;
+const LEGACY_HASH = "scrypt$32768$8$1$MDEyMzQ1Njc4OWFiY2RlZg$-LMJe_5NYS2FVj5wZhiiYAojo_D4THFEEWlZDG8wvPv-ub--CBRx_cNhUCm_jDnR8t2IiXFvVxQE2ufYOJSxmA";
 
 afterAll(async () => {
   await pool?.end();
@@ -18,7 +19,6 @@ describe("PostgreSQL credential authentication", () => {
   it.skipIf(!pool)("authenticates active memberships and issues a resolvable session", async () => {
     const organizationId = "abababab-abab-4bab-8bab-abababababab";
     const userId = "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd";
-    const passwordHash = await hashPassword("Correct-Horse-Battery-42!");
     const client = await pool!.connect();
     try {
       await client.query(`
@@ -49,7 +49,7 @@ describe("PostgreSQL credential authentication", () => {
       await client.query("INSERT INTO organizations VALUES ($1, 'acme', 'active')", [organizationId]);
       await client.query(
         "INSERT INTO users VALUES ($1, 'person@example.com', $2, 'active')",
-        [userId, passwordHash],
+        [userId, LEGACY_HASH],
       );
       await client.query(
         "INSERT INTO memberships VALUES (gen_random_uuid(), $1, $2, 'admin', 'active')",
@@ -63,6 +63,9 @@ describe("PostgreSQL credential authentication", () => {
       pool!, "PERSON@example.com", "Correct-Horse-Battery-42!", "acme",
     );
     expect(issued?.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const upgraded = await pool!.query<{ password_hash: string }>("SELECT password_hash FROM users WHERE id=$1", [userId]);
+    expect(upgraded.rows[0]?.password_hash).toMatch(/^scrypt\$32768\$8\$3\$/);
+    expect(await verifyPassword("Correct-Horse-Battery-42!", upgraded.rows[0]!.password_hash)).toBe(true);
     await expect(resolvePostgresSession(pool!, issued!.token)).resolves.toMatchObject({
       userId, organizationId, role: "admin",
     });

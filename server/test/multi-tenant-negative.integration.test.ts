@@ -132,6 +132,13 @@ describe.skipIf(!dbUrl)("Multi-tenant — EVENTI e CLIENTI: il tenant A non tocc
     expect(segmentCustomers.text).not.toContain("Solo B");
   });
 
+  it("l'export CSV del tenant A non contiene clienti o eventi del tenant B", async () => {
+    const response = await env.request("GET", "/api/export/customers.csv", { token: A().users.analyst.token });
+    expect(response.status).toBe(200);
+    expect(response.text).not.toContain("b-referral-secret");
+    expect(response.text).not.toContain("Solo B");
+  });
+
   it("lo stesso externalId può esistere in entrambi i tenant senza collisioni né rivelazioni", async () => {
     // `shared-ext-1` è presente in A e in B; `only-b-2` solo in B: A può crearlo come proprio.
     const before = await snapshotTenant("B");
@@ -153,6 +160,40 @@ describe.skipIf(!dbUrl)("Multi-tenant — EVENTI e CLIENTI: il tenant A non tocc
     const foreign = await env.adminPool.query("SELECT id::text FROM audit_logs WHERE organization_id=$1", [B().id]);
     const seen = new Set(response.body.data.map((row) => String(row.id)));
     for (const row of foreign.rows) expect(seen.has(row.id)).toBe(false);
+  });
+});
+
+describe.skipIf(!dbUrl)("Multi-tenant — FUNNEL", () => {
+  it("l'elenco fasi del tenant A non rivela fasi personalizzate del tenant B", async () => {
+    const response = await env.request<Array<{ id: string; label: string }>>(
+      "GET", "/api/funnel-stages", { token: A().users.admin.token });
+    expect(response.status).toBe(200);
+    expect(response.body.some((stage) => stage.id === bCustomStage)).toBe(false);
+    expect(response.text).not.toContain("Solo B");
+  });
+
+  it("modificare una fase del tenant B dal tenant A restituisce 404 senza cambiare B", async () => {
+    const before = await snapshotTenant("B");
+    const response = await env.request("PUT", `/api/funnel-stages/${bCustomStage}`, {
+      token: A().users.admin.token, body: { label: "Tentativo di modifica" },
+    });
+    expect(response.status).toBe(404);
+    expect(response.text).not.toContain("Solo B");
+    expect(await snapshotTenant("B")).toEqual(before);
+  });
+
+  it("riordinare le fasi del tenant A includendo una fase di B viene rifiutato senza scritture", async () => {
+    const beforeA = await snapshotTenant("A");
+    const beforeB = await snapshotTenant("B");
+    const listed = await env.request<Array<{ id: string }>>(
+      "GET", "/api/funnel-stages", { token: A().users.admin.token });
+    const response = await env.request("PUT", "/api/funnel-stages/reorder", {
+      token: A().users.admin.token,
+      body: { stages: [...listed.body.map((stage) => stage.id), bCustomStage] },
+    });
+    expect(response.status).toBe(400);
+    expect(await snapshotTenant("A")).toEqual(beforeA);
+    expect(await snapshotTenant("B")).toEqual(beforeB);
   });
 });
 
@@ -337,7 +378,7 @@ describe.skipIf(!dbUrl)("Multi-tenant — INVITI", () => {
     const created = await env.request<{ inviteUrl: string }>("POST", "/api/invitations", {
       token: A().users.admin.token, body: { email: B().users.editor.email, role: "admin" },
     });
-    const token = new URL(created.body.inviteUrl).searchParams.get("token")!;
+    const token = new URLSearchParams(new URL(created.body.inviteUrl).hash.slice(1)).get("token")!;
     const before = await snapshotTenant("B");
     const wrong = await env.request("POST", "/api/invitations/accept", { body: { token, fullName: "Attaccante", password: "Password-sbagliata-123" } });
     expect(wrong.status).toBe(401);

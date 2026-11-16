@@ -62,24 +62,44 @@ describe("Accesso PostgreSQL dal browser", () => {
   });
 
   it("accetta un invito monouso e verifica la sessione appena creata", async () => {
-    window.history.replaceState({}, "", `/?token=${"A".repeat(43)}`);
-    const requests: string[] = [];
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input); requests.push(url);
-      if (url === "/api/invitations/accept") return new Response(JSON.stringify({ organizationSlug: "azienda-demo" }), { status: 201, headers: { "Content-Type": "application/json" } });
-      if (url === "/api/auth/session") return new Response(JSON.stringify({ userId: "user-1", organizationId: "org-1", role: "editor" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    window.history.replaceState({}, "", `/#token=${"A".repeat(43)}`);
+    const requests: Array<{ url: string; body?: unknown }> = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/invitations/accept") {
+        requests.push({ url, body: JSON.parse(String(init?.body)) });
+        return new Response(JSON.stringify({ organizationSlug: "azienda-demo" }), { status: 201, headers: { "Content-Type": "application/json" } });
+      }
+      if (url === "/api/auth/session") {
+        requests.push({ url });
+        return new Response(JSON.stringify({ userId: "user-1", organizationId: "org-1", role: "editor" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
       return new Response("not found", { status: 404 });
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<AuthGate>{(_logout, role) => <p>Ruolo: {role}</p>}</AuthGate>);
+    expect(window.location.hash).toBe("");
     fireEvent.change(await screen.findByLabelText("Nome e cognome"), { target: { value: "Nuovo utente" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Password-Invito-2026" } });
     fireEvent.change(screen.getByLabelText("Conferma password"), { target: { value: "Password-Invito-2026" } });
     fireEvent.click(screen.getByRole("button", { name: "Accetta invito" }));
     expect(await screen.findByText("Ruolo: editor")).toBeTruthy();
-    expect(requests).toContain("/api/invitations/accept");
-    expect(requests).toContain("/api/auth/session");
+    expect(requests).toContainEqual({ url: "/api/invitations/accept", body: {
+      token: "A".repeat(43), fullName: "Nuovo utente", password: "Password-Invito-2026",
+    } });
+    expect(requests).toContainEqual({ url: "/api/auth/session" });
     expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
+  });
+
+  it("mantiene validi i link di invito precedenti con token nella query", async () => {
+    window.history.replaceState({}, "", `/?token=${"L".repeat(43)}`);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("not found", { status: 404 })));
+
+    render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
+
+    expect(await screen.findByLabelText("Nome e cognome")).toBeTruthy();
+    await waitFor(() => expect(window.location.search).toBe(""));
   });
 
 
@@ -116,7 +136,7 @@ describe("Accesso PostgreSQL dal browser", () => {
   });
 
   it("completa il reset password con token e torna al login", async () => {
-    window.history.replaceState({}, "", `/?reset=${"R".repeat(43)}`);
+    window.history.replaceState({}, "", `/#reset=${"R".repeat(43)}`);
     const requests: Array<{ url: string; body?: unknown }> = [];
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -141,6 +161,7 @@ describe("Accesso PostgreSQL dal browser", () => {
       body: { token: "R".repeat(43), password: "Nuova-password-sicura-2026!" },
     }]);
     expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
     expect(screen.queryByText("Dashboard protetta")).toBeNull();
   });
 
