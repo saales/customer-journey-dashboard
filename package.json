@@ -4,7 +4,7 @@
   "private": true,
   "description": "Piattaforma SaaS B2B per l'analisi del percorso cliente con PostgreSQL",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "workspaces": [
     "server",

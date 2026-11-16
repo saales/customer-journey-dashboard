@@ -29,11 +29,11 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 | Database | PostgreSQL |
 | Driver | node-postgres (pg) |
 | Test | Vitest, Testing Library, PostgreSQL 16 temporaneo |
-| CI | GitHub Actions, Node.js 20 e 22 |
+| CI | GitHub Actions, Node.js 22, 24 e 26 |
 
 ## Requisiti
 
-- Node.js 20 o successivo
+- Node.js 22 o successivo
 - `NODE_ENV` esplicita: `development` in locale, `production` nel deployment
 - npm
 - Un database PostgreSQL

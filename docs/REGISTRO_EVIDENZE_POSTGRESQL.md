@@ -11,7 +11,7 @@
 
 ## CI verificata
 
-Run [43704074591](https://github.com/saales/customer-journey-dashboard/actions/runs/43704074591), sul commit head indicato, conclusa con successo su Node.js 20 e 22.
+Run [43704074591](https://github.com/saales/customer-journey-dashboard/actions/runs/43704074591), sul commit head indicato, conclusa con successo su Node.js 22, 24 e 26.
 
 | Controllo | Node.js 20 | Node.js 22 |
 |---|---:|---:|
@@ -74,7 +74,7 @@ La matrice copre le route elencate nei test, non ogni combinazione di input, sta
 
 ## Decisione
 
-La run CI `43706482217` sul commit `3bab4d201f89c9d04a10729ecb0c1c5e6771a0ae` è completata con entrambi i job verdi: Node.js 20 e 22 hanno superato test, build, audit dipendenze, migrazioni PostgreSQL, checksum e verifiche RLS; sul job Node.js 22 è passato anche il test browser Playwright. Il precedente run `43705654748` sul commit `b0370ff` era fallito per l'asserzione errata su externalId, corretta successivamente. Questa run verde include i due test di snapshot concorrente e rollback export introdotti nel commit `93e189d`, ma NON include i test multi-tenant aggiunti dopo sul commit `6fe2c8c` e la correzione regex del commit `483184c`. Per questi ultimi il gate CI resta da ripetere.
+La run CI `43706482217` sul commit `3bab4d201f89c9d04a10729ecb0c1c5e6771a0ae` è completata con entrambi i job verdi: Node.js 22, 24 e 26 hanno superato test, build, audit dipendenze, migrazioni PostgreSQL, checksum e verifiche RLS; sul job Node.js 22 è passato anche il test browser Playwright. Il precedente run `43705654748` sul commit `b0370ff` era fallito per l'asserzione errata su externalId, corretta successivamente. Questa run verde include i due test di snapshot concorrente e rollback export introdotti nel commit `93e189d`, ma NON include i test multi-tenant aggiunti dopo sul commit `6fe2c8c` e la correzione regex del commit `483184c`. Per questi ultimi il gate CI resta da ripetere.
 
 La run CI usa database PostgreSQL temporanei e dati sintetici: non è un collaudo su Neon/staging remoto e non prova backup/restore, consegna email o comportamento in produzione.
 
@@ -92,7 +92,7 @@ Questi test sono stati ricostruiti prendendo come riferimento i casi nello ZIP, 
 
 ## Verifica CI successiva — 15 novembre 2026
 
-- Run `43705654748`, commit `b0370ff6058f2113f0ed1d2d77f6ca2c03ddc0ea`: fallito su Node.js 20 e 22 per l'asserzione errata descritta sopra; non risultano errori nel test export JSON aggiunto.
+- Run `43705654748`, commit `b0370ff6058f2113f0ed1d2d77f6ca2c03ddc0ea`: fallito su Node.js 22, 24 e 26 per l'asserzione errata descritta sopra; non risultano errori nel test export JSON aggiunto.
 - Correzione del test in `server/test/multi-tenant-negative.integration.test.ts`: usa gli ID dei fixture A/B che la route restituisce realmente, invece degli `externalId` che non sono esposti dalla risposta.
 - Commit correttivo: `10bd6892e75ecede3bde897dea1a3c40e4608c1c`.
 - Al momento dell'aggiornamento non è ancora visibile un run CI associato al commit correttivo. Il gate CI resta quindi aperto.
@@ -114,7 +114,7 @@ Nel commit `6fe2c8c406c9766bc4862d3caa70998cd35c2559` sono stati aggiunti alla s
 
 ## CI per i test multi-tenant aggiunti — 15 novembre 2026
 
-È stata avviata la run `43706996610` (run number 507) sul commit `a2b0e46fb37a09f12b9a495b76663f2b1546d920`, che contiene il nuovo head con i test multi-tenant. Entrambi i job Node.js 20 e 22 risultano avviati; al momento della registrazione stanno inizializzando i container e non hanno ancora eseguito i test. Esito da verificare: [GitHub Actions 43706996610](https://github.com/saales/customer-journey-dashboard/actions/runs/43706996610).
+È stata avviata la run `43706996610` (run number 507) sul commit `a2b0e46fb37a09f12b9a495b76663f2b1546d920`, che contiene il nuovo head con i test multi-tenant. Entrambi i job Node.js 22, 24 e 26 risultano avviati; al momento della registrazione stanno inizializzando i container e non hanno ancora eseguito i test. Esito da verificare: [GitHub Actions 43706996610](https://github.com/saales/customer-journey-dashboard/actions/runs/43706996610).
 
 
 ## Test aggiuntivi import e inviti — 15 novembre 2026
@@ -150,13 +150,13 @@ La CI utilizza PostgreSQL temporaneo e fixture sintetici. Non dimostra il compor
 
 ## Hardening autenticazione e preflight TLS — CI 43746466226
 
-La run [43746466226](https://github.com/saales/customer-journey-dashboard/actions/runs/43746466226) sul commit `136261251cef94a931f615146635ce741608ebf2` è completata con successo su Node.js 20 e 22. Per ciascuna versione: 43 file server / 244 test server passati, 11 file client / 41 test client passati, build superata, `npm audit` con 0 vulnerabilità note, migrazioni/checksum/RLS e avvio del runtime con ruolo limitato superati; Playwright su Node 22: 1 test browser superato.
+La run [43746466226](https://github.com/saales/customer-journey-dashboard/actions/runs/43746466226) sul commit `136261251cef94a931f615146635ce741608ebf2` è completata con successo su Node.js 22, 24 e 26. Per ciascuna versione: 43 file server / 244 test server passati, 11 file client / 41 test client passati, build superata, `npm audit` con 0 vulnerabilità note, migrazioni/checksum/RLS e avvio del runtime con ruolo limitato superati; Playwright su Node 22: 1 test browser superato.
 
 Modifiche incluse: limite login anche per account indipendentemente dall'IP; limite recupero password per email; token monouso di invito/reset trasferiti nei frammenti URL e rimossi dalla barra indirizzi, mantenendo compatibilità con i link query legacy; controllo TLS all'avvio in produzione; verifica scrypt fittizia per ridurre enumerazione account tramite timing.
 
 ## Ispezione PostgreSQL sequenziale — CI 43746713179
 
-La run [43746713179](https://github.com/saales/customer-journey-dashboard/actions/runs/43746713179) sul commit `ab7fb7a78bd593f9f69ef070925c7c5146fdce46` è completata con successo su Node.js 20 e 22. Per ciascuna versione: 43 file server / 245 test server passati, 11 file client / 41 test client passati, build superata, `npm audit` con 0 vulnerabilità note, migrazioni/checksum/RLS e runtime ristretto superati; Playwright su Node 22: 1 test browser superato.
+La run [43746713179](https://github.com/saales/customer-journey-dashboard/actions/runs/43746713179) sul commit `ab7fb7a78bd593f9f69ef070925c7c5146fdce46` è completata con successo su Node.js 22, 24 e 26. Per ciascuna versione: 43 file server / 245 test server passati, 11 file client / 41 test client passati, build superata, `npm audit` con 0 vulnerabilità note, migrazioni/checksum/RLS e runtime ristretto superati; Playwright su Node 22: 1 test browser superato.
 
 È stata resa sequenziale l'ispezione dei cataloghi PostgreSQL, che in precedenza accodava query concorrenti sullo stesso `PoolClient` e generava un avviso di deprecazione del driver. Il nuovo test verifica che non vi siano query sovrapposte. Restano avvisi di deprecazione `punycode` e `url.parse()` provenienti da dipendenze; non risultano vulnerabilità note nell'audit npm.
 
@@ -165,7 +165,7 @@ Queste verifiche sono eseguite in CI su PostgreSQL temporaneo e fixture sintetic
 
 ## Hardening credenziali e sessioni — CI 43747401019
 
-La run [43747401019](https://github.com/saales/customer-journey-dashboard/actions/runs/43747401019) sul commit `07b7a511c8446664a4098013eeec6b6d27f6ef30` è completata con successo su Node.js 20 e 22.
+La run [43747401019](https://github.com/saales/customer-journey-dashboard/actions/runs/43747401019) sul commit `07b7a511c8446664a4098013eeec6b6d27f6ef30` è completata con successo su Node.js 22, 24 e 26.
 
 Per ciascuna versione: 43 file server / 246 test passati; 11 file client / 41 test passati; build superata; `npm audit` con 0 vulnerabilità note; migrazioni/checksum PostgreSQL, policy RLS effettive e avvio del runtime con ruolo limitato superati. Node.js 22 ha superato anche Playwright/Chromium (1 test browser).
 

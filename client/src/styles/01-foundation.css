@@ -1,0 +1,299 @@
+
+/* ========================================
+   CUSTOMER JOURNEY DASHBOARD
+   MODERN SAAS DESIGN SYSTEM
+======================================== */
+
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ========================================
+   COLORI E TEMI
+======================================== */
+
+.app-shell {
+  --sidebar-bg: #17243b;
+  --sidebar-text: #c0ccdf;
+  --sidebar-muted: #8fa0bb;
+  --sidebar-active: #344b70;
+
+  --accent: #526de5;
+  --app-bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-hover: #f8faff;
+
+  --text-primary: #17243b;
+  --text-secondary: #667085;
+  --border-color: #e5eaf1;
+
+  --chart-blue: #526de5;
+  --chart-indigo: #7185ed;
+  --chart-light-blue: #8ba5f0;
+  --chart-sky: #a8c5f5;
+  --chart-teal: #21a895;
+  --chart-grid: #e5eaf1;
+  --chart-hover: rgba(82, 109, 229, 0.07);
+
+  --kpi-blue-text: #526de5;
+  --kpi-blue-bg: #edf0ff;
+  --kpi-purple-text: #8959cf;
+  --kpi-purple-bg: #f3edff;
+  --kpi-teal-text: #159b89;
+  --kpi-teal-bg: #e6f7f3;
+  --kpi-green-text: #269b62;
+  --kpi-green-bg: #e9f7ee;
+  --kpi-orange-text: #d58a32;
+  --kpi-orange-bg: #fff3e5;
+
+  display: flex;
+  min-height: 100vh;
+  background: var(--app-bg);
+  color: var(--text-primary);
+}
+
+.app-shell.theme-dark {
+  --app-bg: #111827;
+  --surface: #1f2937;
+  --surface-hover: #273449;
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #aab4c3;
+  --border-color: #374151;
+
+  --chart-blue: #7188ff;
+  --chart-indigo: #879aff;
+  --chart-light-blue: #9bb5ff;
+  --chart-sky: #b2ccff;
+  --chart-teal: #45cbb4;
+  --chart-grid: #374151;
+  --chart-hover: rgba(113, 136, 255, 0.12);
+
+  --kpi-blue-text: #9eafff;
+  --kpi-blue-bg: rgba(82, 109, 229, 0.18);
+  --kpi-purple-text: #c2a1ff;
+  --kpi-purple-bg: rgba(137, 89, 207, 0.18);
+  --kpi-teal-text: #5bd5c0;
+  --kpi-teal-bg: rgba(33, 168, 149, 0.18);
+  --kpi-green-text: #6ed69a;
+  --kpi-green-bg: rgba(38, 155, 98, 0.18);
+  --kpi-orange-text: #f2b66f;
+  --kpi-orange-bg: rgba(213, 138, 50, 0.18);
+}
+
+/* ========================================
+   SIDEBAR
+======================================== */
+
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  min-width: 250px;
+  min-height: 100vh;
+  padding: 24px 14px;
+  background: var(--sidebar-bg);
+  color: white;
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+.sidebar.collapsed {
+  width: 78px;
+  min-width: 78px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 8px;
+}
+
+.brand-icon {
+  display: grid;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.brand-text strong {
+  font-size: 1.15rem;
+}
+
+.brand-text span {
+  color: var(--sidebar-muted);
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 32px;
+  right: -13px;
+  z-index: 2;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.sidebar-section-label {
+  margin: 42px 10px 12px;
+  color: var(--sidebar-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--sidebar-text);
+  font-size: 0.9rem;
+  text-align: left;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.nav-item.active {
+  background: var(--sidebar-active);
+  color: white;
+  font-weight: 600;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 8px 0;
+  color: var(--sidebar-muted);
+  font-size: 0.72rem;
+}
+
+/* ========================================
+   HEADER E CONTENUTO PRINCIPALE
+======================================== */
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 88px;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.app-header p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.app-content {
+  min-width: 0;
+  padding: 28px 32px 48px;
+}
+
+.mobile-menu-button {
+  display: none;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: background 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-hover);
+}
+
