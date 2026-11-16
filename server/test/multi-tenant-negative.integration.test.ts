@@ -378,10 +378,12 @@ describe.skipIf(!dbUrl)("Multi-tenant — INVITI", () => {
     const created = await env.request<{ inviteUrl: string }>("POST", "/api/invitations", {
       token: A().users.admin.token, body: { email: B().users.editor.email, role: "admin" },
     });
-    const token = new URLSearchParams(new URL(created.body.inviteUrl).hash.slice(1)).get("token")!;
+    expect(created.status, created.text).toBe(201);
+    const token = new URLSearchParams(new URL(created.body.inviteUrl).hash.slice(1)).get("token");
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     const before = await snapshotTenant("B");
     const wrong = await env.request("POST", "/api/invitations/accept", { body: { token, fullName: "Attaccante", password: "Password-sbagliata-123" } });
-    expect(wrong.status).toBe(401);
+    expect(wrong.status, wrong.text).toBe(401);
     const none = await env.adminPool.query("SELECT 1 FROM memberships WHERE organization_id=$1 AND user_id=$2", [A().id, B().users.editor.id]);
     expect(none.rowCount).toBe(0);
     // Con la password corretta la membership nasce SOLO in A e quella in B non cambia.

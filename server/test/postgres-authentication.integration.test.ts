@@ -29,7 +29,7 @@ describe("PostgreSQL credential authentication", () => {
       await client.query(`
         CREATE TEMP TABLE users (
           id UUID PRIMARY KEY, email TEXT NOT NULL, password_hash TEXT NOT NULL,
-          status TEXT NOT NULL
+          status TEXT NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         ) ON COMMIT PRESERVE ROWS
       `);
       await client.query(`
