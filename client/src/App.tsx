@@ -1,6 +1,6 @@
 
 import { AppLayout } from "./components/AppLayout";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { ChannelTable } from "./components/ChannelTable";
 import { Filters, type Preset } from "./components/Filters";
@@ -9,15 +9,48 @@ import { KpiCards } from "./components/KpiCards";
 import { TrendChart } from "./components/TrendChart";
 import { startOfPeriod } from "./format";
 import { useAsync } from "./useAsync";
-import { CustomerManagement } from "./components/CustomerManagement";
-import { DataImport } from "./components/DataImport";
-import { FunnelSettings } from "./components/FunnelSettings";
-import { Segmentation } from "./components/Segmentation";
-import { Comparisons } from "./components/Comparisons";
-import { MemberManagement } from "./components/MemberManagement";
-import { AuditLog } from "./components/AuditLog";
-import { OrganizationSettings } from "./components/OrganizationSettings";
-import { AccountSettings } from "./components/AccountSettings";
+// Le sezioni meno frequenti vengono caricate alla prima apertura.
+const CustomerManagement = lazy(() =>
+  import("./components/CustomerManagement").then((module) => ({ default: module.CustomerManagement })),
+);
+const DataImport = lazy(() =>
+  import("./components/DataImport").then((module) => ({ default: module.DataImport })),
+);
+const FunnelSettings = lazy(() =>
+  import("./components/FunnelSettings").then((module) => ({ default: module.FunnelSettings })),
+);
+const Segmentation = lazy(() =>
+  import("./components/Segmentation").then((module) => ({ default: module.Segmentation })),
+);
+const Comparisons = lazy(() =>
+  import("./components/Comparisons").then((module) => ({ default: module.Comparisons })),
+);
+const MemberManagement = lazy(() =>
+  import("./components/MemberManagement").then((module) => ({ default: module.MemberManagement })),
+);
+const AuditLog = lazy(() =>
+  import("./components/AuditLog").then((module) => ({ default: module.AuditLog })),
+);
+const OrganizationSettings = lazy(() =>
+  import("./components/OrganizationSettings").then((module) => ({ default: module.OrganizationSettings })),
+);
+const AccountSettings = lazy(() =>
+  import("./components/AccountSettings").then((module) => ({ default: module.AccountSettings })),
+);
+
+function DeferredSection({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="section-loading" role="status" aria-live="polite">
+          Caricamento della sezione in corso…
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 interface AppProps { onLogout?: () => Promise<void>; organizationRole?: "admin" | "editor" | "analyst" | "viewer" | null; }
 
@@ -264,13 +297,13 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
       visibleSections={[...visibleSections]}
       sections={{
         dashboard: dashboardSection,
-        customers: customersSection,
+        customers: <DeferredSection>{customersSection}</DeferredSection>,
         analytics: analyticsSection,
-        segmentation: segmentationSection,
-        comparisons: comparisonsSection,
-        settings: settingsSection,
-        import: importSection,
-        audit: auditSection,
+        segmentation: <DeferredSection>{segmentationSection}</DeferredSection>,
+        comparisons: <DeferredSection>{comparisonsSection}</DeferredSection>,
+        settings: <DeferredSection>{settingsSection}</DeferredSection>,
+        import: <DeferredSection>{importSection}</DeferredSection>,
+        audit: <DeferredSection>{auditSection}</DeferredSection>,
       }}
     >
       {dashboardSection}
