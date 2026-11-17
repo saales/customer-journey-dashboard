@@ -180,7 +180,7 @@ export function FunnelSettings({ onDataChange, readOnly = false }: Props) {
   }
 
   if (loading) {
-    return <p className="loading">Caricamento delle fasi del percorso…</p>;
+    return <p className="loading" role="status" aria-live="polite">Caricamento delle fasi del percorso…</p>;
   }
 
   return (
