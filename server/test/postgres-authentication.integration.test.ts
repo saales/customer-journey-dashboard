@@ -48,7 +48,7 @@ describe("PostgreSQL credential authentication", () => {
       `);
       await client.query("INSERT INTO organizations VALUES ($1, 'acme', 'active')", [organizationId]);
       await client.query(
-        "INSERT INTO users VALUES ($1, 'person@example.com', $2, 'active')",
+        "INSERT INTO users (id, email, password_hash, status) VALUES ($1, 'person@example.com', $2, 'active')",
         [userId, LEGACY_HASH],
       );
       await client.query(
