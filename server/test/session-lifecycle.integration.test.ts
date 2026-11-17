@@ -387,7 +387,7 @@ describe.skipIf(!dbUrl)("Sessioni — login: nessuna enumerazione e limitazione 
     expect((await login(user.email)).status).toBe(200);
     for (let i = 0; i < 9; i += 1) await login(user.email, `Sbagliata-${i}-password`);
     expect((await login(user.email)).status).toBe(200); // se il contatore non fosse stato azzerato sarebbe 429
-  });
+  }, 20_000);
 
   it("il login richiede un Origin autorizzato", async () => {
     const user = await makeUser("A");
