@@ -32,7 +32,7 @@ export function OrganizationSettings() {
     } finally { setSaving(false); }
   }
 
-  if (loading) return <p className="loading">Caricamento organizzazione…</p>;
+  if (loading) return <p className="loading" role="status" aria-live="polite">Caricamento organizzazione…</p>;
   return <section className="card">
     <div className="card-head"><div><h2>Organizzazione</h2><p className="hint">Gestisci i dati identificativi dello spazio di lavoro.</p></div>
       <button type="button" className="button-secondary" onClick={() => void load()}>Aggiorna</button></div>
