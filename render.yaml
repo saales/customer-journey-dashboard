@@ -22,5 +22,7 @@ services:
         generateValue: true
       - key: API_RATE_LIMIT_MAX
         value: "1200"
+      - key: VITE_ENABLE_DEMO_DATA
+        value: "false"
       - key: DB_POOL_MAX
         value: "5"
