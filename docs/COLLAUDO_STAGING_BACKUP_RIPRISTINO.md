@@ -4,8 +4,7 @@ Questa procedura prepara il collaudo su un ambiente di staging PostgreSQL/Neon *
 Non applica migrazioni da sola e non tocca la produzione. Ogni passo ha un criterio di superamento e produce
 un'evidenza da archiviare.
 
-> Stato: gli script sono stati provati **in locale** (PostgreSQL 16, ruolo runtime non privilegiato, server reale).
-> Non sono ancora stati eseguiti su Neon: la prima esecuzione su Neon va registrata nel registro evidenze.
+> Stato al 17 novembre 2026: Neon staging è stato predisposto e verificato per migrazioni 001–013, checksum, RLS e ruolo runtime non privilegiato; il servizio Render staging è live. I flussi applicativi principali sono stati collaudati manualmente con dati sintetici. Gli script di smoke test automatizzato, backup logico e ripristino **non sono ancora stati eseguiti su Neon**: non dichiarare superati questi gate finché non esistono evidenze archiviate.
 
 ## 0. Principi
 
