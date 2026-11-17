@@ -25,7 +25,12 @@ function analysis(totalCustomers = 3, includeInactive = false) {
         : []),
     ],
     periods: [],
-    combinations: [],
+    combinations: [
+      { id: "Social~visit", label: "Social · Visita", customers: 2, share: 66.7, conversionRate: 0 },
+      ...(includeInactive
+        ? [{ id: "Social~inactive", label: "Social · Fase disattivata", customers: 1, share: 33.3, conversionRate: 0 }]
+        : []),
+    ],
   };
 }
 
@@ -128,12 +133,14 @@ describe("Segmentation", () => {
     );
 
     expect(await screen.findByText("Fase disattivata")).toBeTruthy();
+    expect(await screen.findByText("Social · Fase disattivata")).toBeTruthy();
     fireEvent.change(screen.getByRole("combobox", { name: "Visualizzazione fasi" }), {
       target: { value: "active" },
     });
 
     await waitFor(() => {
       expect(screen.queryByText("Fase disattivata")).toBeNull();
+      expect(screen.queryByText("Social · Fase disattivata")).toBeNull();
     });
   });
 });
