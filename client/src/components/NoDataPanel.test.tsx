@@ -6,11 +6,16 @@ import { NoDataPanel } from "./NoDataPanel";
 describe("NoDataPanel", () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-  it("chi può scrivere vede «Importa un file» (porta alla sezione di importazione) e «Carica dati di esempio»", () => {
+  it("chi può scrivere può importare un file ma non vede i dati demo se la funzione è disabilitata", () => {
     const navigate = vi.fn();
     render(<NavigationContext.Provider value={navigate}><NoDataPanel canWrite onImported={() => undefined} /></NavigationContext.Provider>);
     fireEvent.click(screen.getByRole("button", { name: "Importa un file" }));
     expect(navigate).toHaveBeenCalledWith("import");
+    expect(screen.queryByRole("button", { name: "Carica dati di esempio" })).toBeNull();
+  });
+
+  it("mostra i dati demo solo quando l'ambiente li abilita esplicitamente", () => {
+    render(<NoDataPanel canWrite demoDataEnabled onImported={() => undefined} />);
     expect(screen.getByRole("button", { name: "Carica dati di esempio" })).toBeTruthy();
   });
 
@@ -24,7 +29,7 @@ describe("NoDataPanel", () => {
     const onImported = vi.fn();
     const fetchMock = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ importedCustomers: 240 }), { status: 201, headers: { "Content-Type": "application/json" } })));
     vi.stubGlobal("fetch", fetchMock);
-    render(<NoDataPanel canWrite onImported={onImported} />);
+    render(<NoDataPanel canWrite demoDataEnabled onImported={onImported} />);
     fireEvent.click(screen.getByRole("button", { name: "Carica dati di esempio" }));
     await waitFor(() => expect(onImported).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
