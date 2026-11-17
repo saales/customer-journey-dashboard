@@ -64,6 +64,32 @@ describe("Segmentation", () => {
     });
   });
 
+  it("il pulsante Aggiorna ripete la richiesta e segnala il caricamento", async () => {
+    let requests = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.pathname === "/api/segments") {
+        requests += 1;
+        return json(analysis());
+      }
+      return json([]);
+    }));
+
+    render(
+      <Segmentation
+        query={{ from: "2026-08-01", to: "2026-11-01" }}
+        channels={["Social"]}
+      />,
+    );
+
+    const refreshButton = await screen.findByRole("button", { name: "Aggiorna segmentazione" });
+    await waitFor(() => expect(requests).toBe(1));
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => expect(requests).toBe(2));
+    expect(refreshButton.getAttribute("aria-busy")).toBe("false");
+  });
+
   it("mostra un feedback quando tutte le fasi sono già attive", async () => {
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
