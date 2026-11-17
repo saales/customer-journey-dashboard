@@ -160,8 +160,11 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:");
+    if (req.path === "/api" || req.path.startsWith("/api/")) {
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Pragma", "no-cache");
+    }
     if (production) res.setHeader("Strict-Transport-Security", "max-age=31536000");
     next();
   });
