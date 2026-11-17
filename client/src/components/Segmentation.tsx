@@ -261,15 +261,13 @@ export function Segmentation({
   channels,
 }: SegmentationProps) {
   const [selected, setSelected] = useState<SelectedSegment | null>(null);
-  const [channelFilter, setChannelFilter] = useState(query?.channel ?? "");
+  const [channelFilter, setChannelFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
 
-  useEffect(() => {
-    setChannelFilter(query?.channel ?? "");
-  }, [query?.channel]);
-
+  // La segmentazione ha filtri locali: non deve ereditare il canale selezionato
+  // nella dashboard o nella pagina Confronti.
   const segmentationQuery = query
-    ? { ...query, channel: channelFilter || undefined }
+    ? { from: query.from, to: query.to, channel: channelFilter || undefined }
     : null;
 
   useEffect(() => {
