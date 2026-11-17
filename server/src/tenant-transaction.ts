@@ -34,6 +34,10 @@ export async function withTenantTransaction<T>(
       await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
     }
 
+    // Le date applicative sono YYYY-MM-DD e i timestamp sono salvati in UTC.
+    // Impostare il fuso locale evita confini di periodo dipendenti dal server.
+    await client.query("SET LOCAL TIME ZONE 'UTC'");
+
     await client.query(
       "SELECT set_config('app.current_organization_id', $1, true)",
       [organizationId],
