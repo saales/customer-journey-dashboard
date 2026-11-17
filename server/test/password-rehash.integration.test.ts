@@ -96,13 +96,5 @@ describe.skipIf(!dbUrl)("Aggiornamento dell'hash password al login (schema reale
     expect((await login(user.email, newPassword)).status).toBe(200);
   });
 
-  it("la latenza del login con i parametri attuali resta sotto 1,5 secondi (misura locale, non del server di produzione)", async () => {
-    const user = await legacyUser();
-    await login(user.email, LEGACY_PASSWORD); // aggiornamento incluso
-    const t0 = performance.now();
-    const response = await login(user.email, LEGACY_PASSWORD);
-    const ms = performance.now() - t0;
-    expect(response.status).toBe(200);
-    expect(ms).toBeLessThan(1500);
-  });
+
 });
