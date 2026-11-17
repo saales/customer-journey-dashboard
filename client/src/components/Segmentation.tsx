@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   Target,
@@ -261,20 +261,33 @@ export function Segmentation({
   channels,
 }: SegmentationProps) {
   const [selected, setSelected] = useState<SelectedSegment | null>(null);
+  const [channelFilter, setChannelFilter] = useState(query?.channel ?? "");
   const [stageFilter, setStageFilter] = useState("");
+
+  useEffect(() => {
+    setChannelFilter(query?.channel ?? "");
+  }, [query?.channel]);
+
+  const segmentationQuery = query
+    ? { ...query, channel: channelFilter || undefined }
+    : null;
+
+  useEffect(() => {
+    setSelected(null);
+  }, [query?.from, query?.to, query?.channel, channelFilter]);
 
   const analysis = useAsync(
     (signal) =>
-      query
-        ? api.segments(query, signal)
+      segmentationQuery
+        ? api.segments(segmentationQuery, signal)
         : Promise.resolve(null),
-    [query?.from, query?.to, query?.channel],
+    [segmentationQuery?.from, segmentationQuery?.to, segmentationQuery?.channel],
   );
 
   const detailQuery =
-    query && selected
+    segmentationQuery && selected
       ? {
-          ...query,
+          ...segmentationQuery,
           dimension: selected.dimension,
           id: selected.id,
         }
@@ -360,9 +373,11 @@ export function Segmentation({
               if (selected) detail.refresh();
             }}
             aria-label="Aggiorna segmentazione"
+            aria-busy={analysis.loading}
+            disabled={analysis.loading}
           >
             <RefreshCw size={17} />
-            <span>Aggiorna</span>
+            <span>{analysis.loading ? "Aggiornamento…" : "Aggiorna"}</span>
           </button>
         </div>
 
@@ -398,9 +413,9 @@ export function Segmentation({
 
         <select
           id="segment-channel-filter"
-          value={query.channel ?? ""}
-          disabled
-          aria-label="Canale ereditato dai filtri globali"
+          value={channelFilter}
+          onChange={(event) => setChannelFilter(event.target.value)}
+          aria-label="Canale di acquisizione"
         >
           <option value="">Tutti i canali</option>
           {channels.map((channel) => (
@@ -423,6 +438,12 @@ export function Segmentation({
           <option value="active">Solo fasi attive</option>
         </select>
       </div>
+
+      {stageFilter === "active" && !data.stages.some((row) => row.id === "inactive") && (
+        <p className="hint" role="status">
+          Non ci sono fasi disattivate nei risultati selezionati: la visualizzazione coincide con tutte le fasi.
+        </p>
+      )}
 
       {sections.map((section) => {
         const Icon = section.icon;
