@@ -274,7 +274,7 @@ export function Segmentation({
 
   useEffect(() => {
     setSelected(null);
-  }, [query?.from, query?.to, query?.channel, channelFilter]);
+  }, [query?.from, query?.to, query?.channel, channelFilter, stageFilter]);
 
   const analysis = useAsync(
     (signal) =>
@@ -450,9 +450,22 @@ export function Segmentation({
         const rows = section.getRows(data);
 
         const filteredRows =
-          section.dimension === "stage" && stageFilter === "active"
-            ? rows.filter((row) => row.id !== "inactive")
-            : rows;
+          stageFilter !== "active"
+            ? rows
+            : section.dimension === "stage"
+              ? rows.filter((row) => row.id !== "inactive")
+              : section.dimension === "combination"
+                ? rows.filter((row) => {
+                    const separator = row.id.lastIndexOf("~");
+                    if (separator < 0) return true;
+
+                    try {
+                      return decodeURIComponent(row.id.slice(separator + 1)) !== "inactive";
+                    } catch {
+                      return true;
+                    }
+                  })
+                : rows;
 
         const selectedInSection =
           selected?.dimension === section.dimension;
