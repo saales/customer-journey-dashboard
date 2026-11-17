@@ -50,3 +50,12 @@ Neon staging è stato verificato per migrazioni 001–013, checksum, RLS (sei ta
 4. Eseguire in staging una matrice di test di autorizzazione e isolamento per tutte le API con almeno due tenant sintetici.
 5. Verificare backup e ripristino, gestione degli errori, logging, limiti di rate e comportamento dietro proxy.
 6. Solo dopo queste prove, decidere se il sistema è adatto al tipo di dati e al carico previsto.
+
+
+## Aggiornamento accessibilità e operatività — 17 novembre 2026
+
+L'ispezione statica dei componenti principali ha confermato skip link, landmark `aside`/`nav`/`main`, gerarchia di navigazione, `aria-current`, `aria-expanded`, `aria-controls`, label esplicite nei form e messaggi `role=status`/`role=alert`. Sono presenti regole CSS di focus visibile e supporto a `prefers-reduced-motion`. Questo non è un audit WCAG 2.2 AA: non sono stati misurati sistematicamente i contrasti, non è stato eseguito un test completo da tastiera su tutte le schermate né una prova con NVDA/VoiceOver.
+
+Per l'operatività, la copia isolata del branch Neon staging ha mantenuto i conteggi delle 11 tabelle confrontate e lo schema (14 tabelle, 6 con RLS, 7 policy, 13 migrazioni). È una prova di clonazione del branch, non un ripristino da backup logico. Il branch staging non root non consente snapshot manuali; la schedule automatica interrogata risulta vuota. Backup/restore completo resta pertanto aperto.
+
+Le metriche Render disponibili per il periodo 10–17 novembre 2026 non hanno restituito dati di CPU, richieste HTTP o latenza; sono disponibili soltanto due campioni di memoria. Nessuna affermazione di capacità sotto carico è supportata. Non sono state verificate le email reali tramite provider: i test unitari coprono invio simulato, provider disabilitato ed errore HTTP, ma non la consegna effettiva.
