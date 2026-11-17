@@ -12,7 +12,7 @@ function createPoolMock() {
 }
 
 describe("withTenantTransaction", () => {
-  it("imposta il tenant localmente e usa lo stesso client fino al commit", async () => {
+  it("imposta tenant e fuso UTC e usa lo stesso client fino al commit", async () => {
     const mock = createPoolMock();
     const work = vi.fn().mockResolvedValue("ok");
 
@@ -23,6 +23,7 @@ describe("withTenantTransaction", () => {
     expect(mock.connect).toHaveBeenCalledOnce();
     expect(mock.query.mock.calls).toEqual([
       ["BEGIN"],
+      ["SET LOCAL TIME ZONE 'UTC'"],
       ["SELECT set_config('app.current_organization_id', $1, true)", ["org-a"]],
       ["COMMIT"],
     ]);
@@ -41,6 +42,7 @@ describe("withTenantTransaction", () => {
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
+      "SET LOCAL TIME ZONE 'UTC'",
       "SELECT set_config('app.current_organization_id', $1, true)",
       "ROLLBACK",
     ]);
@@ -91,10 +93,11 @@ describe("withTenantTransaction", () => {
     expect(work).not.toHaveBeenCalled();
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
+      "SET LOCAL TIME ZONE 'UTC'",
       "SELECT set_config('app.current_organization_id', $1, true)",
       "ROLLBACK",
     ]);
-    expect(mock.query.mock.calls[1][1]).toEqual(["org-a"]);
+    expect(mock.query.mock.calls[2][1]).toEqual(["org-a"]);
     expect(mock.release).toHaveBeenCalledWith(false);
   });
 
@@ -129,6 +132,7 @@ describe("withTenantTransaction", () => {
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
+      "SET LOCAL TIME ZONE 'UTC'",
       "SELECT set_config('app.current_organization_id', $1, true)",
       "COMMIT",
       "ROLLBACK",
@@ -154,6 +158,7 @@ describe("withTenantTransaction", () => {
 
     expect(mock.query.mock.calls.map(([sql]) => sql)).toEqual([
       "BEGIN",
+      "SET LOCAL TIME ZONE 'UTC'",
       "SELECT set_config('app.current_organization_id', $1, true)",
       "COMMIT",
       "ROLLBACK",
@@ -173,6 +178,7 @@ describe("withTenantTransaction", () => {
     expect(mock.query.mock.calls).toEqual([
       ["BEGIN"],
       ["SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"],
+      ["SET LOCAL TIME ZONE 'UTC'"],
       ["SELECT set_config('app.current_organization_id', $1, true)", ["org-a"]],
       ["COMMIT"],
     ]);
