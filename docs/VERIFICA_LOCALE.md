@@ -21,3 +21,15 @@ Data: 16 novembre 2026. Questi risultati descrivono il checkout di lavoro revisi
 ## Limiti delle prove
 
 Il database remoto, la consegna effettiva delle email, staging, backup e ripristino, carico, accessibilità con tecnologie assistive e l'intera matrice di isolamento tra organizzazioni non sono stati collaudati in questa revisione. La suite contiene test cross-tenant per API e tabelle selezionate; la matrice non sostituisce una verifica sul provider e sull'ambiente effettivi. Prima di riportare nuove misure nella tesi, ripetere i test con ambiente, commit, dataset sintetico, comandi e risultati salvati.
+
+
+## Evidenze staging — 17 novembre 2026
+
+- Neon staging: 14 tabelle, 6 tabelle RLS, 7 policy, 13 migrazioni.
+- È stato creato il branch temporaneo `staging-restore-drill-2026-11-17` come copia del branch `staging-pre-release`; i conteggi di organizzazioni, utenti, membership, clienti, eventi, fasi, inviti, sessioni, audit, import e migrazioni coincidono. La copia scade il 19 novembre 2026 alle 16:00 UTC. Questa è una prova di clonazione, non di restore da dump.
+- La schedule snapshot per il branch staging è vuota e Neon rifiuta snapshot manuali su branch secondari. Backup logico e point-in-time restore non sono ancora collaudati.
+- Render staging è sul piano Free con una istanza. Per 10–17 novembre le serie CPU, richieste HTTP e latenza erano vuote; due soli campioni di memoria erano disponibili. Non esiste una misura attendibile di performance sotto carico.
+- Accessibilità: revisione statica di landmark, skip link, label, stati ARIA, focus e reduced motion. Non è un audit WCAG e non sostituisce test con screen reader e contrast checker.
+- Email: i test unitari del provider sono presenti; non è stata eseguita una consegna reale da staging.
+
+Prima di dichiarare completati questi gate occorrono un backup logico verificato e restore in ambiente isolato, un test di carico controllato con dataset rappresentativo, un audit WCAG assistito da strumenti e tecnologie assistive e una email di prova autorizzata con conferma della consegna.
