@@ -165,7 +165,7 @@ export default function App({ onLogout, organizationRole = null }: AppProps = {}
 
       {statusMessages}
 
-      {noData && <NoDataPanel canWrite={canWrite} onImported={refreshDashboard} />}
+      {noData && <NoDataPanel canWrite={canWrite} demoDataEnabled={import.meta.env.VITE_ENABLE_DEMO_DATA === "true"} onImported={refreshDashboard} />}
 
       {summary.data && !noData && (
         <>
