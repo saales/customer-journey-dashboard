@@ -24,7 +24,7 @@ Per i database remoti in produzione, il processo richiede `sslmode=verify-full`:
 
 ## Stato del database remoto
 
-Il repository e la CI dimostrano che il codice e le migrazioni funzionano su PostgreSQL temporaneo. Non dimostrano che Neon contenga già le migrazioni 001–013 o che i dati precedenti siano stati trasferiti. Serve un preflight read-only sull'istanza effettiva, confronto checksum/ruoli/RLS e riconciliazione dei conteggi. Nessuna operazione remota è stata eseguita da questa attività.
+Lo staging Neon `staging-pre-release` è stato verificato: migrazioni 001–013 e checksum applicati, RLS attiva sulle sei tabelle tenant previste con sette policy, ruolo runtime separato e non privilegiato; il preflight del runtime è passato. Il servizio Render di staging è attivo e il flusso applicativo è stato collaudato manualmente con dati sintetici. Il deploy attivo usa il commit `284182e`; il commit di branch `c61e09b` aggiunge soltanto un test E2E e non modifica il codice applicativo. Non è stata eseguita alcuna migrazione né modifica su Neon production o sul servizio Render production. Non sono stati verificati trasferimenti di dati preesistenti, backup/restore reale, invio email, carico o ogni combinazione route × tenant.
 
 ## Limiti di rilascio
 
