@@ -70,7 +70,7 @@ export function MemberManagement() {
       setInviteEmail("");
       const refreshed = await load();
       setMessage(refreshed
-        ? (created.emailSent ? "Invito creato e inviato via email. Il collegamento resta disponibile per la condivisione manuale." : "Invito creato. Email non configurata: condividi il collegamento tramite un canale sicuro.")
+        ? (created.emailSent ? "Invito creato e inviato via email. Il collegamento resta disponibile per la condivisione manuale." : "Invito creato, ma l’invio email non è stato confermato. Condividi il collegamento tramite un canale sicuro.")
         : "Invito creato, ma l'elenco non si è aggiornato. Il collegamento è disponibile qui sopra.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossibile creare l'invito.");
