@@ -321,7 +321,7 @@ export function Comparisons({ query }: ComparisonsProps) {
     previousSegments.error;
 
   if (loading) {
-    return <p className="loading">Caricamento dei confronti…</p>;
+    return <p className="loading" role="status" aria-live="polite">Caricamento dei confronti…</p>;
   }
 
   if (error) {
