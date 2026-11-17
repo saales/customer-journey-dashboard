@@ -40,7 +40,7 @@ describe("Segmentation", () => {
     vi.unstubAllGlobals();
   });
 
-  it("consente di cambiare il canale e ricarica l'analisi con il filtro selezionato", async () => {
+  it("mantiene i filtri locali indipendenti dal canale globale e ricarica l'analisi", async () => {
     const requestedChannels: (string | null)[] = [];
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
@@ -60,13 +60,14 @@ describe("Segmentation", () => {
 
     const channelSelect = await screen.findByRole("combobox", { name: "Canale di acquisizione" });
     expect((channelSelect as HTMLSelectElement).disabled).toBe(false);
-    expect((channelSelect as HTMLSelectElement).value).toBe("Social");
+    expect((channelSelect as HTMLSelectElement).value).toBe("");
+    await waitFor(() => expect(requestedChannels).toEqual([null]));
+
+    fireEvent.change(channelSelect, { target: { value: "Social" } });
+    await waitFor(() => expect(requestedChannels).toEqual([null, "Social"]));
 
     fireEvent.change(channelSelect, { target: { value: "" } });
-
-    await waitFor(() => {
-      expect(requestedChannels).toEqual(["Social", null]);
-    });
+    await waitFor(() => expect(requestedChannels).toEqual([null, "Social", null]));
   });
 
   it("il pulsante Aggiorna ripete la richiesta e segnala il caricamento", async () => {
