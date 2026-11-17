@@ -1,6 +1,6 @@
 # Avvio rapido in locale (10 minuti)
 
-Requisiti: Node.js 20+ e PostgreSQL 16 con `psql` (versione usata nelle verifiche automatizzate). Tutti i comandi dalla cartella del progetto.
+Requisiti: Node.js 22+ e PostgreSQL 16 con `psql` (versione usata nelle verifiche automatizzate). Tutti i comandi dalla cartella del progetto.
 
 ## 1. Database
 ```bash
