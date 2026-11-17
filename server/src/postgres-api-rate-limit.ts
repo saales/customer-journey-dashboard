@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import type { Pool, PoolClient } from "pg";
+import { getRequestClientAddress } from "./request-client-address.js";
 
 export const API_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 export const MAX_API_REQUESTS_PER_WINDOW = 1200;
@@ -79,7 +80,7 @@ export function createPostgresApiRateLimitMiddleware(
   }
 
   return async (req: Request, res: Response, next: NextFunction) => {
-    const address = req.ip || req.socket.remoteAddress || "unknown";
+    const address = getRequestClientAddress(req);
     try {
       const allowed = await consumePostgresApiRequest(pool, secret, address, limit);
       if (!allowed) {
