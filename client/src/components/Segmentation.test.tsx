@@ -55,7 +55,7 @@ describe("Segmentation", () => {
 
     const channelSelect = await screen.findByRole("combobox", { name: "Canale di acquisizione" });
     expect((channelSelect as HTMLSelectElement).disabled).toBe(false);
-    expect(channelSelect).toHaveValue("Social");
+    expect((channelSelect as HTMLSelectElement).value).toBe("Social");
 
     fireEvent.change(channelSelect, { target: { value: "" } });
 
@@ -82,7 +82,8 @@ describe("Segmentation", () => {
     const stageSelect = await screen.findByRole("combobox", { name: "Visualizzazione fasi" });
     fireEvent.change(stageSelect, { target: { value: "active" } });
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
+    const status = await screen.findByRole("status");
+    expect(status.textContent).toContain(
       "Non ci sono fasi disattivate nei risultati selezionati",
     );
   });
