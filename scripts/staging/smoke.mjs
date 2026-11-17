@@ -21,8 +21,16 @@ const arg = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1
 const base = (process.env.STAGING_URL ?? "").replace(/\/$/, "");
 const credentialsPath = arg("--credentials");
 if (!base || !credentialsPath) { console.error("Impostare STAGING_URL e --credentials <file>."); process.exit(1); }
+let stagingUrl;
+try { stagingUrl = new URL(base); } catch { console.error("STAGING_URL non è un URL valido."); process.exit(1); }
+if (stagingUrl.protocol !== "https:" || stagingUrl.username || stagingUrl.password ||
+    stagingUrl.search || stagingUrl.hash || stagingUrl.pathname !== "/") {
+  console.error("STAGING_URL deve essere un'origine HTTPS senza credenziali, percorso, query o frammento.");
+  process.exit(1);
+}
 const origin = new URL(process.env.STAGING_ORIGIN ?? base).origin;
-const https = origin.startsWith("https:");
+if (origin !== stagingUrl.origin) { console.error("STAGING_ORIGIN deve coincidere con l'origine di STAGING_URL."); process.exit(1); }
+const https = true;
 const cfg = JSON.parse(readFileSync(credentialsPath, "utf8"));
 const results = [];
 const record = (id, ok, detail) => { results.push({ id, ok, detail }); console.log(`${ok ? "OK  " : "FAIL"} ${id}${ok ? "" : " — " + detail}`); };
