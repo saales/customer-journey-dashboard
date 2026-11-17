@@ -327,7 +327,7 @@ export function Segmentation({
 
   if (analysis.loading && !analysis.data) {
     return (
-      <p className="loading">
+      <p className="loading" role="status" aria-live="polite">
         Caricamento dell'analisi dei segmenti…
       </p>
     );
