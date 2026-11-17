@@ -74,7 +74,7 @@ export function AuditLog() {
       <button className="button-secondary" type="submit" disabled={loading || (!!from && !!to && from > to)}>Applica filtri</button>
     </form>
     {error && <div className="error" role="alert">{error}</div>}
-    {loading ? <p className="loading">Caricamento registro attività…</p> : !page?.data.length ?
+    {loading ? <p className="loading" role="status" aria-live="polite">Caricamento registro attività…</p> : !page?.data.length ?
       <p className="empty">Nessuna attività trovata per i filtri selezionati.</p> :
       <div className="table-wrap"><table>
         <thead><tr><th scope="col">Data e ora</th><th scope="col">Utente</th><th scope="col">Operazione</th><th scope="col">Risorsa</th><th scope="col">Dettagli</th></tr></thead>
