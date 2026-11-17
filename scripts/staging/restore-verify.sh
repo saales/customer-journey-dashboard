@@ -36,7 +36,7 @@ fi
 echo "Destinazione: $(describe_target)"
 TABLES="$(psql -Atc "SELECT COUNT(*) FROM pg_tables WHERE schemaname='public'")"
 [ "$TABLES" = "0" ] || die "la destinazione contiene già $TABLES tabelle: usare un database/branch vuoto."
-psql -Atc "SELECT 1 FROM pg_roles WHERE rolname='$RUNTIME_ROLE'" | grep -q 1 \
+psql -v runtime_role="$RUNTIME_ROLE" -Atc "SELECT 1 FROM pg_roles WHERE rolname = :'runtime_role'" | grep -q 1 \
   || die "il ruolo '$RUNTIME_ROLE' non esiste nella destinazione: crearlo (NOINHERIT, senza privilegi elevati) oppure ripristinare in un branch che lo contenga."
 
 # 3) Ripristino (si ferma al primo errore).
