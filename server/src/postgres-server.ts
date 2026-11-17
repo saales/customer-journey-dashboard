@@ -47,13 +47,13 @@ async function main(): Promise<void> {
     emailApiKey: process.env.RESEND_API_KEY,
     emailFrom: process.env.EMAIL_FROM,
   });
-  const port = Number(process.env.PORT ?? "3001");
+  const port = Number(process.env.PORT ?? (process.env.RENDER === "true" ? "10000" : "3001"));
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("PORT non valido.");
   }
   // Default to loopback so a reverse proxy is the only network entry point.
   // Container platforms with an internal proxy can explicitly set HOST=0.0.0.0.
-  const host = process.env.HOST?.trim() || "127.0.0.1";
+  const host = process.env.HOST?.trim() || (process.env.RENDER === "true" ? "0.0.0.0" : "127.0.0.1");
 
   const server = app.listen(port, host, () => {
     console.log(`Runtime PostgreSQL in ascolto su ${host}:${port}.`);
