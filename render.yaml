@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: customer-journey-dashboard
+    runtime: node
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: APP_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: LOGIN_RATE_LIMIT_SECRET
+        generateValue: true
+      - key: API_RATE_LIMIT_MAX
+        value: "1200"
+      - key: DB_POOL_MAX
+        value: "5"
