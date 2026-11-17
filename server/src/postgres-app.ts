@@ -602,22 +602,21 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         if (!origin || !origins.has(origin)) throw new ApiError(403, "Origine della richiesta non autorizzata.");
         const created = await createOrganizationInvitation(pool, req.authenticatedSession!.organizationId,
           req.authenticatedSession!.userId, { email: body.email, role: body.role, expiresInDays: body.expiresInDays });
-        const inviteUrl = new URL("/", origin);
-        inviteUrl.searchParams.set("token", created.token);
+        const inviteUrl = createOneTimeAuthLink(origin, "token", created.token);
         let emailSent = false;
         if (options.emailApiKey && options.emailFrom) {
           try {
             emailSent = await sendPostgresTransactionalEmail({
               to: created.invitation.email,
               subject: "Invito a Percorso Cliente",
-              text: `Sei stato invitato a collaborare in Percorso Cliente con il ruolo ${created.invitation.role}. Accetta l'invito entro ${created.invitation.expiresAt}: ${inviteUrl.toString()}`,
-              html: `<p>Sei stato invitato a collaborare in Percorso Cliente.</p><p>Ruolo: <strong>${created.invitation.role}</strong></p><p><a href="${inviteUrl.toString()}">Accetta l'invito</a></p><p>Il collegamento scade il ${created.invitation.expiresAt}.</p>`,
+              text: `Sei stato invitato a collaborare in Percorso Cliente con il ruolo ${created.invitation.role}. Accetta l'invito entro ${created.invitation.expiresAt}: ${inviteUrl}`,
+              html: `<p>Sei stato invitato a collaborare in Percorso Cliente.</p><p>Ruolo: <strong>${created.invitation.role}</strong></p><p><a href="${inviteUrl}">Accetta l'invito</a></p><p>Il collegamento scade il ${created.invitation.expiresAt}.</p>`,
             }, { apiKey: options.emailApiKey, from: options.emailFrom });
           } catch (emailError) {
             console.error("Invio email invito non riuscito:", emailError instanceof Error ? emailError.message : "errore sconosciuto");
           }
         }
-        res.status(201).json({ invitation: created.invitation, inviteUrl: inviteUrl.toString(), emailSent });
+        res.status(201).json({ invitation: created.invitation, inviteUrl, emailSent });
       } catch (error) {
         if (error instanceof InvitationError) { res.status(error.status).json({ error: error.message }); return; }
         next(error);
