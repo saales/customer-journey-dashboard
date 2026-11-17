@@ -689,6 +689,20 @@ button {
   outline-offset: 3px;
 }
 
+/* Focus visibile coerente per tutti i controlli interattivi. */
+.app-shell :where(
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
 /* ========================================
    GESTIONE CLIENTI E MODULI
 ======================================== */
