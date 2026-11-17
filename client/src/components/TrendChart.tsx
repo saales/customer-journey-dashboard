@@ -62,7 +62,7 @@ export function TrendChart({
       <div
         className="chart-container trend-chart-container"
         role="img"
-        aria-label="Grafico dell'andamento mensile di visite e conversione"
+        aria-label={`Grafico dell'andamento mensile. ${data.map((point) => `${formatMonth(point.month)}: ${formatNumber(point.visits)} visite, ${formatNumber(point.customers)} clienti, conversione ${formatPercent(point.conversion)}.`).join(" ")}`}
       >
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
