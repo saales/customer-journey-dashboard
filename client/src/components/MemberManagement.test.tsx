@@ -57,3 +57,28 @@ describe("Gestione membri", () => {
     expect(screen.getByRole("alert").textContent).toContain("Connessione interrotta");
   });
 });
+
+
+describe("Invio degli inviti", () => {
+  it("non dichiara che l'email è disconfigurata quando l'invio non è confermato", async () => {
+    vi.mocked(api.createInvitation).mockResolvedValue({
+      inviteUrl: "https://example.test/invite/token",
+      emailSent: false,
+    });
+
+    render(<MemberManagement />);
+
+    await screen.findByRole("heading", { name: "Utenti e permessi" });
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "nuovo@example.it" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Crea invito (7 giorni)" }));
+
+    const status = await screen.findByRole("status");
+    expect(status.textContent).toContain("l'invio email non è stato confermato");
+    expect(status.textContent).not.toContain("Email non configurata");
+    expect(screen.getByLabelText("Collegamento da condividere")).toHaveValue(
+      "https://example.test/invite/token",
+    );
+  });
+});
