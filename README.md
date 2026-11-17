@@ -2,7 +2,7 @@
 
 Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funnel e consultare i risultati per canale e periodo. PostgreSQL è l'unico database applicativo; l'organizzazione viene ricavata dalla sessione autenticata.
 
-> **Stato:** il runtime HTTP standard usa esclusivamente PostgreSQL. Il codice, le dipendenze e i test del vecchio database sono stati rimossi dal ramo. Le migrazioni versionate 001–013 e i test PostgreSQL sono presenti. Non è però possibile attestare da questo repository che le migrazioni siano già state applicate al database remoto Neon o che eventuali dati precedenti siano stati trasferiti: il runtime si arresta se lo schema non coincide con le migrazioni attese. Il prodotto resta in fase di verifica e non va considerato pronto per dati aziendali reali o vendita prima del collaudo in staging, del backup/restore e delle verifiche operative.
+> **Stato al 17 novembre 2026:** il runtime HTTP standard usa esclusivamente PostgreSQL. Le migrazioni 001–013 sono applicate e verificate sul branch Neon di staging; il ruolo runtime limitato e le policy RLS sono stati verificati. Il servizio Render staging è live e le funzionalità principali sono state provate manualmente con dati sintetici. La CI sul commit `c61e09b` è verde su Node.js 22 e 24, con audit dipendenze senza vulnerabilità rilevate. Il progetto è adatto a portfolio/CV e come base tecnica per una tesi, dichiarando i limiti; **non è approvato per produzione con dati aziendali reali**, perché backup/restore, consegna email, carico, revisione indipendente e copertura esaustiva cross-tenant non sono ancora dimostrati.
 
 ## Funzioni
 
@@ -29,11 +29,11 @@ Piattaforma web B2B per analizzare il percorso cliente, gestire le fasi del funn
 | Database | PostgreSQL |
 | Driver | node-postgres (pg) |
 | Test | Vitest, Testing Library, PostgreSQL 16 temporaneo |
-| CI | GitHub Actions, Node.js 20 e 22 |
+| CI | GitHub Actions, Node.js 22 e 24 (Playwright su Node.js 22) |
 
 ## Requisiti
 
-- Node.js 20 o successivo (la CI verifica Node.js 20 e 22)
+- Node.js 22 o successivo (la CI verifica Node.js 22 e 24)
 - npm
 - PostgreSQL 16 (versione usata nelle verifiche automatizzate)
 - Un ruolo proprietario/amministrativo per migrazioni e bootstrap
@@ -116,7 +116,7 @@ La CI applica le migrazioni 001–013 a un PostgreSQL temporaneo, verifica check
 
 La pulizia dei bucket di rate limiting per login e API è disponibile con `npm run db:cleanup-login-attempts` e va pianificata giornalmente. Dietro reverse proxy, configurare `TRUSTED_PROXY_IPS` con i soli indirizzi/CIDR fidati.
 
-Prima di un rilascio reale sono obbligatori: verifica dello storico remoto, prova di backup e ripristino, ulteriori test cross-tenant per funnel, eventi, importazioni, membri e inviti, monitoraggio, test di carico e staging con dati sintetici. La CI copre già un percorso browser rappresentativo admin/analista, non l'intera matrice di autorizzazione.
+Prima di un rilascio reale sono obbligatori: prova operativa di backup e ripristino, ulteriori test cross-tenant per tutte le combinazioni route/ruolo/tenant, monitoraggio, test di carico, verifica della consegna email se abilitata e revisione indipendente. Il branch Neon di staging è stato verificato e i flussi principali sono stati collaudati manualmente con dati sintetici; la CI copre un percorso browser rappresentativo, non l'intera matrice di autorizzazione. Il database e il servizio production non sono stati modificati né approvati per il rilascio.
 
 ## Documentazione
 
