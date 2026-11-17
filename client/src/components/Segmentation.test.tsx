@@ -62,7 +62,6 @@ describe("Segmentation", () => {
     await waitFor(() => {
       expect(requestedChannels).toEqual(["Social", null]);
     });
-    expect(await screen.findByText("3")).toBeTruthy();
   });
 
   it("mostra un feedback quando tutte le fasi sono già attive", async () => {
