@@ -196,3 +196,24 @@ Con 30.000 clienti e ~62.000 eventi la query più pesante della dashboard (conte
 
 **Sicurezza verificata**: `npm audit` del server senza vulnerabilità; nessuna query SQL costruita per concatenazione; nessun segreto nel codice; nessun `innerHTML`/`eval`; intestazioni (nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, no-store, assenza di X-Powered-By); nessuna intestazione CORS per origini estranee; scritture con `Origin` estraneo respinte (403); errori generici senza dettagli interni; cookie di sessione HttpOnly/SameSite=Strict (`__Host-` e Secure in produzione); isolamento tra tenant con RLS e test negativi; CSP dell'esempio nginx senza script inline.
 **Limiti dichiarati**: nessun test di penetrazione indipendente; `style-src 'unsafe-inline'` resta nella CSP per i grafici; la libreria Excel va tenuta alla versione 0.20.3 (quella del progetto, senza l'avviso noto della 0.18.x).
+
+
+## 8. Evidenze operative aggiuntive — 17 novembre 2026
+
+### Copia isolata del branch staging
+
+- Branch sorgente: `staging-pre-release` (`br-weathered-darkness-baklnc07`).
+- Branch di verifica: `staging-restore-drill-2026-11-17` (`br-orange-snow-bav2vjc6`), creato come child branch del branch staging.
+- Scadenza automatica della copia: 19 novembre 2026 alle 16:00 UTC.
+- Conteggi confrontati tra sorgente e copia: organizzazioni 1, utenti 1, membership 1, clienti 241, eventi 503, fasi funnel 5, inviti 0, sessioni 2, audit log 7, batch import 2, migrazioni 13.
+- Verifiche strutturali su entrambi: 14 tabelle, 6 tabelle con RLS, 7 policy PostgreSQL, 13 migrazioni registrate.
+- Esito: **copia Neon coerente per i conteggi e lo schema verificati**.
+
+Questa prova è una clonazione di branch Neon, non un ripristino da dump logico e non un test di point-in-time restore. La creazione di snapshot manuali è stata rifiutata dal provider perché il branch staging è un branch secondario non root. La pianificazione automatica snapshot per il branch staging restituisce una schedule vuota. Non dichiarare quindi attivi backup automatici o superata la prova completa di disaster recovery.
+
+### Metriche e carico
+
+- Il servizio Render staging è sul piano Free, con una sola istanza configurata.
+- Nella finestra 10–17 novembre 2026 le metriche Render hanno restituito solo due campioni di memoria (circa 93 MiB e 127 MiB); CPU, richieste HTTP, latenza e numero istanze non hanno restituito serie temporali utilizzabili.
+- Neon non ha rilevato query oltre 5 minuti. Le tabelle applicative sono ancora piccole (circa 56 KiB clienti e 64 KiB eventi).
+- Esito: **non esiste ancora una misura di capacità sotto carico**. Non pubblicare valori di throughput, concorrenza sostenibile o p95/p99 finché non viene eseguito un test controllato con dataset sintetico rappresentativo e risultati archiviati.
