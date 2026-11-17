@@ -98,6 +98,26 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await page.getByRole("button", { name: "Importa dati" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Importazione completata: 1 clienti" })).toBeVisible();
 
+  // La Segmentazione mantiene i filtri locali indipendenti dal filtro globale.
+  await page.getByRole("button", { name: "Panoramica" }).click();
+  await page.getByLabel("Canale").selectOption("Social");
+  await page.getByRole("button", { name: "Segmentazione" }).click();
+  const segmentChannel = page.getByRole("combobox", { name: "Canale di acquisizione" });
+  await expect(segmentChannel).toHaveValue("");
+  const segmentTotal = page.locator(".segmentation-summary-item").first().locator("strong");
+  await expect(segmentTotal).toHaveText("2");
+  await segmentChannel.selectOption("Organico");
+  await expect(segmentTotal).toHaveText("1");
+  await segmentChannel.selectOption("");
+  await expect(segmentTotal).toHaveText("2");
+  await page.getByRole("combobox", { name: "Visualizzazione fasi" }).selectOption("active");
+  await expect(page.getByRole("status")).toContainText("Non ci sono fasi disattivate");
+  const segmentationRefresh = page.waitForResponse((response) =>
+    response.url().includes("/api/segments") && response.status() === 200,
+  );
+  await page.getByRole("button", { name: "Aggiorna segmentazione" }).click();
+  await segmentationRefresh;
+
   // Esportazione server-side e verifica del file generato.
   await page.getByRole("button", { name: "Gestione clienti" }).click();
   const downloadPromise = page.waitForEvent("download");
