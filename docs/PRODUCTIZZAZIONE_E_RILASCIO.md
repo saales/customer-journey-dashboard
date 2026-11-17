@@ -95,7 +95,7 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 
 ### Non ancora dimostrato / non disponibile
 
-- Nessuna prova che il database remoto sia già migrato o che dati precedenti siano stati trasferiti.
+- Non è stato verificato né eseguito alcun trasferimento di dati storici preesistenti; lo schema Neon di staging, invece, è stato verificato come descritto di seguito. Il database production resta fuori dall'ambito della verifica.
 - Lo staging Render collegato al branch Neon `staging-pre-release` è attivo. L'utente ha verificato manualmente gestione clienti, dashboard e filtri, analisi/report, importazione CSV, segmentazione, confronti e impostazioni con dati sintetici. Per gli export CSV/Excel/PDF è stato verificato il download; il contenuto è stato controllato nel dettaglio per uno degli export, non per tutti.
 - Nessuna prova operativa di backup e ripristino.
 - Il commit di branch `c61e09b` aggiunge un test Playwright per il filtro canale della segmentazione; il codice applicativo corrispondente è già nel deploy staging `284182e`. La CI attuale usa Node.js 22 e 24, non 20/22.
