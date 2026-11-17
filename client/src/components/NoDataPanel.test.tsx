@@ -43,7 +43,7 @@ describe("NoDataPanel", () => {
   it("se il caricamento fallisce mostra l'errore e non aggiorna la dashboard", async () => {
     const onImported = vi.fn();
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ error: "Un identificativo cliente è già presente nell'organizzazione." }), { status: 409, headers: { "Content-Type": "application/json" } }))));
-    render(<NoDataPanel canWrite onImported={onImported} />);
+    render(<NoDataPanel canWrite demoDataEnabled onImported={onImported} />);
     fireEvent.click(screen.getByRole("button", { name: "Carica dati di esempio" }));
     expect((await screen.findByRole("alert")).textContent).toContain("già presente");
     expect(onImported).not.toHaveBeenCalled();
