@@ -155,27 +155,27 @@ function SegmentComparisonTable({
           <table>
             <thead>
               <tr>
-                <th>Segmento</th>
-                <th>Clienti attuali</th>
-                <th>Clienti precedenti</th>
-                <th>Variazione</th>
-                <th>Conversione attuale</th>
-                <th>Conversione precedente</th>
-                <th>Differenza conversione</th>
+                <th scope="col">Segmento</th>
+                <th scope="col">Clienti attuali</th>
+                <th scope="col">Clienti precedenti</th>
+                <th scope="col">Variazione</th>
+                <th scope="col">Conversione attuale</th>
+                <th scope="col">Conversione precedente</th>
+                <th scope="col">Differenza conversione</th>
               </tr>
             </thead>
 
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td>
+                  <th scope="row">
                     {row.label}
                     {!row.existsCurrently && (
                       <span className="subtitle">
                         {" "} (non presente attualmente)
                       </span>
                     )}
-                  </td>
+                  </th>
 
                   <td>{formatNumber(row.currentCustomers)}</td>
 
@@ -406,21 +406,21 @@ export function Comparisons({ query }: ComparisonsProps) {
             <table>
               <thead>
                 <tr>
-                  <th>Canale</th>
-                  <th>Visite attuali</th>
-                  <th>Visite precedenti</th>
-                  <th>Clienti attuali</th>
-                  <th>Clienti precedenti</th>
-                  <th>Conversione attuale</th>
-                  <th>Conversione precedente</th>
-                  <th>Differenza conversione</th>
+                  <th scope="col">Canale</th>
+                  <th scope="col">Visite attuali</th>
+                  <th scope="col">Visite precedenti</th>
+                  <th scope="col">Clienti attuali</th>
+                  <th scope="col">Clienti precedenti</th>
+                  <th scope="col">Conversione attuale</th>
+                  <th scope="col">Conversione precedente</th>
+                  <th scope="col">Differenza conversione</th>
                 </tr>
               </thead>
 
               <tbody>
                 {channelRows.map(({ channel, current, previous }) => (
                   <tr key={channel}>
-                    <td>
+                    <th scope="row">
                       {channel}
                       {!current && (
                         <span className="subtitle">
