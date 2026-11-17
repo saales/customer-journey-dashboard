@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from "pg";
 import { authenticatePostgresCredentials } from "./postgres-authentication.js";
 import { createPostgresPasswordReset, consumePostgresPasswordReset } from "./postgres-password-reset.js";
 import { sendPostgresTransactionalEmail } from "./postgres-email.js";
+import { createOneTimeAuthLink } from "./one-time-auth-link.js";
 import { revokePostgresSession } from "./postgres-session-repository.js";
 import {
   getPostgresSessionCookieName,
@@ -271,15 +272,14 @@ export function createPostgresAuthRouter(
       if (options.emailApiKey && options.emailFrom) {
         const reset = await createPostgresPasswordReset(pool, body.email, body.organizationSlug);
         if (reset) {
-          const link = new URL("/", req.get("Origin")!);
-          link.searchParams.set("reset", reset.token);
+          const link = createOneTimeAuthLink(req.get("Origin")!, "reset", reset.token);
           const safeName = reset.fullName.replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));
           try {
             await sendPostgresTransactionalEmail({
               to: reset.email,
               subject: "Reimposta la password — Percorso Cliente",
-              text: `Ciao ${reset.fullName}, usa questo collegamento entro 30 minuti per reimpostare la password: ${link.toString()}. Se non hai richiesto tu il recupero, ignora questa email.`,
-              html: `<p>Ciao ${safeName},</p><p>Hai richiesto di reimpostare la password di Percorso Cliente.</p><p><a href="${link.toString()}">Reimposta la password</a></p><p>Il collegamento scade tra 30 minuti. Se non hai richiesto tu il recupero, ignora questa email.</p>`,
+              text: `Ciao ${reset.fullName}, usa questo collegamento entro 30 minuti per reimpostare la password: ${link}. Se non hai richiesto tu il recupero, ignora questa email.`,
+              html: `<p>Ciao ${safeName},</p><p>Hai richiesto di reimpostare la password di Percorso Cliente.</p><p><a href="${link}">Reimposta la password</a></p><p>Il collegamento scade tra 30 minuti. Se non hai richiesto tu il recupero, ignora questa email.</p>`,
             }, { apiKey: options.emailApiKey, from: options.emailFrom });
           } catch (emailError) {
             // Keep the same public response for known and unknown accounts.
