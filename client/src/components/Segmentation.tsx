@@ -188,7 +188,7 @@ function SegmentDetail({
       </div>
 
       {loading && (
-        <p className="loading">Caricamento dei clienti…</p>
+        <p className="loading" role="status" aria-live="polite">Caricamento dei clienti…</p>
       )}
 
       {error && (
