@@ -871,10 +871,10 @@ export function DataImport({ onDataChange }: DataImportProps) {
               <thead>
                 <tr>
                   {result.headers.map((header) => (
-                    <th key={header}>{header}</th>
+                    <th key={header} scope="col">{header}</th>
                   ))}
-                  <th>Stato</th>
-                  <th>Problemi rilevati</th>
+                  <th scope="col">Stato</th>
+                  <th scope="col">Problemi rilevati</th>
                 </tr>
               </thead>
 
