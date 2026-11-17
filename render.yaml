@@ -3,7 +3,6 @@ services:
     name: customer-journey-dashboard
     runtime: node
     region: frankfurt
-    branch: main
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
