@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import type { Pool, PoolClient } from "pg";
+import { getRequestClientAddress } from "./request-client-address.js";
 import { authenticatePostgresCredentials } from "./postgres-authentication.js";
 import { createPostgresPasswordReset, consumePostgresPasswordReset } from "./postgres-password-reset.js";
 import { sendPostgresTransactionalEmail } from "./postgres-email.js";
@@ -227,7 +228,7 @@ export function createPostgresAuthRouter(
 
     try {
       // Non fidarsi di X-Forwarded-For: usare l'indirizzo del peer TCP.
-      const address = req.ip || req.socket.remoteAddress || "unknown";
+      const address = getRequestClientAddress(req);
       if (!await consumePostgresLoginAttempt(pool, options.rateLimitSecret, address, email)) {
         res.setHeader("Retry-After", String(RATE_WINDOW_MS / 1000));
         res.status(429).json({ error: "Troppi tentativi. Riprovare più tardi." });
@@ -262,7 +263,7 @@ export function createPostgresAuthRouter(
       return;
     }
     try {
-      const address = req.ip || req.socket.remoteAddress || "unknown";
+      const address = getRequestClientAddress(req);
       if (!await consumePostgresPasswordResetAttempt(pool, options.rateLimitSecret, address, body.email)) {
         res.setHeader("Retry-After", String(RATE_WINDOW_MS / 1000));
         res.status(429).json({ error: "Troppe richieste di recupero. Riprovare più tardi." });
