@@ -5,6 +5,9 @@ import { getPostgresOrganizationSettings, updatePostgresOrganizationName, Organi
 import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { CHANNELS } from "./types.js";
 import { createPostgresApiRateLimitMiddleware } from "./postgres-api-rate-limit.js";
 import { exportPostgresCustomersCsv, exportPostgresOrganizationJson, PostgresExportError } from "./postgres-export-repository.js";
@@ -634,6 +637,17 @@ export function createPostgresApp(pool: Pick<Pool, "connect" | "query">, options
         next(error);
       }
     });
+
+  const clientDistDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../../client/dist");
+  const clientIndexFile = resolve(clientDistDirectory, "index.html");
+  if (existsSync(clientIndexFile)) {
+    app.use(express.static(clientDistDirectory, { index: false, maxAge: "1y", immutable: true }));
+    app.get("*", (req, res, next) => {
+      if (req.path === "/api" || req.path.startsWith("/api/") || !req.accepts("html")) return next();
+      res.setHeader("Cache-Control", "no-cache");
+      res.sendFile(clientIndexFile, (error) => { if (error) next(error); });
+    });
+  }
 
   app.use((_req, res) => res.status(404).json({ error: "Risorsa non trovata." }));
 
