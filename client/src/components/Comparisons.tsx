@@ -326,7 +326,7 @@ export function Comparisons({ query }: ComparisonsProps) {
 
   if (error) {
     return (
-      <div className="error">
+      <div className="error" role="alert">
         Impossibile caricare i confronti: {error}
       </div>
     );
