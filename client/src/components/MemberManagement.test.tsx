@@ -62,6 +62,16 @@ describe("Gestione membri", () => {
 describe("Invio degli inviti", () => {
   it("non dichiara che l'email è disconfigurata quando l'invio non è confermato", async () => {
     vi.mocked(api.createInvitation).mockResolvedValue({
+      invitation: {
+        id: "33333333-3333-4333-8333-333333333333",
+        email: "nuovo@example.it",
+        role: "editor",
+        status: "pending",
+        createdAt: "2026-11-17T10:00:00Z",
+        expiresAt: "2026-11-24T10:00:00Z",
+        acceptedAt: null,
+        revokedAt: null,
+      },
       inviteUrl: "https://example.test/invite/token",
       emailSent: false,
     });
