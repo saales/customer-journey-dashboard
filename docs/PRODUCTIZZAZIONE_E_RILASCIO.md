@@ -1,6 +1,6 @@
 # Percorso Cliente — stato prodotto e piano di rilascio
 
-> **Verdetto al 16 novembre 2026: NO-GO per produzione con dati reali.** Il checkout candidato è stato migliorato e le verifiche locali disponibili passano, ma le ultime modifiche non hanno ancora una CI verde; il collaudo su staging, database remoto, email e ripristino non è documentato.
+> **Aggiornamento al 17 novembre 2026: NO-GO per produzione con dati reali; GO per portfolio/CV come progetto personale e per avviare la stesura tecnica della tesi, con risultati e limiti dichiarati.** La CI sul commit `c61e09b665e07ed0c82f9b59561af2497d00cb82` è verde su Node.js 22 e 24; lo staging Render/Neon è attivo e i flussi principali sono stati collaudati manualmente con dati sintetici. Restano non dimostrati backup/restore, consegna email, test di carico, revisione indipendente e copertura esaustiva dell'isolamento tenant. La verifica non costituisce certificazione di sicurezza né autorizzazione all'uso con dati aziendali reali.
 
 ## 1. Visione del prodotto
 
@@ -91,17 +91,17 @@ Questo documento è una checklist di prodotto, non un parere legale né una cert
 - Dashboard, clienti, funnel, segmentazione, importazione, export CSV e JSON organizzativo, gestione membri e inviti monouso, recupero password, gestione sessioni, modifica del nome organizzazione, profilo utente e cambio password con revoca delle sessioni.
 - La matrice d'autorizzazione confronta le route Express registrate con le aspettative dei quattro ruoli; una nuova route priva di copertura fa fallire la suite.
 - I test negativi cross-tenant coprono clienti, eventi, analytics, segmenti, importazioni, funnel, esportazioni CSV/JSON, audit, membri, inviti e le policy RLS delle tabelle tenant. Coprono gli IDOR e le operazioni selezionate, ma non dimostrano ogni combinazione route × tenant.
-- Una CI precedente, [run 43869048649](https://github.com/saales/customer-journey-dashboard/actions/runs/43869048649) sul commit `c53715f70ac9afbdc1cbef88cdcb873330be254c`, è passata su Node.js 20 e 22 per installazione, audit, test, build, migrazioni e runtime limitato; su Node.js 22 è passato anche Playwright/Chromium. È una prova della revisione precedente, non del checkout con le modifiche più recenti.
+- La CI aggiornata, [run #601](https://github.com/saales/customer-journey-dashboard/actions/runs/44116576426) sul commit `c61e09b665e07ed0c82f9b59561af2497d00cb82`, è passata su Node.js 22 e 24: `npm ci`, `npm audit` (0 vulnerabilità), test, build, migrazioni 001–013, checksum e avvio HTTP con ruolo runtime non privilegiato. Playwright/Chromium e gli scenari browser sono stati eseguiti con successo nel job Node.js 22; il job Node.js 24 non ripete il browser E2E.
 
 ### Non ancora dimostrato / non disponibile
 
 - Nessuna prova che il database remoto sia già migrato o che dati precedenti siano stati trasferiti.
-- Nessun deploy o collaudo su un ambiente staging reale.
+- Lo staging Render collegato al branch Neon `staging-pre-release` è attivo. L'utente ha verificato manualmente gestione clienti, dashboard e filtri, analisi/report, importazione CSV, segmentazione, confronti e impostazioni con dati sintetici. Per gli export CSV/Excel/PDF è stato verificato il download; il contenuto è stato controllato nel dettaglio per uno degli export, non per tutti.
 - Nessuna prova operativa di backup e ripristino.
-- Le modifiche più recenti ai link monouso e al costo scrypt, insieme ai nuovi test, devono ancora passare nella CI completa su Node.js 20/22 e nel test browser.
+- Il commit di branch `c61e09b` aggiunge un test Playwright per il filtro canale della segmentazione; il codice applicativo corrispondente è già nel deploy staging `284182e`. La CI attuale usa Node.js 22 e 24, non 20/22.
 - La copertura cross-tenant non comprende ogni combinazione di route e operazione; vanno controllati anche i percorsi staging con due tenant. La CI non sostituisce il collaudo sul provider, test di carico o una revisione indipendente.
 - L'invio email richiede configurazione e verifica di Resend (`RESEND_API_KEY`, `EMAIL_FROM`); non è stata verificata la consegna reale. MFA/SSO e billing non sono implementati.
-- La CI verifica il ruolo runtime sul PostgreSQL temporaneo; il ruolo, lo schema e i checksum del database remoto non sono stati verificati.
+- Sul database Neon di staging sono stati verificati schema, migrazioni/checksum, RLS e ruolo runtime. Il database e il servizio production non sono stati modificati né collaudati; la loro preparazione al rilascio resta fuori dall'ambito di questa verifica.
 
 ### Criteri di accettazione
 
