@@ -77,9 +77,9 @@ export function AuditLog() {
     {loading ? <p className="loading">Caricamento registro attività…</p> : !page?.data.length ?
       <p className="empty">Nessuna attività trovata per i filtri selezionati.</p> :
       <div className="table-wrap"><table>
-        <thead><tr><th>Data e ora</th><th>Utente</th><th>Operazione</th><th>Risorsa</th><th>Dettagli</th></tr></thead>
+        <thead><tr><th scope="col">Data e ora</th><th scope="col">Utente</th><th scope="col">Operazione</th><th scope="col">Risorsa</th><th scope="col">Dettagli</th></tr></thead>
         <tbody>{page.data.map((entry: AuditEntry) => <tr key={entry.id}>
-          <td>{new Date(entry.createdAt).toLocaleString("it-IT")}</td>
+          <th scope="row">{new Date(entry.createdAt).toLocaleString("it-IT")}</th>
           <td>{entry.actorName || entry.actorEmail || "Utente non disponibile"}</td>
           <td>{actionLabel(entry.action)}</td>
           <td>{entry.resourceType ? `${entry.resourceType} ${entry.resourceId ?? ""}` : "—"}</td>
