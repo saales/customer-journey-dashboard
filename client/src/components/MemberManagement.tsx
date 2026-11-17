@@ -102,7 +102,7 @@ export function MemberManagement() {
     }
   }
 
-  if (loading) return <p className="loading">Caricamento dei membri…</p>;
+  if (loading) return <p className="loading" role="status" aria-live="polite">Caricamento dei membri…</p>;
 
   return <section className="card">
     <div className="card-head">
