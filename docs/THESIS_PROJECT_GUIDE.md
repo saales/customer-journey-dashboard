@@ -19,7 +19,7 @@ Il repository è organizzato in workspace npm:
 - **Client:** React 18, TypeScript, Vite e Recharts. Gestisce presentazione, navigazione, filtri, grafici, importazione e gestione operativa.
 - **Server:** Node.js, Express e TypeScript. Espone API HTTP, valida gli input, autentica le sessioni e applica i permessi.
 - **Database:** PostgreSQL, accessibile tramite pg. Le migrazioni SQL sono versionate e verificate tramite storico e checksum.
-- **Test e integrazione continua:** Vitest, Testing Library, PostgreSQL temporaneo e GitHub Actions su Node.js 20 e 22.
+- **Test e integrazione continua:** Vitest, Testing Library, PostgreSQL temporaneo e GitHub Actions su Node.js 22 e 24. La pipeline esegue Playwright/Chromium sul job Node.js 22; entrambi i job verificano test, build, migrazioni e runtime con ruolo limitato.
 
 Schema logico:
 
