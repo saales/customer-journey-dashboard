@@ -29,6 +29,7 @@ import {
   PostgresCustomerNotFoundError,
 } from "./postgres-customer-repository.js";
 import { PostgresValidationError } from "./validation-error.js";
+import { createOneTimeAuthLink } from "./one-time-auth-link.js";
 import {
   createPostgresFunnelStage,
   listPostgresFunnelStages,
