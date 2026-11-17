@@ -211,17 +211,17 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Canale</th>
-                <th>Prima visita</th>
-                <th>Fasi del percorso raggiunte</th>
-                {!readOnly && <th>Azioni</th>}
+                <th scope="col">ID</th>
+                <th scope="col">Canale</th>
+                <th scope="col">Prima visita</th>
+                <th scope="col">Fasi del percorso raggiunte</th>
+                {!readOnly && <th scope="col">Azioni</th>}
               </tr>
             </thead>
             <tbody>
               {customers.map((customer) => (
                 <tr key={customer.id}>
-                  <td>{customer.id}</td>
+                  <th scope="row">{customer.id}</th>
                   <td>{customer.channel}</td>
                   <td>{customer.createdAt}</td>
                   <td>
