@@ -1,6 +1,6 @@
 # Revisione della sicurezza
 
-Data della revisione: 16 novembre 2026. Ambito: analisi statica del checkout, controlli mirati sulla configurazione di avvio e test disponibili localmente. Non è un penetration test né una certificazione di sicurezza.
+Data della revisione iniziale: 16 novembre 2026. Aggiornamento delle verifiche: 17 novembre 2026. Ambito: analisi statica del checkout, controlli mirati sulla configurazione di avvio e test disponibili localmente. Non è un penetration test né una certificazione di sicurezza.
 
 ## Esito sintetico
 
@@ -38,9 +38,9 @@ In produzione, `server/src/postgres-transport-config.ts` accetta per i database 
 
 ## Verifiche eseguite e limiti
 
-Sul checkout revisionato sono stati eseguiti la build del server e del client, 71 test client e 25 test unitari server mirati (hash password, link monouso, trasporto PostgreSQL, configurazione runtime e autenticazione). `env -u DATABASE_URL npm test` ha registrato 130 test server passati e 321 saltati; 11 test HTTP non hanno potuto aprire il listener locale (`EPERM`), quindi la suite completa non è verde in questo ambiente. Anche `npm audit` non ha raggiunto il registro dei pacchetti per un errore DNS. La CI GitHub Actions del PR [#7](https://github.com/saales/customer-journey-dashboard/pull/7), run [43869048649](https://github.com/saales/customer-journey-dashboard/actions/runs/43869048649), sul commit `c53715f70ac9afbdc1cbef88cdcb873330be254c` è passata su Node.js 20 e 22 per installazione, audit, suite automatizzate, build, migrazioni e controlli del runtime. Su Node.js 22 sono passati anche Playwright/Chromium e lo scenario con un secondo tenant. Quella CI precede le ultime modifiche a link, scrypt e test: va ripetuta sul nuovo commit prima del rilascio.
+La verifica locale precedente resta documentata come tale: in ambiente sandbox alcuni test HTTP non potevano aprire il listener (`EPERM`) e `npm audit` non raggiungeva il registro per un errore DNS. La CI aggiornata del PR [#7](https://github.com/saales/customer-journey-dashboard/pull/7), [run #601](https://github.com/saales/customer-journey-dashboard/actions/runs/44116576426), sul commit `c61e09b665e07ed0c82f9b59561af2497d00cb82`, è passata su Node.js 22 e 24 per installazione, audit (0 vulnerabilità), suite automatizzate, build, migrazioni PostgreSQL, checksum e runtime con ruolo non privilegiato. Su Node.js 22 sono passati anche Playwright/Chromium e i relativi scenari browser.
 
-Non sono stati verificati un database remoto, un deploy su staging, la consegna reale delle email, backup e ripristino, carico, accessibilità o ogni combinazione di endpoint e tenant. La CI dimostra il superamento degli scenari inclusi, non l'intera matrice cross-tenant. Per questo il progetto non può essere definito privo di falle o pronto per dati aziendali reali sulla sola base di questa revisione.
+Neon staging è stato verificato per migrazioni 001–013, checksum, RLS (sei tabelle e sette policy) e ruolo runtime non privilegiato; il servizio Render staging è live e i flussi principali sono stati collaudati manualmente con dati sintetici. La verifica statica dell'interfaccia include skip link, landmark, label, stati accessibili, focus visibile e preferenza reduced-motion, ma non è stato svolto un audit WCAG completo né un test con screen reader. Non sono stati verificati consegna reale delle email, backup e ripristino, carico, penetration test indipendente o ogni combinazione route × tenant. La CI e il collaudo manuale dimostrano soltanto gli scenari effettivamente eseguiti: il progetto non può essere definito privo di falle o pronto per dati aziendali reali sulla sola base di questa revisione.
 
 ## Attività prima del rilascio
 
