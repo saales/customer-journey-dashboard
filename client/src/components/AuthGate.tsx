@@ -82,6 +82,15 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   useEffect(() => { if (!inviteToken && !resetToken) void checkSession(); }, [inviteToken, resetToken]);
+  useEffect(() => {
+    const syncAuthLinkTokens = () => {
+      const tokens = readAuthLinkTokens();
+      setInviteToken(tokens.inviteToken);
+      setResetToken(tokens.resetToken);
+    };
+    window.addEventListener("hashchange", syncAuthLinkTokens);
+    return () => window.removeEventListener("hashchange", syncAuthLinkTokens);
+  }, []);
   useEffect(() => { removeAuthLinkTokensFromUrl(); }, []);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
