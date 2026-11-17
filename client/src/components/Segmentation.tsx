@@ -192,7 +192,7 @@ function SegmentDetail({
       )}
 
       {error && (
-        <div className="error">
+        <div className="error" role="alert">
           Impossibile caricare i clienti: {error}
         </div>
       )}
@@ -335,7 +335,7 @@ export function Segmentation({
 
   if (analysis.error) {
     return (
-      <div className="error">
+      <div className="error" role="alert">
         Impossibile caricare la segmentazione: {analysis.error}
       </div>
     );
