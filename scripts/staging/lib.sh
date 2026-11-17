@@ -16,7 +16,7 @@ load_pg_env() {
     const u = new URL(process.env.URL_IN);
     const net = require("node:net");
     if (!["postgres:", "postgresql:"].includes(u.protocol)) throw new Error("URL PostgreSQL non valida.");
-    const host = u.hostname.replace(/^\\[|\\]$/g, "").toLowerCase();
+    const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
     const local = host === "localhost" || host === "::1" ||
       (net.isIP(host) === 4 && host.split(".")[0] === "127");
     const sslModes = u.searchParams.getAll("sslmode");
@@ -25,7 +25,7 @@ load_pg_env() {
     if (!local && sslMode !== "verify-full") {
       throw new Error("Le connessioni PostgreSQL remote richiedono sslmode=verify-full.");
     }
-    const q = (v) => "\\x27" + String(v).replace(/\\x27/g, "\\x27\\\\\\x27\\x27") + "\\x27";
+    const q = (v) => "\x27" + String(v).replace(/\x27/g, "\x27\\\x27\x27") + "\x27";
     const out = {
       PGHOST: u.hostname, PGPORT: u.port || "5432",
       PGUSER: decodeURIComponent(u.username), PGPASSWORD: decodeURIComponent(u.password),
