@@ -87,7 +87,7 @@ describe("Segmentation", () => {
     fireEvent.click(refreshButton);
 
     await waitFor(() => expect(requests).toBe(2));
-    expect(refreshButton.getAttribute("aria-busy")).toBe("false");
+    await waitFor(() => expect(refreshButton.getAttribute("aria-busy")).toBe("false"));
   });
 
   it("mostra un feedback quando tutte le fasi sono già attive", async () => {
