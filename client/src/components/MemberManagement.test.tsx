@@ -79,7 +79,7 @@ describe("Invio degli inviti", () => {
     );
     const status = message.closest('[role="status"]');
     expect(status?.textContent).not.toContain("Email non configurata");
-    expect(screen.getByLabelText("Collegamento da condividere")).toHaveValue(
+    expect((screen.getByLabelText("Collegamento da condividere") as HTMLInputElement).value).toBe(
       "https://example.test/invite/token",
     );
   });
