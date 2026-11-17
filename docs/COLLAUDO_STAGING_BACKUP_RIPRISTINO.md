@@ -58,10 +58,7 @@ applicano le migrazioni reali e li eliminano a fine test. **Non partono** se `DA
 ```bash
 STAGING_URL=https://<staging> node scripts/staging/smoke.mjs --credentials ./credentials.json --seed --evidence-dir ./evidence
 ```
-`credentials.json` è un file locale non versionato (schema nell'intestazione dello script). `--seed` importa 300 clienti **sintetici**
-deterministici tramite la vera API di importazione. Il test verifica: salute e intestazioni di sicurezza (HSTS su HTTPS), login dei 4 ruoli e
-attributi del cookie (`__Host-`, `Secure`, `HttpOnly`, `SameSite=Strict`), matrice di permessi sugli endpoint chiave, CSRF su `Origin`,
-export JSON coerente con l'elenco clienti, isolamento tra due tenant, revoca delle sessioni al logout. Esito `0` = tutti superati; `2` = fallimenti.
+`credentials.json` è un file locale non versionato (schema nell'intestazione dello script). `--seed` importa 300 clienti **sintetici** deterministici tramite la vera API di importazione. Il test verifica: salute e intestazioni di sicurezza (HSTS su HTTPS), login dei 4 ruoli e attributi del cookie (`__Host-`, `Secure`, `HttpOnly`, `SameSite=Strict`), matrice di permessi sugli endpoint chiave, CSRF su `Origin`, export JSON coerente con l'elenco clienti, isolamento tra due tenant, revoca delle sessioni al logout. Esito `0` = tutti superati; `2` = fallimenti.
 Il file JSON di evidenza non contiene token né password.
 
 ### 3.3 Controlli manuali da registrare
@@ -162,7 +159,7 @@ In una sola transazione: elimina gli eventi, l'organizzazione (a cascata members
 Misure su PostgreSQL 16 locale con **30.000 clienti e ~62.000 eventi** per un tenant, ruolo runtime limitato, **su una macchina con 1 sola CPU condivisa tra database, applicazione e browser**: servono come ordine di grandezza, non come garanzia per un server reale.
 
 | Endpoint | Mediana | Note |
-|---|---|---|
+|---|---:|---|
 | `/api/summary` | 187 ms | KPI e funnel |
 | `/api/channels` · `/api/timeseries` | 109 · 119 ms | |
 | `/api/segments` | 257 ms | |
@@ -197,8 +194,7 @@ Con 30.000 clienti e ~62.000 eventi la query più pesante della dashboard (conte
 **Sicurezza verificata**: `npm audit` del server senza vulnerabilità; nessuna query SQL costruita per concatenazione; nessun segreto nel codice; nessun `innerHTML`/`eval`; intestazioni (nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, no-store, assenza di X-Powered-By); nessuna intestazione CORS per origini estranee; scritture con `Origin` estraneo respinte (403); errori generici senza dettagli interni; cookie di sessione HttpOnly/SameSite=Strict (`__Host-` e Secure in produzione); isolamento tra tenant con RLS e test negativi; CSP dell'esempio nginx senza script inline.
 **Limiti dichiarati**: nessun test di penetrazione indipendente; `style-src 'unsafe-inline'` resta nella CSP per i grafici; la libreria Excel va tenuta alla versione 0.20.3 (quella del progetto, senza l'avviso noto della 0.18.x).
 
-
-## 8. Evidenze operative aggiuntive — 17 novembre 2026
+## 14. Evidenze operative aggiuntive — 17 novembre 2026
 
 ### Copia isolata del branch staging
 
@@ -217,3 +213,11 @@ Questa prova è una clonazione di branch Neon, non un ripristino da dump logico 
 - Nella finestra 10–17 novembre 2026 le metriche Render hanno restituito solo due campioni di memoria (circa 93 MiB e 127 MiB); CPU, richieste HTTP, latenza e numero istanze non hanno restituito serie temporali utilizzabili.
 - Neon non ha rilevato query oltre 5 minuti. Le tabelle applicative sono ancora piccole (circa 56 KiB clienti e 64 KiB eventi).
 - Esito: **non esiste ancora una misura di capacità sotto carico**. Non pubblicare valori di throughput, concorrenza sostenibile o p95/p99 finché non viene eseguito un test controllato con dataset sintetico rappresentativo e risultati archiviati.
+
+### Email transazionale su Render staging
+
+- Commit diagnostico `6fcfd7e29da1d7f106f300226c43ee663c51b179`, deploy Render `dep-dbu7plmtlv9c739a6io0`: stato **live** il 17 novembre 2026 alle 16:13 UTC.
+- Il server stampa esclusivamente un booleano di configurazione, senza registrare chiavi o indirizzi mittente.
+- Log di avvio: **"Email transazionale: non configurata."** Quindi `RESEND_API_KEY` e `EMAIL_FROM` risultano entrambe assenti/vuote nello staging al momento del deploy.
+- Il servizio resta operativo senza email; non è stato inviato alcun messaggio di prova.
+- Azione necessaria: configurare entrambe le variabili nel pannello Render del solo servizio staging, quindi eseguire un nuovo deploy e verificare il log. Non inserire mai i valori nel repository o in chat.
