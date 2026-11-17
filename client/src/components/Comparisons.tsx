@@ -427,7 +427,7 @@ export function Comparisons({ query }: ComparisonsProps) {
                           {" "} (non presente attualmente)
                         </span>
                       )}
-                    </td>
+                    </th>
 
                     <td>{formatNumber(current?.visits ?? 0)}</td>
 
