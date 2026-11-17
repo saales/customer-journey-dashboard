@@ -201,8 +201,8 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
         </form>
       )}
 
-      {loading && <p className="loading">Caricamento dei dati clienti…</p>}
-      {error && <div className="error">{error}</div>}
+      {loading && <p className="loading" role="status" aria-live="polite">Caricamento dei dati clienti…</p>}
+      {error && <div className="error" role="alert">{error}</div>}
       {!loading && !error && customers.length === 0 && (
         <p className="empty">Non sono presenti clienti nel periodo selezionato.</p>
       )}
