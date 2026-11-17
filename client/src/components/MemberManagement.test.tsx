@@ -75,7 +75,7 @@ describe("Invio degli inviti", () => {
     fireEvent.click(screen.getByRole("button", { name: "Crea invito (7 giorni)" }));
 
     const status = await screen.findByRole("status");
-    expect(status.textContent).toContain("l'invio email non è stato confermato");
+    expect(status.textContent).toContain("l’invio email non è stato confermato");
     expect(status.textContent).not.toContain("Email non configurata");
     expect(screen.getByLabelText("Collegamento da condividere")).toHaveValue(
       "https://example.test/invite/token",
