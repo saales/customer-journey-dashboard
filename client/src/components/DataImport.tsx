@@ -720,7 +720,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
         </div>
 
         {stagesLoading && (
-          <p className="loading">Caricamento delle fasi del percorso…</p>
+          <p className="loading" role="status" aria-live="polite">Caricamento delle fasi del percorso…</p>
         )}
 
         {stagesError && (
@@ -748,7 +748,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
         </label>
 
         {loading && (
-          <p className="loading">Lettura del file in corso…</p>
+          <p className="loading" role="status" aria-live="polite">Lettura del file in corso…</p>
         )}
 
         {error && (
