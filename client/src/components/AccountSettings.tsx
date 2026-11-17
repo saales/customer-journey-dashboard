@@ -42,7 +42,7 @@ export function AccountSettings() {
     finally{setSavingPassword(false);}
   }
 
-  if(loading)return <p className="loading">Caricamento profilo…</p>;
+  if(loading)return <p className="loading" role="status" aria-live="polite">Caricamento profilo…</p>;
   return <section className="card">
     <div className="card-head"><div><h2>Il tuo account</h2><p className="hint">Gestisci i dati personali e le credenziali di accesso.</p></div>
       <button type="button" className="button-secondary" onClick={()=>void load()}>Aggiorna</button></div>
