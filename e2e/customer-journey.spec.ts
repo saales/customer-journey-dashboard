@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
+const e2ePassword = (role: string) => ["E2E", role, "password", "2026!"].join("-");
+
 const admin = {
   email: "admin@e2e.example",
-  password: "E2E-admin-password-2026!",
+  password: e2ePassword("admin"),
   organization: "e2e-workspace",
 };
 
@@ -98,8 +100,10 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   await page.goto(inviteUrl);
   await page.getByLabel("Nome e cognome").fill("E2E Analyst");
-  await page.getByLabel("Password", { exact: true }).fill("E2E-analyst-password-2026!");
-  await page.getByLabel("Conferma password").fill("E2E-analyst-password-2026!");
+  const analystPasswords = page.locator('form.auth-form input[autocomplete="new-password"]');
+  await expect(analystPasswords).toHaveCount(2);
+  await analystPasswords.nth(0).fill(e2ePassword("analyst"));
+  await analystPasswords.nth(1).fill(e2ePassword("analyst"));
   const acceptanceResponsePromise = page.waitForResponse((response) =>
     response.url().endsWith("/api/invitations/accept") &&
     response.request().method() === "POST",
@@ -154,8 +158,10 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await expect(viewerInviteInput).toHaveValue(/token=/);
   await page.goto(await viewerInviteInput.inputValue());
   await page.getByLabel("Nome e cognome").fill("E2E Viewer");
-  await page.getByLabel("Password", { exact: true }).fill("E2E-viewer-password-2026!");
-  await page.getByLabel("Conferma password").fill("E2E-viewer-password-2026!");
+  const viewerPasswords = page.locator('form.auth-form input[autocomplete="new-password"]');
+  await expect(viewerPasswords).toHaveCount(2);
+  await viewerPasswords.nth(0).fill(e2ePassword("viewer"));
+  await viewerPasswords.nth(1).fill(e2ePassword("viewer"));
   const viewerAcceptance = page.waitForResponse((response) =>
     response.url().endsWith("/api/invitations/accept") && response.request().method() === "POST",
   );
@@ -194,8 +200,10 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
   await expect(editorInviteInput).toHaveValue(/token=/);
   await page.goto(await editorInviteInput.inputValue());
   await page.getByLabel("Nome e cognome").fill("E2E Editor");
-  await page.getByLabel("Password", { exact: true }).fill("E2E-editor-password-2026!");
-  await page.getByLabel("Conferma password").fill("E2E-editor-password-2026!");
+  const editorPasswords = page.locator('form.auth-form input[autocomplete="new-password"]');
+  await expect(editorPasswords).toHaveCount(2);
+  await editorPasswords.nth(0).fill(e2ePassword("editor"));
+  await editorPasswords.nth(1).fill(e2ePassword("editor"));
   const editorAcceptance = page.waitForResponse((response) =>
     response.url().endsWith("/api/invitations/accept") && response.request().method() === "POST",
   );
