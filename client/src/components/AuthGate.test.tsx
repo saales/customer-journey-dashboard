@@ -92,6 +92,15 @@ describe("Accesso PostgreSQL dal browser", () => {
     expect(window.location.hash).toBe("");
   });
 
+  it("rileva un link di invito aperto nella stessa scheda tramite fragment", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 401 })));
+    render(<AuthGate>{() => <p>Dashboard protetta</p>}</AuthGate>);
+
+    window.location.hash = `token=${"H".repeat(43)}`;
+
+    expect(await screen.findByLabelText("Nome e cognome")).toBeTruthy();
+  });
+
   it("mantiene validi i link di invito precedenti con token nella query", async () => {
     window.history.replaceState({}, "", `/?token=${"L".repeat(43)}`);
     vi.stubGlobal("fetch", vi.fn(async () => new Response("not found", { status: 404 })));
