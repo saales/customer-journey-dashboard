@@ -68,7 +68,7 @@ describe("Invio degli inviti", () => {
 
     render(<MemberManagement />);
 
-    await screen.findByRole("heading", { name: "Utenti e permessi" });
+    await screen.findByLabelText("Email");
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "nuovo@example.it" },
     });
