@@ -57,6 +57,8 @@ async function main(): Promise<void> {
 
   const server = app.listen(port, host, () => {
     console.log(`Runtime PostgreSQL in ascolto su ${host}:${port}.`);
+    // Log only the boolean state; never expose the provider key or sender address.
+    console.log(`Email transazionale: ${emailApiKey && emailFrom ? "configurata" : "non configurata"}.`);
   });
 
   let closing = false;
