@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type Customer, type CustomerEvent, type CustomerInput, type FunnelStage } from "../api";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const PAGE_SIZE = 50;
 
@@ -23,6 +24,8 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
   const [createdAt, setCreatedAt] = useState("");
   const [stageDates, setStageDates] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Customer | null>(null);
 
   const orderedStages = useMemo(
     () => [...stages].sort((a, b) => a.position - b.position),
@@ -93,6 +96,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
     try {
       setFormError(null);
       const input = buildCustomerInput();
+      const wasEditing = Boolean(editingCustomer);
       if (editingCustomer) {
         await api.updateCustomer(editingCustomer.id, input);
       } else {
@@ -101,6 +105,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
       await loadCustomers();
       onDataChange();
       resetForm();
+      setMessage(wasEditing ? "Cliente aggiornato correttamente." : "Cliente aggiunto correttamente.");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Errore durante il salvataggio.");
     }
@@ -127,14 +132,15 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
     }
   }
 
-  async function handleDelete(customerId: string) {
-    if (!window.confirm("Sei sicuro di voler eliminare questo cliente?")) return;
+  async function handleDelete(customer: Customer) {
     try {
       setError(null);
-      await api.deleteCustomer(customerId);
+      await api.deleteCustomer(customer.id);
       const nextPage = customers.length === 1 && page > 1 ? page - 1 : page;
       await loadCustomers(nextPage);
       onDataChange();
+      setPendingDelete(null);
+      setMessage("Cliente eliminato correttamente.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore durante l'eliminazione.");
     }
@@ -160,6 +166,8 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
           {showForm ? "Annulla" : "Nuovo cliente"}
         </button>}
       </div>
+
+      {message && <div className="notice" role="status">{message}</div>}
 
       {showForm && !readOnly && (
         <form className="customer-form" onSubmit={(event) => { event.preventDefault(); void saveCustomer(); }}>
@@ -235,7 +243,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
                   </td>
                   {!readOnly && <td>
                     <button type="button" className="export export-edit" onClick={() => handleEdit(customer)}>Modifica</button>
-                    <button type="button" className="export export-delete" onClick={() => void handleDelete(customer.id)}>Elimina</button>
+                    <button type="button" className="export export-delete" onClick={() => setPendingDelete(customer)}>Elimina</button>
                   </td>}
                 </tr>
               ))}
@@ -243,6 +251,13 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
           </table>
         </div>
       )}
+      {pendingDelete && <ConfirmDialog
+        title="Eliminare il cliente?"
+        message={"Il cliente " + pendingDelete.id + " verrà eliminato insieme agli eventi associati. L’operazione non può essere annullata."}
+        confirmLabel="Elimina cliente"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => void handleDelete(pendingDelete)}
+      />}
       {!loading && !error && total > 0 && (
         <div className="pagination">
           <span className="hint">{total} clienti · pagina {page} di {Math.max(totalPages, 1)}</span>
