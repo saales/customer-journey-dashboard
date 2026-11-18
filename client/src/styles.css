@@ -2260,9 +2260,9 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   padding: 14px;
-  border: 1px solid var(--border, #d3dad5);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: var(--surface-subtle, transparent);
+  background: var(--surface-hover);
 }
 .session-info {
   display: grid;
@@ -2271,7 +2271,7 @@ button:disabled {
 }
 .session-current {
   flex: 0 0 auto;
-  color: var(--success, #18794e);
+  color: var(--kpi-green-text);
   font-size: 0.85rem;
   font-weight: 650;
 }
@@ -2622,3 +2622,7 @@ button:disabled {
   }
 }
 
+
+.app-shell a.button-secondary {
+  text-decoration: none;
+}
