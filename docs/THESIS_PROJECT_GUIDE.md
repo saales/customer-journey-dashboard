@@ -1,6 +1,6 @@
 # Guida tecnica per la tesi — Percorso Cliente
 
-> Documento di lavoro: descrive l'implementazione presente nel repository. Le valutazioni sperimentali, i risultati prestazionali e lo stato degli ambienti remoti devono essere completati con misurazioni riproducibili; non vanno presentati come già verificati.
+> Documento di lavoro: descrive l'implementazione presente nel repository. Le valutazioni sperimentali, i risultati prestazionali e lo stato degli ambienti remoti devono essere completati con misurazioni riproducibili; non vanno presentati come già verificati. La guida distingue le verifiche automatiche, i controlli manuali e le attività ancora aperte al 18 novembre 2026.
 
 ## 1. Titolo di lavoro
 
@@ -71,6 +71,8 @@ Queste misure vanno comunque sottoposte a revisione indipendente e test in ambie
 
 La pipeline automatizzata comprende test frontend e backend, build TypeScript, migrazioni 001–013 su PostgreSQL temporaneo, controllo dello storico/checksum e avvio del server con un ruolo non privilegiato. Su Node.js 22 include un percorso browser Playwright/Chromium con admin, editor, analyst e viewer, oltre a flussi di clienti, funnel, import/export CSV, inviti, audit e permessi. Un secondo tenant sintetico consente di verificare alcuni casi di accesso incrociato via API; non è una dimostrazione esaustiva dell'isolamento per ogni endpoint.
 
+**Evidenze già raccolte al 18 novembre 2026:** CI verde sul commit `69d14d9` per Node.js 22 e 24; test browser Playwright superati su Node.js 22; migrazioni PostgreSQL 001–013, checksum e avvio con ruolo runtime limitato superati. I principali flussi dell'interfaccia sono stati verificati manualmente su staging con dati sintetici. Il backup logico dello staging è stato ripristinato con successo su PostgreSQL 18.7 locale isolato: 14 tabelle, con conteggi controllati per cinque tabelle applicative. Sono stati eseguiti controlli manuali da tastiera su login e dashboard; la verifica delle altre schermate è in corso. L'invio reale di email non è stato provato perché non è disponibile un dominio mittente verificato. Non sono disponibili misure affidabili di carico, throughput o p95/p99.
+
 Per completare il capitolo sperimentale della tesi occorre raccogliere evidenze su:
 
 - copertura dei test e casi limite;
@@ -96,7 +98,7 @@ Non inserire valori di performance senza misurazioni ripetibili, indicando hardw
 
 ## 8. Limiti e sviluppi futuri
 
-Tra le attività da chiudere prima di un rilascio aziendale rientrano il collaudo in staging, la verifica read-only del database remoto, una prova di backup e ripristino, l'estensione dei casi cross-tenant, test di carico e monitoraggio. Il recupero password e l'invio email tramite Resend sono implementati nel codice; la consegna reale delle email richiede credenziali valide e non è stata verificata in questa attività.
+Tra le attività da chiudere prima di un rilascio aziendale rientrano la pianificazione e la verifica periodica dei backup, una prova di ripristino su un ambiente remoto isolato, l'estensione dei casi cross-tenant, test di carico e monitoraggio, un audit completo di accessibilità e sicurezza e la verifica della consegna email. Il recupero password e l'invio email tramite Resend sono implementati nel codice; la consegna reale delle email richiede un dominio mittente verificato e non è stata verificata in questa attività.
 
 ## 9. Struttura suggerita della tesi
 
