@@ -65,4 +65,34 @@ describe("CustomerManagement funnel integration", () => {
     });
     expect((await screen.findByRole("status")).textContent).toContain("Cliente aggiunto correttamente.");
   });
+
+  it("chiede conferma prima di eliminare un cliente e mostra l'esito", async () => {
+    let deleted = false;
+    const customer = { id: 902, channel: "Organico", createdAt: "2026-06-01", events: [] };
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (String(url).startsWith("/api/funnel-stages")) {
+        return json([{ id: "visit", label: "Visita", position: 0, isActive: true, isSystem: true }]);
+      }
+      if (String(url) === "/api/customers/902" && init?.method === "DELETE") {
+        deleted = true;
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      if (String(url).startsWith("/api/customers")) {
+        const data = deleted ? [] : [customer];
+        return json({ data, pagination: { page: 1, limit: 50, total: data.length, totalPages: data.length ? 1 : 0 } });
+      }
+      return json({ error: "non trovato" }, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<CustomerManagement onDataChange={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Elimina" }));
+    expect(deleted).toBe(false);
+    expect(await screen.findByRole("alertdialog")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Elimina cliente" }));
+    await waitFor(() => expect(deleted).toBe(true));
+    expect((await screen.findByRole("status")).textContent).toContain("Cliente eliminato correttamente.");
+  });
+
 });
