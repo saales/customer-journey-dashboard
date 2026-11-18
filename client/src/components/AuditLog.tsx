@@ -86,7 +86,7 @@ export function AuditLog() {
           <td>{Object.entries(entry.details ?? {}).map(([key, value]) => `${key}: ${String(value)}`).join(" · ") || "—"}</td>
         </tr>)}</tbody>
       </table></div>}
-    {page && page.pagination.totalPages > 1 && <div className="funnel-stage-actions" style={{ marginTop: 16, justifyContent: "space-between" }}>
+    {page && page.pagination.totalPages > 1 && <div className="audit-pagination">
       <span className="hint">Pagina {page.pagination.page} di {page.pagination.totalPages} · {page.pagination.total} attività</span>
       <div className="funnel-stage-actions">
         <button type="button" className="button-secondary" disabled={loading || currentPage <= 1} onClick={() => void load(currentPage - 1)}>Precedente</button>
