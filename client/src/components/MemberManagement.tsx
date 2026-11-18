@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, type OrganizationMember, type OrganizationInvitation } from "../api";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const roles: OrganizationMember["role"][] = ["admin", "editor", "analyst", "viewer"];
 const roleLabels: Record<OrganizationMember["role"], string> = {
@@ -21,6 +22,7 @@ export function MemberManagement() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [pendingInvitation, setPendingInvitation] = useState<OrganizationInvitation | null>(null);
 
   async function load(): Promise<boolean> {
     setLoading(true);
@@ -85,10 +87,12 @@ export function MemberManagement() {
     try {
       await api.revokeInvitation(invitation.id);
       const refreshed = await load();
+      setPendingInvitation(null);
       setMessage(refreshed
         ? "Invito revocato."
         : "Invito revocato, ma l'elenco non si è aggiornato. Usa Aggiorna per verificare lo stato.");
     } catch (err) {
+      setPendingInvitation(null);
       setError(err instanceof Error ? err.message : "Impossibile revocare l'invito.");
     }
   }
@@ -114,6 +118,13 @@ export function MemberManagement() {
     </div>
     {error && <div className="error" role="alert">{error}</div>}
     {message && <div className="notice" role="status">{message}</div>}
+    {pendingInvitation && <ConfirmDialog
+      title="Revocare l’invito?"
+      message={`Il collegamento per ${pendingInvitation.email} non sarà più utilizzabile.`}
+      confirmLabel="Revoca invito"
+      onCancel={() => setPendingInvitation(null)}
+      onConfirm={() => void revokeInvite(pendingInvitation)}
+    />}
     {!members.length && !error ? <p className="empty">Nessun membro presente.</p> :
       <div className="table-wrap"><table>
         <thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>Accesso dal</th><th>Azioni</th></tr></thead>
@@ -160,7 +171,7 @@ export function MemberManagement() {
           <td>{invite.email}</td><td>{roleLabels[invite.role]}</td>
           <td>{{pending:"In attesa",accepted:"Accettato",revoked:"Revocato",expired:"Scaduto"}[invite.status]}</td>
           <td>{new Date(invite.expiresAt).toLocaleDateString("it-IT")}</td>
-          <td>{invite.status === "pending" && <button className="button-secondary" type="button" onClick={() => void revokeInvite(invite)}>Revoca</button>}</td>
+          <td>{invite.status === "pending" && <button className="button-secondary" type="button" onClick={() => setPendingInvitation(invite)}>Revoca</button>}</td>
         </tr>)}</tbody>
       </table></div>}
     </div>
