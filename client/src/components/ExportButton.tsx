@@ -228,8 +228,8 @@ async function downloadPdf(
 }
 
 /** Gli export Excel/PDF caricano le librerie on-demand: un errore di rete non deve passare inosservato. */
-function runExport(task: Promise<void>): void {
-  task.catch(() => window.alert("Esportazione non riuscita. Controlla la connessione e riprova."));
+function runExport(task: Promise<void>, onError: (message: string) => void): void {
+  task.catch(() => onError("Esportazione non riuscita. Controlla la connessione e riprova."));
 }
 
 export function ExportButton({
@@ -241,6 +241,7 @@ export function ExportButton({
 }: Props) {
   const reportTitle = getReportTitle(filename, title);
   const [open, setOpen] = useState(false);
+  const [exportError, setExportError] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -274,6 +275,7 @@ export function ExportButton({
   }, [open]);
 
   function choose(action: () => void) {
+    setExportError("");
     setOpen(false);
     triggerRef.current?.focus();
     action();
@@ -299,15 +301,16 @@ export function ExportButton({
             CSV
           </button>
           <button type="button" role="menuitem" className="export-item" aria-label="Esporta Excel"
-            onClick={() => choose(() => runExport(downloadExcel(filename, headers, rows, reportTitle, description)))}>
+            onClick={() => choose(() => runExport(downloadExcel(filename, headers, rows, reportTitle, description), setExportError))}>
             Excel
           </button>
           <button type="button" role="menuitem" className="export-item" aria-label="Esporta PDF"
-            onClick={() => choose(() => runExport(downloadPdf(filename, headers, rows, reportTitle, description)))}>
+            onClick={() => choose(() => runExport(downloadPdf(filename, headers, rows, reportTitle, description), setExportError))}>
             PDF
           </button>
         </div>
       )}
+      {exportError && <p className="export-error" role="alert">{exportError}</p>}
     </div>
   );
 }
