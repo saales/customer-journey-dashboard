@@ -151,7 +151,7 @@ function SegmentComparisonTable({
       {rows.length === 0 ? (
         <p className="subtitle">Nessun dato disponibile.</p>
       ) : (
-        <div className="table-wrapper">
+        <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -402,7 +402,7 @@ export function Comparisons({ query }: ComparisonsProps) {
         {channelRows.length === 0 ? (
           <p className="subtitle">Nessun canale disponibile.</p>
         ) : (
-          <div className="table-wrapper">
+          <div className="table-wrap">
             <table>
               <thead>
                 <tr>
