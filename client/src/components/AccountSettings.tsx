@@ -33,6 +33,7 @@ export function AccountSettings() {
       setPendingSession(null);
       setMessage("Sessione revocata.");
     } catch(cause) {
+      setPendingSession(null);
       setError(cause instanceof Error?cause.message:"Impossibile revocare la sessione.");
     } finally {
       setRevokingSession("");
