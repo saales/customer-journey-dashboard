@@ -1,13 +1,17 @@
 node_modules
 dist
 coverage
-*.db
-*.db-*
 .env
+.env.*
+!.env.example
 .DS_Store
 # Screenshot locali
 /Screenshot*.png
 docs/Screenshot*.png
 docs/Autoformazione_React_Native_e_React.pdf
 .neon
-.env.local
+
+# Staging: dati e credenziali locali, mai nel repository
+backups/
+evidence/
+credentials*.json

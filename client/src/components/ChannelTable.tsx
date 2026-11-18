@@ -49,14 +49,15 @@ export function ChannelTable({
 
       <div className="table-wrap">
         <table>
+          <caption>Metriche di acquisizione e conversione per canale</caption>
           <thead>
             <tr>
-              <th>Canale</th>
-              <th className="num">Visite</th>
-              <th className="num">Contatti acquisiti</th>
-              <th className="num">Clienti</th>
-              <th className="num">Visita → contatto</th>
-              <th>Visita → cliente</th>
+              <th scope="col">Canale</th>
+              <th scope="col" className="num">Visite</th>
+              <th scope="col" className="num">Contatti acquisiti</th>
+              <th scope="col" className="num">Clienti</th>
+              <th scope="col" className="num">Visita → contatto</th>
+              <th scope="col">Visita → cliente</th>
             </tr>
           </thead>
 
@@ -66,7 +67,7 @@ export function ChannelTable({
                 key={r.channel}
                 className={r.channel === selected ? "selected" : ""}
               >
-                <td>{r.channel}</td>
+                <th scope="row">{r.channel}</th>
                 <td className="num">{formatNumber(r.visits)}</td>
                 <td className="num">{formatNumber(r.leads)}</td>
                 <td className="num">{formatNumber(r.customers)}</td>

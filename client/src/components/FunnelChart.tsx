@@ -39,8 +39,8 @@ export function FunnelChart({
         </div>
 
         <ExportButton
-          filename={`funnel_${suffix}.csv`}
-          title="Analisi del funnel di conversione"
+          filename={`percorso_${suffix}.csv`}
+          title="Analisi del percorso di conversione"
           description="Distribuzione dei clienti nelle fasi del percorso di conversione, dalla visita iniziale alla conversione finale."
           headers={[
             "Fase",
@@ -65,7 +65,7 @@ export function FunnelChart({
       <div
         className="chart-container funnel-chart-container"
         role="img"
-        aria-label="Grafico a barre del funnel di conversione, dalle visite ai clienti"
+        aria-label={`Grafico a barre del funnel di conversione. ${funnel.map((step) => `${step.label}: ${formatNumber(step.count)} clienti, conversione dalla fase precedente ${formatPercent(step.conversionFromPrevious)}.`).join(" ")}`}
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

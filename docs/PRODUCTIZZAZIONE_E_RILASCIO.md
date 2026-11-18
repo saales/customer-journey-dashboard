@@ -1,0 +1,157 @@
+# Percorso Cliente — stato prodotto e piano di rilascio
+
+> **Aggiornamento al 17 novembre 2026: NO-GO per produzione con dati reali; GO per portfolio/CV come progetto personale e per avviare la stesura tecnica della tesi, con risultati e limiti dichiarati.** La CI sul commit `c61e09b665e07ed0c82f9b59561af2497d00cb82` è verde su Node.js 22 e 24; lo staging Render/Neon è attivo e i flussi principali sono stati collaudati manualmente con dati sintetici. Restano non dimostrati backup/restore, consegna email, test di carico, revisione indipendente e copertura esaustiva dell'isolamento tenant. La verifica non costituisce certificazione di sicurezza né autorizzazione all'uso con dati aziendali reali.
+
+## 1. Visione del prodotto
+
+Percorso Cliente è una piattaforma B2B multi-organizzazione per analizzare acquisizione, avanzamento nel funnel e conversione dei clienti. Il runtime applicativo usa PostgreSQL come unico database; non esiste una modalità dimostrativa o un archivio alternativo nel ramo corrente.
+
+Il prodotto deve poter essere presentato a Deloitte e ad altre imprese come soluzione indipendente, con identità visiva originale. Non deve utilizzare marchi, loghi, template proprietari o suggerire affiliazioni/approvazioni da parte di Deloitte o di altri soggetti.
+
+Non dichiarare risultati di clienti reali, disponibilità in produzione, certificazioni o livelli di servizio senza evidenze verificabili.
+
+## 2. Utenti e ruoli
+
+| Ruolo | Permessi attesi |
+|---|---|
+| Admin | Gestisce organizzazione, utenti, inviti, impostazioni, dati e audit |
+| Editor | Consulta e modifica clienti, eventi e importazioni |
+| Analyst | Consulta dashboard, filtri, segmenti ed esportazioni |
+| Viewer | Sola lettura delle viste autorizzate |
+
+Ogni risorsa appartenente a un'organizzazione deve essere filtrata lato server tramite l'organizzazione ricavata dalla sessione autenticata. Non è sufficiente nascondere pulsanti nel frontend.
+
+## 3. Ambito del prodotto vendibile
+
+### Funzionalità fondamentali (MVP commerciale)
+
+- Autenticazione, sessioni revocabili e inviti monouso con scadenza, revoca e accettazione atomica. Il recupero password usa token monouso hashati e scadono dopo 30 minuti; l'invio automatico di inviti e link di recupero usa il provider Resend quando configurato.
+- Organizzazioni isolate e gestione dei ruoli.
+- Dashboard funnel, KPI, andamento temporale e confronto canali.
+- Gestione clienti ed eventi con paginazione e filtri.
+- Importazione CSV con anteprima, validazione, deduplicazione e report degli errori.
+- Esportazioni controllate e tracciate.
+- Audit log per modifiche a clienti e funnel, importazioni, esportazioni CSV, membership e inviti; resta da valutare la copertura delle ulteriori operazioni amministrative e letture sensibili.
+- Gestione organizzazione, utenti e preferenze.
+- Nessun accesso dimostrativo o seed automatico nel runtime standard.
+- Backup, ripristino, logging, monitoraggio e procedura di incident response.
+- Interfaccia responsive, accessibile e con messaggi di errore comprensibili.
+
+### Evoluzioni successive
+
+- Connettori CRM e marketing automation.
+- API pubbliche con token a permessi limitati e rate limiting.
+- Analisi cohort e retention più avanzate.
+- Report programmati e invio email.
+- SSO aziendale (OIDC/SAML), MFA e provisioning SCIM.
+- White-label e personalizzazione del branding per piani enterprise.
+- Fatturazione, piani, limiti di utilizzo e self-service billing.
+- Funzioni di collaborazione e commenti sui report.
+
+Le evoluzioni non devono ritardare la messa in sicurezza del nucleo MVP.
+
+## 4. Architettura e requisiti non negoziabili
+
+- PostgreSQL deve essere il database effettivamente usato dall'applicazione, non soltanto una connessione di verifica.
+- Le migrazioni devono essere incrementali, versionate e idempotenti; non modificare retroattivamente migrazioni già applicate.
+- Tutte le query, join, conteggi, aggiornamenti, cancellazioni e importazioni devono applicare il tenant scope.
+- Le operazioni multi-tabella devono essere transazionali.
+- Il tenant deve essere determinato dalla sessione autenticata, mai accettato come tenant arbitrario dal client.
+- Le sessioni devono usare token casuali, conservare solo hash lato database, cookie HttpOnly, Secure in produzione, SameSite appropriato, scadenza e revoca.
+- Le mutazioni devono avere protezioni CSRF/origin coerenti e rate limiting condiviso tra istanze in produzione.
+- Segreti e credenziali devono provenire da variabili ambiente o secret manager; mai committarli.
+- Nessun account demo con password hardcoded e nessuna registrazione pubblica aperta.
+- Il bootstrap del primo admin deve essere un comando CLI una tantum, documentato e non esposto via HTTP.
+- I log non devono contenere password, token, cookie o dati personali non necessari.
+
+## 5. Privacy, sicurezza e conformità
+
+Prima di usare dati di imprese o persone reali, il rilascio deve prevedere una revisione legale e privacy adeguata al caso d'uso. In particolare:
+
+- Mappatura dei dati trattati, finalità, basi giuridiche e tempi di conservazione.
+- Ruoli privacy e accordi applicabili (ad esempio titolare/responsabile e DPA, quando pertinenti).
+- Informative, gestione delle richieste degli interessati e procedure di cancellazione/esportazione.
+- Minimizzazione dei dati e limitazione degli accessi.
+- Valutazione di trasferimenti extra SEE, fornitori e sub-responsabili.
+- Valutazione della necessità di DPIA in base ai trattamenti effettivi.
+- Cifratura in transito e a riposo, gestione chiavi, backup protetti e test di ripristino.
+- Verifica delle dipendenze, vulnerability scanning, aggiornamenti e gestione delle vulnerabilità.
+- Test di isolamento tra tenant e test di autorizzazione per ogni ruolo.
+- Piano di risposta agli incidenti e canale di segnalazione vulnerabilità.
+
+Questo documento è una checklist di prodotto, non un parere legale né una certificazione di conformità.
+
+## 6. Stato verificato e criteri di accettazione
+
+### Implementato nel ramo corrente
+
+- PostgreSQL è l’unico percorso di persistenza del server e il runtime HTTP standard avvia esclusivamente `postgres-server.ts`.
+- Migrazioni versionate 001–013, controllo checksum e preflight dei privilegi del ruolo runtime, inclusi i privilegi del rate limiter API persistente e la lettura tenant-scoped dell'audit.
+- Sessioni opache, autenticazione, autorizzazione per ruolo e tenant scope nelle API.
+- Dashboard, clienti, funnel, segmentazione, importazione, export CSV e JSON organizzativo, gestione membri e inviti monouso, recupero password, gestione sessioni, modifica del nome organizzazione, profilo utente e cambio password con revoca delle sessioni.
+- La matrice d'autorizzazione confronta le route Express registrate con le aspettative dei quattro ruoli; una nuova route priva di copertura fa fallire la suite.
+- I test negativi cross-tenant coprono clienti, eventi, analytics, segmenti, importazioni, funnel, esportazioni CSV/JSON, audit, membri, inviti e le policy RLS delle tabelle tenant. Coprono gli IDOR e le operazioni selezionate, ma non dimostrano ogni combinazione route × tenant.
+- La CI aggiornata, [run #601](https://github.com/saales/customer-journey-dashboard/actions/runs/44116576426) sul commit `c61e09b665e07ed0c82f9b59561af2497d00cb82`, è passata su Node.js 22 e 24: `npm ci`, `npm audit` (0 vulnerabilità), test, build, migrazioni 001–013, checksum e avvio HTTP con ruolo runtime non privilegiato. Playwright/Chromium e gli scenari browser sono stati eseguiti con successo nel job Node.js 22; il job Node.js 24 non ripete il browser E2E.
+
+### Non ancora dimostrato / non disponibile
+
+- Non è stato verificato né eseguito alcun trasferimento di dati storici preesistenti; lo schema Neon di staging, invece, è stato verificato come descritto di seguito. Il database production resta fuori dall'ambito della verifica.
+- Lo staging Render collegato al branch Neon `staging-pre-release` è attivo. L'utente ha verificato manualmente gestione clienti, dashboard e filtri, analisi/report, importazione CSV, segmentazione, confronti e impostazioni con dati sintetici. Per gli export CSV/Excel/PDF è stato verificato il download; il contenuto è stato controllato nel dettaglio per uno degli export, non per tutti.
+- Nessuna prova operativa di backup e ripristino.
+- Il commit di branch `c61e09b` aggiunge un test Playwright per il filtro canale della segmentazione; il codice applicativo corrispondente è già nel deploy staging `284182e`. La CI attuale usa Node.js 22 e 24, non 20/22.
+- La copertura cross-tenant non comprende ogni combinazione di route e operazione; vanno controllati anche i percorsi staging con due tenant. La CI non sostituisce il collaudo sul provider, test di carico o una revisione indipendente.
+- L'invio email richiede configurazione e verifica di Resend (`RESEND_API_KEY`, `EMAIL_FROM`); non è stata verificata la consegna reale. MFA/SSO e billing non sono implementati.
+- Sul database Neon di staging sono stati verificati schema, migrazioni/checksum, RLS e ruolo runtime. Il database e il servizio production non sono stati modificati né collaudati; la loro preparazione al rilascio resta fuori dall'ambito di questa verifica.
+
+### Criteri di accettazione
+
+Il prodotto non è pronto per un pilot con dati reali finché non sono soddisfatti tutti i seguenti criteri:
+
+1. Build client e server completate senza errori.
+2. Test automatici eseguiti e verdi su database PostgreSQL di test.
+3. Test d'integrazione per login, logout, scadenza e revoca sessioni.
+4. Test negativi che dimostrino che un utente del tenant A non può leggere o modificare dati del tenant B, anche conoscendo gli ID.
+5. Test dei quattro ruoli su tutte le API.
+6. Test import CSV, duplicati, file malformati, limiti e rollback transazionale.
+7. Migrazioni provate su database vuoto e su copia aggiornata dello schema.
+8. Test end-to-end dei flussi principali.
+9. Backup e ripristino provati; health check e logging verificati.
+10. Nessun segreto, dato reale o account privilegiato nel repository.
+11. Documentazione di installazione, configurazione, aggiornamento, backup, ripristino e gestione incidenti.
+12. Verifica manuale di accessibilità, responsive e browser supportati.
+
+## 7. Strategia di rilascio
+
+| Fase | Obiettivo | Risultato |
+|---|---|---|
+| 0. Stabilizzazione | Recuperare e verificare lo stato attuale | Build/test riproducibili e inventario dei gap |
+| 1. Core SaaS | PostgreSQL, migrazioni, auth, tenant isolation, ruoli | MVP sicuro in ambiente staging |
+| 2. Prodotto | Import/export, admin, audit, UX, gestione errori | Pilot pronto con dati controllati |
+| 3. Validazione | Demo e pilot con 2-3 aziende consenzienti | Feedback, metriche di utilizzo e priorità |
+| 4. Commerciale | Hosting affidabile, contratti, privacy, supporto, pricing | Prima release a pagamento |
+| 5. Crescita | Integrazioni, SSO, automazioni, report | Offerta per clienti più strutturati |
+
+Non si deve passare alla fase successiva solo perché la precedente è stata implementata: servono test e criteri di accettazione documentati.
+
+## 8. Ipotesi di modello commerciale da validare
+
+Non fissare prezzi definitivi prima delle interviste. Possibili metriche di packaging:
+
+- Starter: una organizzazione, numero limitato di utenti e volumi.
+- Professional: più utenti, segmentazione, import/export e report avanzati.
+- Enterprise: SSO, audit avanzato, supporto prioritario, SLA e opzioni di hosting dedicate.
+
+Il valore da validare con i clienti è il tempo risparmiato nell'analisi, la visibilità sulle perdite del funnel e la capacità di confrontare canali e coorti. Le metriche di vendita devono essere basate su pilot e casi d'uso reali, non su risultati sintetici.
+
+## 9. Posizionamento e presentazione
+
+La presentazione commerciale dovrà chiarire:
+
+- Problema aziendale affrontato e destinatari.
+- Demo con dataset dichiaratamente sintetico.
+- Architettura, sicurezza e confini del prodotto.
+- Casi d'uso misurabili da validare durante il pilot.
+- Roadmap e modello di licenza.
+- Stato reale delle funzionalità, distinguendo ciò che è disponibile da ciò che è pianificato.
+
+Non usare loghi o nomi di clienti come referenze senza autorizzazione scritta. Non dichiarare certificazioni, conformità, SLA o test di sicurezza non effettivamente conseguiti.

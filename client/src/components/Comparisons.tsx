@@ -151,31 +151,31 @@ function SegmentComparisonTable({
       {rows.length === 0 ? (
         <p className="subtitle">Nessun dato disponibile.</p>
       ) : (
-        <div className="table-wrapper">
+        <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Segmento</th>
-                <th>Clienti attuali</th>
-                <th>Clienti precedenti</th>
-                <th>Variazione</th>
-                <th>Conversione attuale</th>
-                <th>Conversione precedente</th>
-                <th>Differenza conversione</th>
+                <th scope="col">Segmento</th>
+                <th scope="col">Clienti attuali</th>
+                <th scope="col">Clienti precedenti</th>
+                <th scope="col">Variazione</th>
+                <th scope="col">Conversione attuale</th>
+                <th scope="col">Conversione precedente</th>
+                <th scope="col">Differenza conversione</th>
               </tr>
             </thead>
 
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td>
+                  <th scope="row">
                     {row.label}
                     {!row.existsCurrently && (
                       <span className="subtitle">
                         {" "} (non presente attualmente)
                       </span>
                     )}
-                  </td>
+                  </th>
 
                   <td>{formatNumber(row.currentCustomers)}</td>
 
@@ -273,6 +273,29 @@ export function Comparisons({ query }: ComparisonsProps) {
     [previousQuery],
   );
 
+  // Gli Hook vanno sempre chiamati nello stesso ordine: questo useMemo sta PRIMA di ogni return anticipato.
+
+  const channelRows = useMemo(() => {
+    const currentByChannel = new Map(
+      (currentChannels.data ?? []).map((row) => [row.channel, row]),
+    );
+
+    const previousByChannel = new Map(
+      (previousChannels.data ?? []).map((row) => [row.channel, row]),
+    );
+
+    const allChannels = new Set([
+      ...currentByChannel.keys(),
+      ...previousByChannel.keys(),
+    ]);
+
+    return Array.from(allChannels).map((channel) => ({
+      channel,
+      current: currentByChannel.get(channel),
+      previous: previousByChannel.get(channel),
+    }));
+  }, [currentChannels.data, previousChannels.data]);
+
   if (!query || !previousQuery) {
     return (
       <div className="card empty">
@@ -298,12 +321,12 @@ export function Comparisons({ query }: ComparisonsProps) {
     previousSegments.error;
 
   if (loading) {
-    return <p className="loading">Caricamento dei confronti…</p>;
+    return <p className="loading" role="status" aria-live="polite">Caricamento dei confronti…</p>;
   }
 
   if (error) {
     return (
-      <div className="error">
+      <div className="error" role="alert">
         Impossibile caricare i confronti: {error}
       </div>
     );
@@ -323,29 +346,6 @@ export function Comparisons({ query }: ComparisonsProps) {
   const currentKpis = current.kpis;
   const previousKpis = previous.kpis;
 
-  const currentChannelRows = currentChannels.data ?? [];
-  const previousChannelRows = previousChannels.data ?? [];
-
-  const channelRows = useMemo(() => {
-    const currentByChannel = new Map(
-      currentChannelRows.map((row) => [row.channel, row]),
-    );
-
-    const previousByChannel = new Map(
-      previousChannelRows.map((row) => [row.channel, row]),
-    );
-
-    const allChannels = new Set([
-      ...currentByChannel.keys(),
-      ...previousByChannel.keys(),
-    ]);
-
-    return Array.from(allChannels).map((channel) => ({
-      channel,
-      current: currentByChannel.get(channel),
-      previous: previousByChannel.get(channel),
-    }));
-  }, [currentChannelRows, previousChannelRows]);
 
   const currentSegmentData = currentSegments.data;
   const previousSegmentData = previousSegments.data;
@@ -377,7 +377,7 @@ export function Comparisons({ query }: ComparisonsProps) {
         />
 
         <KpiComparison
-          label="Lead"
+          label="Contatti acquisiti"
           current={currentKpis.leads}
           previous={previousKpis.leads}
         />
@@ -402,32 +402,32 @@ export function Comparisons({ query }: ComparisonsProps) {
         {channelRows.length === 0 ? (
           <p className="subtitle">Nessun canale disponibile.</p>
         ) : (
-          <div className="table-wrapper">
+          <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Canale</th>
-                  <th>Visite attuali</th>
-                  <th>Visite precedenti</th>
-                  <th>Clienti attuali</th>
-                  <th>Clienti precedenti</th>
-                  <th>Conversione attuale</th>
-                  <th>Conversione precedente</th>
-                  <th>Differenza conversione</th>
+                  <th scope="col">Canale</th>
+                  <th scope="col">Visite attuali</th>
+                  <th scope="col">Visite precedenti</th>
+                  <th scope="col">Clienti attuali</th>
+                  <th scope="col">Clienti precedenti</th>
+                  <th scope="col">Conversione attuale</th>
+                  <th scope="col">Conversione precedente</th>
+                  <th scope="col">Differenza conversione</th>
                 </tr>
               </thead>
 
               <tbody>
                 {channelRows.map(({ channel, current, previous }) => (
                   <tr key={channel}>
-                    <td>
+                    <th scope="row">
                       {channel}
                       {!current && (
                         <span className="subtitle">
                           {" "} (non presente attualmente)
                         </span>
                       )}
-                    </td>
+                    </th>
 
                     <td>{formatNumber(current?.visits ?? 0)}</td>
 
@@ -468,25 +468,25 @@ export function Comparisons({ query }: ComparisonsProps) {
       {currentSegmentData && previousSegmentData && (
         <>
           <SegmentComparisonTable
-            title="Confronto segmenti per canale"
+            title="Confronto dei segmenti per canale"
             current={currentSegmentData.channels}
             previous={previousSegmentData.channels}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti per fase funnel"
+            title="Confronto dei segmenti per fase del percorso"
             current={currentSegmentData.stages}
             previous={previousSegmentData.stages}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti per periodo di acquisizione"
+            title="Confronto dei segmenti per periodo di acquisizione"
             current={currentSegmentData.periods}
             previous={previousSegmentData.periods}
           />
 
           <SegmentComparisonTable
-            title="Confronto segmenti combinati"
+            title="Confronto dei segmenti combinati"
             current={currentSegmentData.combinations}
             previous={previousSegmentData.combinations}
           />

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   Target,
@@ -188,11 +188,11 @@ function SegmentDetail({
       </div>
 
       {loading && (
-        <p className="loading">Caricamento dei clienti…</p>
+        <p className="loading" role="status" aria-live="polite">Caricamento dei clienti…</p>
       )}
 
       {error && (
-        <div className="error">
+        <div className="error" role="alert">
           Impossibile caricare i clienti: {error}
         </div>
       )}
@@ -261,20 +261,31 @@ export function Segmentation({
   channels,
 }: SegmentationProps) {
   const [selected, setSelected] = useState<SelectedSegment | null>(null);
+  const [channelFilter, setChannelFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
+
+  // La segmentazione ha filtri locali: non deve ereditare il canale selezionato
+  // nella dashboard o nella pagina Confronti.
+  const segmentationQuery = query
+    ? { from: query.from, to: query.to, channel: channelFilter || undefined }
+    : null;
+
+  useEffect(() => {
+    setSelected(null);
+  }, [query?.from, query?.to, query?.channel, channelFilter, stageFilter]);
 
   const analysis = useAsync(
     (signal) =>
-      query
-        ? api.segments(query, signal)
+      segmentationQuery
+        ? api.segments(segmentationQuery, signal)
         : Promise.resolve(null),
-    [query?.from, query?.to, query?.channel],
+    [segmentationQuery?.from, segmentationQuery?.to, segmentationQuery?.channel],
   );
 
   const detailQuery =
-    query && selected
+    segmentationQuery && selected
       ? {
-          ...query,
+          ...segmentationQuery,
           dimension: selected.dimension,
           id: selected.id,
         }
@@ -316,7 +327,7 @@ export function Segmentation({
 
   if (analysis.loading && !analysis.data) {
     return (
-      <p className="loading">
+      <p className="loading" role="status" aria-live="polite">
         Caricamento dell'analisi dei segmenti…
       </p>
     );
@@ -324,7 +335,7 @@ export function Segmentation({
 
   if (analysis.error) {
     return (
-      <div className="error">
+      <div className="error" role="alert">
         Impossibile caricare la segmentazione: {analysis.error}
       </div>
     );
@@ -345,7 +356,7 @@ export function Segmentation({
       <div className="card">
         <div className="card-head">
           <div>
-            <h2>Customer Segmentation</h2>
+            <h2>Segmentazione dei clienti</h2>
             <p className="subtitle">
               Analisi dinamica della base clienti per canale, fase funnel,
               periodo e combinazione di criteri.
@@ -354,15 +365,17 @@ export function Segmentation({
 
           <button
             type="button"
-            className="theme-toggle"
+            className="button-secondary"
             onClick={() => {
               analysis.refresh();
               if (selected) detail.refresh();
             }}
             aria-label="Aggiorna segmentazione"
+            aria-busy={analysis.loading}
+            disabled={analysis.loading}
           >
             <RefreshCw size={17} />
-            <span>Aggiorna</span>
+            <span>{analysis.loading ? "Aggiornamento…" : "Aggiorna"}</span>
           </button>
         </div>
 
@@ -398,9 +411,9 @@ export function Segmentation({
 
         <select
           id="segment-channel-filter"
-          value={query.channel ?? ""}
-          disabled
-          aria-label="Canale ereditato dai filtri globali"
+          value={channelFilter}
+          onChange={(event) => setChannelFilter(event.target.value)}
+          aria-label="Canale di acquisizione"
         >
           <option value="">Tutti i canali</option>
           {channels.map((channel) => (
@@ -424,14 +437,33 @@ export function Segmentation({
         </select>
       </div>
 
+      {stageFilter === "active" && !data.stages.some((row) => row.id === "inactive") && (
+        <p className="hint" role="status">
+          Non ci sono fasi disattivate nei risultati selezionati: la visualizzazione coincide con tutte le fasi.
+        </p>
+      )}
+
       {sections.map((section) => {
         const Icon = section.icon;
         const rows = section.getRows(data);
 
         const filteredRows =
-          section.dimension === "stage" && stageFilter === "active"
-            ? rows.filter((row) => row.id !== "inactive")
-            : rows;
+          stageFilter !== "active"
+            ? rows
+            : section.dimension === "stage"
+              ? rows.filter((row) => row.id !== "inactive")
+              : section.dimension === "combination"
+                ? rows.filter((row) => {
+                    const separator = row.id.lastIndexOf("~");
+                    if (separator < 0) return true;
+
+                    try {
+                      return decodeURIComponent(row.id.slice(separator + 1)) !== "inactive";
+                    } catch {
+                      return true;
+                    }
+                  })
+                : rows;
 
         const selectedInSection =
           selected?.dimension === section.dimension;
