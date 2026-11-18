@@ -26,6 +26,8 @@ describe("Comparisons", () => {
     render(<Comparisons query={{ from: "2026-01-01", to: "2026-03-31" }} />);
     expect(screen.getByText(/Caricamento dei confronti/)).toBeTruthy();
     expect(await screen.findByText("Confronto tra periodi")).toBeTruthy();
+    expect(document.querySelectorAll(".comparison-kpi")).toHaveLength(4);
+    expect(document.querySelector(".comparison-neutral")).toBeTruthy();
     expect(errors.filter((e) => String(e).includes("Hooks"))).toEqual([]);
     spy.mockRestore();
   });
