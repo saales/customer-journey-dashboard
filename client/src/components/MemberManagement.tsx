@@ -139,7 +139,7 @@ export function MemberManagement() {
           </td>
         </tr>)}</tbody>
       </table></div>}
-    <div className="card" style={{ marginTop: 20 }}>
+    <div className="member-invite-panel">
       <h3>Invita un collaboratore</h3>
       <p className="hint">Crea un collegamento monouso. Se il servizio email è configurato, l'invito viene anche spedito automaticamente.</p>
       <form className="customer-form" onSubmit={(event) => void createInvite(event)}>
