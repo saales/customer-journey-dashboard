@@ -115,7 +115,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   // Invito reale monouso: l'accettazione avviene in un browser isolato.
   await page.getByRole("button", { name: "Impostazioni" }).click();
-  await page.locator(".card .card form.customer-form").getByLabel("Email").fill("analyst@e2e.example");
+  await page.locator(".member-invite-panel form.customer-form").getByLabel("Email").fill("analyst@e2e.example");
   await page.locator("form.customer-form select").selectOption("analyst");
   await page.getByRole("button", { name: "Crea invito (7 giorni)" }).click();
   const inviteInput = page.getByLabel("Collegamento da condividere");
@@ -145,7 +145,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   // Il viewer non può modificare, esportare o consultare l'audit.
   await page.getByRole("button", { name: "Impostazioni" }).click();
-  await page.locator(".card .card form.customer-form").getByLabel("Email").fill("viewer@e2e.example");
+  await page.locator(".member-invite-panel form.customer-form").getByLabel("Email").fill("viewer@e2e.example");
   await page.locator("form.customer-form select").selectOption("viewer");
   await page.getByRole("button", { name: "Crea invito (7 giorni)" }).click();
   const viewerInviteInput = page.getByLabel("Collegamento da condividere");
@@ -172,7 +172,7 @@ test("percorso amministratore e limitazione dei permessi analista", async ({ pag
 
   // L'editor può lavorare sui dati ma non amministrare membri o audit.
   await page.getByRole("button", { name: "Impostazioni" }).click();
-  await page.locator(".card .card form.customer-form").getByLabel("Email").fill("editor@e2e.example");
+  await page.locator(".member-invite-panel form.customer-form").getByLabel("Email").fill("editor@e2e.example");
   await page.locator("form.customer-form select").selectOption("editor");
   await page.getByRole("button", { name: "Crea invito (7 giorni)" }).click();
   const editorInviteInput = page.getByLabel("Collegamento da condividere");
