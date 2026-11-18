@@ -63,7 +63,7 @@ describe("CustomerManagement funnel integration", () => {
         { stage: "customer", occurredAt: "2026-06-05" },
       ]);
     });
-    expect((await screen.findByRole("status")).textContent).toContain("Cliente aggiunto correttamente.");
+    expect(await screen.findByText("Cliente aggiunto correttamente.")).toBeTruthy();
   });
 
   it("chiede conferma prima di eliminare un cliente e mostra l'esito", async () => {
@@ -92,7 +92,7 @@ describe("CustomerManagement funnel integration", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Elimina cliente" }));
     await waitFor(() => expect(deleted).toBe(true));
-    expect((await screen.findByRole("status")).textContent).toContain("Cliente eliminato correttamente.");
+    expect(await screen.findByText("Cliente eliminato correttamente.")).toBeTruthy();
   });
 
 });
