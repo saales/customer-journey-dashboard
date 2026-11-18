@@ -65,15 +65,14 @@ describe("Impostazioni account", () => {
       { id: "session-other", createdAt: "2026-11-13T10:00:00Z", lastUsedAt: "2026-11-13T11:00:00Z", expiresAt: "2026-11-13T22:00:00Z", current: false },
     ] });
     vi.mocked(api.revokeAccountSession).mockResolvedValue(undefined);
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<AccountSettings />);
     expect(await screen.findByText("Questo dispositivo")).toBeTruthy();
     expect(screen.getByText("Sessione attiva")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Revoca" }));
+    expect(await screen.findByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Revoca sessione" }));
     await waitFor(() => expect(api.revokeAccountSession).toHaveBeenCalledWith("session-other"));
-    expect(confirm).toHaveBeenCalled();
     expect((await screen.findByRole("status")).textContent).toContain("Sessione revocata.");
-    confirm.mockRestore();
   });
 
   it("mostra un errore se il profilo non può essere caricato", async () => {
