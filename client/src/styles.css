@@ -2626,3 +2626,43 @@ button:disabled {
 .app-shell a.button-secondary {
   text-decoration: none;
 }
+
+/* Recupero credenziali: dettaglio integrato nella schermata di accesso */
+.auth-recovery {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #dce1dc;
+}
+
+.auth-recovery summary {
+  width: fit-content;
+  color: #0e6b63;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+  text-underline-offset: 3px;
+}
+
+.auth-recovery summary:hover {
+  color: #0a4f49;
+}
+
+.auth-recovery[open] summary {
+  margin-bottom: 16px;
+}
+
+.auth-recovery .auth-form {
+  gap: 13px;
+}
+
+.auth-screen .loading {
+  color: #5b6772;
+}
+
+@media (max-width: 520px) {
+  .auth-recovery {
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+}
+
