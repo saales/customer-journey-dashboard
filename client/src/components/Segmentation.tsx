@@ -365,7 +365,7 @@ export function Segmentation({
 
           <button
             type="button"
-            className="theme-toggle"
+            className="button-secondary"
             onClick={() => {
               analysis.refresh();
               if (selected) detail.refresh();
