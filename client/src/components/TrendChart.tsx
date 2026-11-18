@@ -60,7 +60,7 @@ export function TrendChart({
       </p>
 
       <div
-        className="chart-container trend-chart-container"
+        className="chart-container"
         role="img"
         aria-label={`Grafico dell'andamento mensile. ${data.map((point) => `${formatMonth(point.month)}: ${formatNumber(point.visits)} visite, ${formatNumber(point.customers)} clienti, conversione ${formatPercent(point.conversion)}.`).join(" ")}`}
       >
