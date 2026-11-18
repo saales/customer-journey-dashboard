@@ -4,7 +4,7 @@ Questa procedura prepara il collaudo su un ambiente di staging PostgreSQL/Neon *
 Non applica migrazioni da sola e non tocca la produzione. Ogni passo ha un criterio di superamento e produce
 un'evidenza da archiviare.
 
-> Stato al 17 novembre 2026: Neon staging è stato predisposto e verificato per migrazioni 001–013, checksum, RLS e ruolo runtime non privilegiato; il servizio Render staging è live. I flussi applicativi principali sono stati collaudati manualmente con dati sintetici. Gli script di smoke test automatizzato, backup logico e ripristino **non sono ancora stati eseguiti su Neon**: non dichiarare superati questi gate finché non esistono evidenze archiviate.
+> Stato al 18 novembre 2026: il backup logico del branch Neon staging è stato eseguito localmente con `pg_dump 18.7`, formato custom, file con permessi 600. L'archivio `staging-20261118-102231.dump` contiene 114 voci TOC e 14 tabelle; `pg_restore --list` e la lettura completa dell'archivio sono riusciti. Il ripristino è stato eseguito con `pg_restore --exit-on-error` su un database locale isolato PostgreSQL 18.7, sulla porta loopback 5433; l'operazione è terminata con codice 0. Sono state verificate le 14 tabelle e i conteggi: 240 clienti, 501 eventi, 1 organizzazione, 1 utente e 15 record di audit. Il server temporaneo è stato arrestato. Questa prova riguarda esclusivamente staging e un ripristino locale: non configura una pianificazione automatica, non verifica un ripristino su Neon/Render e non dimostra un piano di disaster recovery. Produzione non è stata toccata.
 
 ## 0. Principi
 
