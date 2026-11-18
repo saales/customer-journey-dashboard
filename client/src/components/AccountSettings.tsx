@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, type AccountProfile, type AccountSession } from "../api";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 export function AccountSettings() {
   const [profile,setProfile]=useState<AccountProfile|null>(null);
@@ -10,6 +11,7 @@ export function AccountSettings() {
   const [loading,setLoading]=useState(true);
   const [sessions,setSessions]=useState<AccountSession[]>([]);
   const [revokingSession,setRevokingSession]=useState("");
+  const [pendingSession,setPendingSession]=useState<AccountSession|null>(null);
   const [savingProfile,setSavingProfile]=useState(false);
   const [savingPassword,setSavingPassword]=useState(false);
   const [error,setError]=useState("");
@@ -22,6 +24,21 @@ export function AccountSettings() {
     finally{setLoading(false);}
   }
   useEffect(()=>{void load();},[]);
+
+  async function revokeSession(session: AccountSession) {
+    setRevokingSession(session.id);setError("");setMessage("");
+    try {
+      await api.revokeAccountSession(session.id);
+      setSessions(current=>current.filter(item=>item.id!==session.id));
+      setPendingSession(null);
+      setMessage("Sessione revocata.");
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:"Impossibile revocare la sessione.");
+    } finally {
+      setRevokingSession("");
+    }
+  }
+
 
   async function saveProfile(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setSavingProfile(true);setError("");setMessage("");
@@ -48,6 +65,7 @@ export function AccountSettings() {
       <button type="button" className="button-secondary" onClick={()=>void load()}>Aggiorna</button></div>
     {error&&<div className="error" role="alert">{error}</div>}
     {message&&<div className="notice" role="status">{message}</div>}
+    {pendingSession&&<ConfirmDialog title="Revocare la sessione?" message="Il dispositivo dovrà effettuare nuovamente l’accesso. La sessione corrente non viene modificata." confirmLabel="Revoca sessione" onCancel={()=>setPendingSession(null)} onConfirm={()=>void revokeSession(pendingSession)}/>}
     {profile&&<>
       <form className="customer-form" onSubmit={event=>void saveProfile(event)}>
         <label>Nome e cognome<input type="text" required minLength={1} maxLength={150} value={fullName} onChange={event=>setFullName(event.target.value)}/></label>
@@ -65,13 +83,7 @@ export function AccountSettings() {
             <span className="hint">Ultimo utilizzo: {new Date(session.lastUsedAt).toLocaleString("it-IT")}</span>
             <span className="hint">Accesso: {new Date(session.createdAt).toLocaleString("it-IT")}</span>
           </div>
-          {session.current?<span className="session-current">Corrente</span>:<button type="button" className="button-secondary" disabled={revokingSession===session.id} onClick={async()=>{
-            if(!window.confirm("Revocare questa sessione? Il dispositivo dovrà accedere nuovamente."))return;
-            setRevokingSession(session.id);setError("");setMessage("");
-            try{await api.revokeAccountSession(session.id);setSessions(current=>current.filter(item=>item.id!==session.id));setMessage("Sessione revocata.");}
-            catch(cause){setError(cause instanceof Error?cause.message:"Impossibile revocare la sessione.");}
-            finally{setRevokingSession("");}
-          }}>{revokingSession===session.id?"Revoca…":"Revoca"}</button>}
+          {session.current?<span className="session-current">Corrente</span>:<button type="button" className="button-secondary" disabled={revokingSession===session.id} onClick={()=>setPendingSession(session)}>{revokingSession===session.id?"Revoca…":"Revoca"}</button>}
         </div>)}
       </div>}
       <div className="divider" />
