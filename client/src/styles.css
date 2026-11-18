@@ -2401,3 +2401,52 @@ button:disabled {
 .header-copy { min-width: 0; flex: 1 1 auto; }
 .app-header p { max-width: min(52ch, 100%); overflow-wrap: anywhere; }
 .sidebar-nav { margin-top: 18px; }
+
+
+/* Conferme contestuali coerenti con il tema */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 20, 28, 0.56);
+  backdrop-filter: blur(3px);
+}
+.confirm-dialog {
+  width: min(100%, 440px);
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 24px 70px rgba(8, 20, 39, 0.24);
+}
+.confirm-dialog h3 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+.confirm-dialog p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.button-danger {
+  padding: 10px 16px;
+  border: 1px solid #b5432e;
+  border-radius: 9px;
+  background: #b5432e;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+}
+.button-danger:hover { background: #963722; }
+.theme-dark .button-danger { border-color: #e58570; background: #b84e39; color: #fff; }
