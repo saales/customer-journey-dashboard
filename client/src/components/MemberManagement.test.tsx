@@ -94,3 +94,35 @@ describe("Invio degli inviti", () => {
     );
   });
 });
+
+describe("Revoca degli inviti", () => {
+  it("richiede conferma prima di revocare un invito e mostra l'esito", async () => {
+    const invitation = {
+      id: "33333333-3333-4333-8333-333333333333",
+      email: "ospite@example.it",
+      role: "editor" as const,
+      status: "pending" as const,
+      createdAt: "2026-11-17T10:00:00Z",
+      expiresAt: "2026-11-24T10:00:00Z",
+      acceptedAt: null,
+      revokedAt: null,
+    };
+    vi.mocked(api.invitations)
+      .mockResolvedValueOnce([invitation])
+      .mockResolvedValueOnce([]);
+    vi.mocked(api.revokeInvitation).mockResolvedValue(undefined);
+
+    render(<MemberManagement />);
+    fireEvent.click(await screen.findByRole("button", { name: "Revoca" }));
+
+    expect(await screen.findByRole("alertdialog")).toBeTruthy();
+    expect(api.revokeInvitation).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Revoca invito" }));
+    await waitFor(() => {
+      expect(api.revokeInvitation).toHaveBeenCalledWith(invitation.id);
+    });
+    expect((await screen.findByRole("status")).textContent).toContain("Invito revocato.");
+  });
+});
+
