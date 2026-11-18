@@ -822,7 +822,7 @@ export function DataImport({ onDataChange }: DataImportProps) {
           <div className="import-actions">
             <button
               type="button"
-              className="primary"
+              className="button-primary"
               onClick={handleImport}
               disabled={
                 invalidCount > 0 ||
