@@ -310,7 +310,7 @@ export function ExportButton({
           </button>
         </div>
       )}
-      {exportError && <p className="export-error" role="alert">{exportError}</p>}
+      {exportError && <p className="error" role="alert">{exportError}</p>}
     </div>
   );
 }
