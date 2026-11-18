@@ -95,6 +95,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
   async function saveCustomer() {
     try {
       setFormError(null);
+      setMessage(null);
       const input = buildCustomerInput();
       const wasEditing = Boolean(editingCustomer);
       if (editingCustomer) {
@@ -135,6 +136,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
   async function handleDelete(customer: Customer) {
     try {
       setError(null);
+      setMessage(null);
       await api.deleteCustomer(customer.id);
       const nextPage = customers.length === 1 && page > 1 ? page - 1 : page;
       await loadCustomers(nextPage);
@@ -142,6 +144,7 @@ export function CustomerManagement({ onDataChange, serverExportEnabled = false, 
       setPendingDelete(null);
       setMessage("Cliente eliminato correttamente.");
     } catch (err) {
+      setPendingDelete(null);
       setError(err instanceof Error ? err.message : "Errore durante l'eliminazione.");
     }
   }
