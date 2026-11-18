@@ -2450,3 +2450,27 @@ button:disabled {
 }
 .button-danger:hover { background: #963722; }
 .theme-dark .button-danger { border-color: #e58570; background: #b84e39; color: #fff; }
+
+
+/* Pannelli secondari e paginazione */
+.member-invite-panel {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border-color);
+}
+.audit-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+}
+.audit-pagination > .funnel-stage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .audit-pagination { align-items: flex-start; flex-direction: column; }
+}
