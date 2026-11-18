@@ -63,5 +63,6 @@ describe("CustomerManagement funnel integration", () => {
         { stage: "customer", occurredAt: "2026-06-05" },
       ]);
     });
+    expect((await screen.findByRole("status")).textContent).toContain("Cliente aggiunto correttamente.");
   });
 });
