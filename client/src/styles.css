@@ -740,7 +740,7 @@ button {
   border: 1px solid #bfdad4;
   border-radius: 10px;
   background: #e7f1ee;
-  color: #2546a5;
+  color: #14584f;
   font-size: 0.88rem;
   line-height: 1.5;
 }
@@ -766,8 +766,8 @@ button {
 
 .theme-dark .notice {
   border-color: #24394a;
-  background: #202f4b;
-  color: #c7d5ff;
+  background: rgba(79, 179, 165, 0.12);
+  color: #bde8df;
 }
 
 .theme-dark .error {
